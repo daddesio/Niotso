@@ -1,0 +1,8 @@
+All you need installed to compile Niotso for Windows, Linux, or Mac is GCC.
+
+Run "make" in this directory to compile every package.
+Run "make install" after compiling to install Niotso to your game directory; please specify it first in the Makefile.
+
+Run "make objclean" to delete all object files created during compilation.
+Run "make clean" to delete all object files and executable files created during compilation.
+Run "make uninstall" to delete Niotso from your game directory.

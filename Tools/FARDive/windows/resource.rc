@@ -1,0 +1,169 @@
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include "../version.hpp"
+#include "resource.hpp"
+
+ID_MANIFEST			RT_MANIFEST	"resources/Windows/FARDive.exe.manifest"
+IDI_FARDIVE			ICON		"resources/Windows/FARDive.ico"
+
+ID_VERSIONINFO		VERSIONINFO
+FILEVERSION			FD_VERSION_A,FD_VERSION_B,FD_VERSION_C,FD_REVISION
+PRODUCTVERSION		FD_VERSION_A,FD_VERSION_B,FD_VERSION_C,FD_REVISION
+FILEOS				0x00040000L //Windows 32-bit+
+FILETYPE			1	//1 is exe, 2 is dll, and so on.
+						//The list can be found at <http://msdn.microsoft.com/en-us/library/aa381058.aspx>
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904B0"
+		BEGIN
+			VALUE "CompanyName",		"Written by Fatbag."
+			VALUE "FileDescription",	"An interactive file browser for FAR/DBPF"
+			VALUE "FileVersion",		FDVERSION
+			VALUE "InternalName",		"FARDive"
+			VALUE "LegalCopyright",		"X11 license"
+			VALUE "OriginalFilename",	"FARDive.exe"
+			VALUE "ProductName",		"FARDive"
+			VALUE "ProductVersion",		FDVERSION
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x0409, 0x04B0
+	END
+END
+
+IDM_FARDIVE			MENUEX
+BEGIN
+	POPUP "&File"
+	BEGIN
+		MENUITEM "&New...\tCtrl+N",						ID_FILE_NEW
+		MENUITEM "&Open...\tCtrl+O",					ID_FILE_OPEN
+		MENUITEM "&Save\tCtrl+S",						ID_FILE_SAVE, MFT_STRING,MFS_GRAYED
+		MENUITEM "Save &As...",							ID_FILE_SAVEAS, MFT_STRING,MFS_GRAYED
+		MENUITEM SEPARATOR
+		MENUITEM "A&dd to archive...",					ID_FILE_ADD, MFT_STRING,MFS_GRAYED
+		MENUITEM "Export a&ll...",						ID_FILE_EXPORTALL, MFT_STRING,MFS_GRAYED
+		MENUITEM "Export s&elected...",					ID_FILE_EXPORTSELECTED, MFT_STRING,MFS_GRAYED
+		MENUITEM "Change archive &type...",				ID_FILE_CHANGETYPE, MFT_STRING,MFS_GRAYED
+		MENUITEM SEPARATOR
+        MENUITEM "&Close archive\tCtrl+W",				ID_FILE_CLOSE, MFT_STRING,MFS_GRAYED
+		MENUITEM "E&xit",								ID_FILE_EXIT
+	END
+	POPUP "&Edit"
+	BEGIN
+		MENUITEM "&Duplicate\tCtrl+D",					ID_EDIT_DUPLICATE, MFT_STRING,MFS_GRAYED
+		MENUITEM "&Remove\tDel",						ID_EDIT_REMOVE, MFT_STRING,MFS_GRAYED
+		MENUITEM SEPARATOR
+		MENUITEM "Re&name",								ID_EDIT_RENAME, MFT_STRING,MFS_GRAYED
+		MENUITEM "File pr&operties...",					ID_EDIT_PROPERTIES, MFT_STRING,MFS_GRAYED
+		MENUITEM "Change file &contents...",			ID_EDIT_CONTENTS, MFT_STRING,MFS_GRAYED
+		MENUITEM SEPARATOR
+		MENUITEM "&Find...\tCtrl+F",					ID_EDIT_FIND, MFT_STRING,MFS_GRAYED
+		MENUITEM "Find ne&xt\tF3",						ID_EDIT_FINDNEXT, MFT_STRING,MFS_GRAYED
+		MENUITEM "Find pre&vious\tShift+F3",			ID_EDIT_FINDPREVIOUS, MFT_STRING,MFS_GRAYED
+		MENUITEM "&Show all matches",					ID_EDIT_MATCHES, MFT_STRING,MFS_GRAYED
+		MENUITEM "&Go to...\tCtrl+G",					ID_EDIT_GOTO, MFT_STRING,MFS_GRAYED
+		MENUITEM SEPARATOR
+		MENUITEM "&Preferences...",						ID_EDIT_PREFERENCES
+	END
+	POPUP "&Tools"
+	BEGIN
+		MENUITEM "Re&compress...",						ID_TOOLS_RECOMPRESS, MFT_STRING,MFS_GRAYED
+		MENUITEM "Re-&sort files...",					ID_TOOLS_RESORT, MFT_STRING,MFS_GRAYED
+		MENUITEM "Remove t&rash files...",				ID_TOOLS_REMOVETRASH, MFT_STRING,MFS_GRAYED
+		MENUITEM "&Batch processing...",				ID_TOOLS_BATCH
+	END
+	POPUP "&Help"
+	BEGIN
+		MENUITEM "Visit &Website...",					ID_HELP_WEBSITE
+		MENUITEM SEPARATOR
+		MENUITEM "&About",								ID_HELP_ABOUT
+	END
+END
+
+IDI_FILE_NEW			RCDATA "resources/icons/document-new.png"
+IDI_FILE_OPEN			RCDATA "resources/icons/document-open.png"
+IDI_FILE_SAVE			RCDATA "resources/icons/document-save.png"
+IDI_FILE_SAVEAS			RCDATA "resources/icons/document-save-as.png"
+IDI_FILE_ADD			RCDATA "resources/icons/list-add.png"
+IDI_FILE_EXPORTALL		RCDATA "resources/icons/package-x-generic.png"
+IDI_FILE_EXPORTSELECTED	RCDATA "resources/icons/package-x-generic-selected.png"
+IDI_FILE_CHANGETYPE		RCDATA "resources/icons/applications-other.png"
+IDI_FILE_CLOSE			RCDATA "resources/icons/emblem-unreadable.png"
+IDI_FILE_EXIT			RCDATA "resources/icons/system-log-out.png"
+IDI_EDIT_DUPLICATE		RCDATA "resources/icons/edit-copy.png"
+IDI_EDIT_REMOVE			RCDATA "resources/icons/list-remove.png"
+IDI_EDIT_RENAME			RCDATA "resources/icons/edit-select-all.png"
+IDI_EDIT_PROPERTIES		RCDATA "resources/icons/document-properties.png"
+IDI_EDIT_CONTENTS		RCDATA "resources/icons/accessories-text-editor.png"
+IDI_EDIT_FIND			RCDATA "resources/icons/edit-find.png"
+IDI_EDIT_FINDNEXT		RCDATA "resources/icons/go-last.png"
+IDI_EDIT_FINDPREVIOUS	RCDATA "resources/icons/go-first.png"
+IDI_EDIT_MATCHES		RCDATA "resources/icons/preferences-system-windows.png"
+IDI_EDIT_GOTO			RCDATA "resources/icons/go-jump.png"
+IDI_EDIT_PREFERENCES	RCDATA "resources/icons/preferences-desktop.png"
+IDI_TOOLS_RECOMPRESS	RCDATA "resources/icons/system-file-manager.png"
+IDI_TOOLS_RESORT		RCDATA "resources/icons/mail-send-receive.png"
+IDI_TOOLS_REMOVEHOLES	RCDATA "resources/icons/edit-clear.png"
+IDI_TOOLS_BATCH			RCDATA "resources/icons/utilities-terminal.png"
+IDI_HELP_WEBSITE		RCDATA "resources/icons/internet-web-browser.png"
+
+IDB_INFO                BITMAP "resources/icons/info.bmp"
+
+ID_ACCELERATOR		    ACCELERATORS
+BEGIN
+    "^N", ID_FILE_NEW, ASCII
+    "^O", ID_FILE_OPEN, ASCII
+    "^S", ID_FILE_SAVE, ASCII
+    "^W", ID_FILE_CLOSE, ASCII
+    
+    "^D", ID_EDIT_DUPLICATE, ASCII
+    "^F", ID_EDIT_FIND, ASCII
+	VK_F3, ID_EDIT_FINDNEXT, VIRTKEY
+    VK_F3, ID_EDIT_FINDPREVIOUS, SHIFT, VIRTKEY
+    "^G", ID_EDIT_GOTO, ASCII
+END
+
+IDD_NEWARCHIVE DIALOGEX 0, 0, 200, 161
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "New archive"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    LTEXT			"",IDC_STATIC,-2,-2,204,27,SS_WHITERECT | WS_BORDER
+    RTEXT			"Archive type:",IDC_NA_TYPETEXT,12,9,80,8
+    COMBOBOX		IDC_NA_TYPE,108,7,50,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX		"FAR options",IDC_STATIC,7,33,186,30
+    RTEXT			"Version:",IDC_NA_FARVERSIONTEXT,12,44,80,8
+    COMBOBOX		IDC_NA_FARVERSION,108,43,50,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL			IDB_INFO,IDC_NA_FARINFO,"STATIC",SS_BITMAP | SS_NOTIFY | SS_REALSIZEIMAGE,164,44,11,10
+    GROUPBOX		"DBPF options",IDC_STATIC,7,71,186,62
+    RTEXT			"Archive Version:",IDC_NA_DBPFVERSIONTEXT,12,83,80,8
+    COMBOBOX		IDC_NA_DBPFVERSION,108,81,50,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT			"Index Version:",IDC_NA_INDEXVERSIONTEXT,12,103,80,8
+    COMBOBOX		IDC_NA_INDEXVERSION,108,101,50,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL			IDB_INFO,IDC_NA_DBPFINFO,"STATIC",SS_BITMAP | SS_NOTIFY | SS_REALSIZEIMAGE,164,92,11,10
+    CHECKBOX		"Use QFS compression",IDC_NA_DBPFCOMPRESS,12,118,100,10,BS_AUTOCHECKBOX | WS_TABSTOP
+	DEFPUSHBUTTON	"OK",IDOK,34,140,50,14
+	PUSHBUTTON		"Cancel",IDCANCEL,116,140,50,14
+END
+
+IDD_ADDTOARCHIVE_FAR1 DIALOGEX 0, 0, 200, 149
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Add to archive"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    GROUPBOX		"Source",IDC_STATIC,7,7,186,30
+    CTEXT			"File:",IDC_STATIC,12,18,30,8
+    EDITTEXT        IDC_A2A_FILE,44,16,90,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_A2A_BROWSE,138,16,50,14
+    GROUPBOX		"Attributes",IDC_STATIC,7,44,186,58
+    CTEXT			"File name:",IDC_STATIC,12,54,80,8
+    EDITTEXT        IDC_A2A_FILENAME,96,52,92,14,ES_AUTOHSCROLL
+    CTEXT			"Type ID:",IDC_STATIC,12,70,80,8
+    EDITTEXT        IDC_A2A_TYPEID,96,68,92,14,ES_AUTOHSCROLL
+    CTEXT			"Instance ID:",IDC_STATIC,12,86,80,8
+    EDITTEXT        IDC_A2A_INSTANCEID,96,84,92,14,ES_AUTOHSCROLL
+	DEFPUSHBUTTON	"OK",IDOK,34,128,50,14
+	PUSHBUTTON		"Cancel",IDCANCEL,116,128,50,14
+END
