@@ -1,0 +1,1 @@
+filehandler: bmp cmx ini libfar libjpeg-turbo libpng mpg123 tga vtd-xml wav xa zlib
