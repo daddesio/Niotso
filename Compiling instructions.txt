@@ -1,4 +1,4 @@
-All you need installed to compile Niotso for Windows, Linux, or Mac is GCC 4.6 or newer.
+All you need installed to compile Niotso for Windows, Linux, or Mac is GCC 4.6 or newer, and NASM for libjpeg-turbo.
 
 Run "make" in this directory to compile every package. -j # will greatly speed up the compile time for processors with # cores.
 Run "make install" after compiling to install Niotso to your game directory; please specify it first in the Makefile.

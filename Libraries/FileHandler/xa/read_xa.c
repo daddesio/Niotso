@@ -37,12 +37,12 @@
 
 unsigned xa_compressed_size(unsigned Frames, unsigned Channels)
 {
-    /* The required input size is:
-    **   Channels * (ceil(n/2) + ceil(n/28))
-    **               |   a   |   |   b    |
+    /* This function calculates the size of compressed XA data with known frames and channels, as such:
+    **   Channels * (ceil(Frames/2) + ceil(Frames/28))
+    **               |     a      |   |      b      |
     **
-    ** a = The space required for all 2-sample bytes in the XA data for a single channel (Period: 2 frames)
-    ** b = The space required for all control bytes in the XA data for a single channel (Period: 28 frames)
+    ** a = The space required for all sample bytes in the XA data for a single channel (1 byte every 2 frames)
+    ** b = The space required for all control bytes in the XA data for a single channel (1 byte every 28 frames)
     ** (a+b) is multiplied by Channels to produce the final size
     **
     ** This source package assumes a partial block at the end of the XA data is legal but a partial frame is not.

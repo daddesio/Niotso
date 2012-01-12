@@ -7,6 +7,9 @@ buildenv = cmd
 # Installation directory (do not use backslashes)
 installdir = c:/Program Files (x86)/Maxis/The Sims Online/Niotso
 
+# Debugging (valid options: yes no)
+debug = no
+
 # Profile-guided optimization (valid options: none instrument optimize)
 pgo = none
 
@@ -21,6 +24,8 @@ LDFLAGS = -m32 -static -static-libgcc
 ARFLAGS = rcs
 RCFLAGS = -F pe-i386
 
+CFLAGS_LANG_C   =
+CFLAGS_LANG_CPP =
 
 ####
 ## [Profiles]
@@ -46,13 +51,13 @@ WARNINGS = -Wall -Wextra -pedantic
 ifeq ($(buildenv),cmd)
     RM_R = -@del /s /q
     CP_F = copy /y
-    EXE = .exe
-    DLL = .dll
+    EXE  = .exe
+    DLL  = .dll
 else
     RM_R = -@rm -r
     CP_F = cp -f
-    EXE =
-    DLL = .so
+    EXE  =
+    DLL  = .so
 endif
 
 ifeq ($(pgo),instrument)
@@ -68,11 +73,16 @@ endif
 
 include packages.makefile
 
+filter_obj = *.o *.lo *.la *.Plo *.Pla *.gch *.pch *.obj *.res *.exp *.dep *.aps *.intermediate.manifest
+filter_exe = *.exe *.dll *.so *.a *.lib
+filter_profile = *.gcda
+filter_dist =  *.dsp *.dsw *.user *.ncb *.pdb *.idb *.opt *.plg *.suo */BuildLog.htm
+
 objclean:
-	$(RM_R) *.o *.lo *.la *.Plo *.Pla *.gch *.pch *.obj *.res
-
+	$(RM_R) $(filter_obj)
 clean: objclean
-	$(RM_R) *.exe *.dll *.so *.a *.lib
-
-distclean: clean
-	$(RM_R) *.gcda
+	$(RM_R) $(filter_obj) $(filter_exe)
+profileclean:
+	$(RM_R) $(filter_profile)
+distclean:
+	$(RM_R) $(filter_obj) $(filter_exe) $(filter_profile) $(filter_dist)
