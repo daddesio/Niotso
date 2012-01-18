@@ -38,8 +38,8 @@ typedef struct {
     int UseLattice;
     unsigned NoiseFloor;
     float FixedCodebook[64]; /* Fixed codebook gain matrix */
-    float ImpulseTrain[12]; /* Impulse train matrix */
-    float R[12]; /* Autocorrelation coefficient matrix */
+    float ImpulseTrain[12];  /* Impulse train matrix */
+    float R[12];             /* Autocorrelation coefficient matrix */
     float Delay[324];
     float DecompressedBlock[432];
 } utkparams_t;
