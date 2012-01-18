@@ -1,5 +1,5 @@
 /*
-    read_utk.c - Copyright (c) 2011 Fatbag <X-Fi6@phppoll.org>
+    read_utk.c - Copyright (c) 2011-2012 Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -88,10 +88,10 @@ int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer
             if(value < -32767)
                 value = 32767;
             else if(value > 32768)
-                value = 98304;
+                value = 32768;
 
-            *(OutBuffer++) = (value&0x00FFu)>>(8*0);
-            *(OutBuffer++) = (value&0xFF00u)>>(8*1);
+            *(OutBuffer++) = (value&0x00FF)>>(8*0);
+            *(OutBuffer++) = (value&0xFF00)>>(8*1);
         }
         Frames -= BlockSize;
     }
@@ -99,7 +99,7 @@ int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer
 }
 
 void UTKGenerateTables(void){
-    /* Call once */
+    /* Call once per runtime */
     int i;
 
     /* UTKTable1 */
@@ -139,108 +139,111 @@ void UTKGenerateTables(void){
     }
 }
 
-uint8_t ReadBits(utkparams_t *p, uint8_t i){
-    unsigned returnvalue = (255>>(8-i)) & p->x;
-    p->x >>= i;
-    p->y -= i;
+uint8_t ReadBits(utkparams_t *p, uint8_t bits){
+    unsigned value = p->UnreadBitsValue & (255>>(8-bits));
+    p->UnreadBitsValue >>= bits;
+    p->UnreadBitsCount -= bits;
 
-    if(p->y < 8){
-        unsigned value = *(p->InData++);
-        p->x |= value << (p->y&0xFF);
-        p->y += 8;
+    if(p->UnreadBitsCount < 8){
+        p->UnreadBitsValue |= *(p->InData++) << p->UnreadBitsCount;
+        p->UnreadBitsCount += 8;
     }
-    return returnvalue;
+    return value;
 }
 
 void SetUTKParameters(utkparams_t *p){
+    /* Call once per file */
     int i;
     float s;
-    p->x = *(p->InData++);
-    p->y = 8;
-    p->a = ReadBits(p, 1);
-    p->b = 32 - ReadBits(p, 4);
-    p->c[0] = (ReadBits(p, 4)+1)*8;
+    p->UnreadBitsValue = *(p->InData++);
+    p->UnreadBitsCount = 8;
+    p->UseLattice = (int)ReadBits(p, 1);
+    p->NoiseFloor = 32 - ReadBits(p, 4);
+    p->FixedCodebook[0] = (ReadBits(p, 4)+1)*8;
 
-    s = ((float)ReadBits(p, 6))/1000 + 1.04;
+    s = (float)ReadBits(p, 6)/1000 + 1.04;
     for(i=1; i<64; i++)
-        p->c[i] = p->c[i-1]*s;
+        p->FixedCodebook[i] = p->FixedCodebook[i-1]*s;
 
-    memset(&p->c[64], 0, 24*sizeof(float));
-    memset(p->d, 0, 324*sizeof(float));
+    memset(p->ImpulseTrain, 0, 12*sizeof(float));
+    memset(p->R, 0, 12*sizeof(float));
+    memset(p->Delay, 0, 324*sizeof(float));
 }
 
 void DecompressBlock(utkparams_t *p){
     int i,j;
     float Window[118];
     float Matrix[12];
-    int Branch = 0;
-    
+    int Voiced = 0;
+
     memset(&Window[0], 0, 5*sizeof(float));
     memset(&Window[113], 0, 5*sizeof(float));
 
     for(i=0; i<12; i++){
         unsigned result = ReadBits(p, (i<4) ? 6 : 5);
-        if(i==0 && p->b > result) Branch++;
-        Matrix[i] = (UTKTable1[result + ((i<4)?0:16)] - p->c[64+i])/4;
+        if(i==0 && p->NoiseFloor > result) Voiced++;
+        Matrix[i] = (UTKTable1[result + ((i<4)?0:16)] - p->ImpulseTrain[i])/4;
     }
 
     for(i=0; i<4; i++){
-        float c1, c2;
-        int o = (int)ReadBits(p, 8);
-        c1 = ((float)ReadBits(p, 4))/15;
-        c2 = p->c[ReadBits(p, 6)];
+        float PitchGain, InnovationGain;
+        int Phase = (int)ReadBits(p, 8);
+        PitchGain = (float)ReadBits(p, 4)/15;
+        InnovationGain = p->FixedCodebook[ReadBits(p, 6)];
 
-        if(!p->a){
-            Unknown1(p, Branch, &Window[5], 1);
+        if(!p->UseLattice){
+            LatticeFilter(p, Voiced, &Window[5], 1);
         }else{
-            unsigned x = ReadBits(p, 1);
-            unsigned y = ReadBits(p, 1);
-            Unknown1(p, Branch, &Window[5+x], 2);
+            int o = ReadBits(p, 1); /* Order */
+            int y = ReadBits(p, 1);
+            LatticeFilter(p, Voiced, &Window[5+o], 2);
 
             if(y){
                 for(j=0; j<108; j+=2)
-                    Window[6-x + j] = 0;
+                    Window[6-o + j] = 0;
             }else{
-                float *z = &Window[6-x];
+                /* Vector quantization */
+                float *z = &Window[6-o];
                 for(j=0; j<54; j++, z+=2)
                     *z =
                           (z[-5]+z[+5]) * .0180326793f
                         - (z[-3]+z[+3]) * .1145915613f
                         + (z[-1]+z[+1]) * .5973859429f;
 
-                c2 /= 2;
+                InnovationGain /= 2;
             }
         }
 
+        /* Excitation */
         for(j=0; j<108; j++)
-            p->DecompressedBlock[108*i + j] = c2*Window[5+j] + c1*p->d[216 + 108*i + j - o];
+            p->DecompressedBlock[108*i + j] = InnovationGain*Window[5+j] + PitchGain*p->Delay[216 - Phase + 108*i + j];
     }
 
-    memcpy(p->d, &p->DecompressedBlock[108], 324*sizeof(DWORD));
+    memcpy(p->Delay, &p->DecompressedBlock[108], 324*sizeof(float));
 
     for(i=0; i<4; i++){
         for(j=0; j<12; j++)
-            p->c[64+j] += Matrix[j];
+            p->ImpulseTrain[j] += Matrix[j];
 
-        Unknown2(p, i*12, (i!=3) ? 1 : 33);
+        Synthesize(p, i*12, (i!=3) ? 1 : 33);
     }
 }
 
-void Unknown1(utkparams_t *p, int Branch, float * Window, int Interval){
-    if(Branch != 0){
-        unsigned a = 0;
-        unsigned i = 0;
+void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval){
+    if(Voiced){
+        int t = 0;
+        int i = 0;
         while(i<108){
-            unsigned value = UTKTable2[(a<<8) | (p->x&0xFF)];
-            a = (value<2 || value>8);
-            ReadBits(p, UTKTable3[value]);
+            unsigned code = UTKTable2[(t<<8) | (p->UnreadBitsValue&0xFF)];
+            t = (code<2 || code>8);
+            ReadBits(p, UTKTable3[code]);
 
-            if(value >= 4){
-                Window[i] = UTKTable4[value];
+            if(code >= 4){
+                Window[i] = UTKTable4[code];
                 i += Interval;
             }else{
-                if(value > 1){
-                    unsigned x = ReadBits(p, 6)+7;
+                if(code > 1){
+                    int x = (int)ReadBits(p, 6)+7;
                     if(x > (108 - i)/Interval)
                         x = (108 - i)/Interval;
 
@@ -261,10 +264,11 @@ void Unknown1(utkparams_t *p, int Branch, float * Window, int Interval){
             }
         }
     }else{
+        /* Unvoiced signal; load noise */
         int i;
         for(i=0; i<108; i+=Interval){
             uint8_t b;
-            switch(p->x & 3){
+            switch(p->UnreadBitsValue & 3){
             case 3:
                 Window[i] = 2.0;
                 b = 2;
@@ -283,43 +287,44 @@ void Unknown1(utkparams_t *p, int Branch, float * Window, int Interval){
     }
 }
 
-void Unknown2(utkparams_t *p, unsigned Sample, unsigned Blocks){
-    unsigned i,j;
-    float Matrix[12];
-    int offset = 75;
-    Unknown2_1(&p->c[64], Matrix);
+void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks){
+    float Residual[12];
+    unsigned Samples = Blocks*12;
+    int offset = -1;
+    PredictionFilter(p->ImpulseTrain, Residual);
 
-    for(i=0; i<Blocks*12; i++){
+    while(Samples--){
+        int i;
         float x = p->DecompressedBlock[Sample];
-        for(j=0; j<12; j++){
-            if(++offset == 88) offset = 76;
-            x += p->c[offset] * Matrix[j];
+        for(i=0; i<12; i++){
+            if(++offset == 12) offset = 0;
+            x += p->R[offset] * Residual[i];
         }
-        p->c[offset--] = x;
+        p->R[offset--] = x;
         p->DecompressedBlock[Sample++] = x;
     }
 }
 
-void Unknown2_1(float *__restrict c64, float *__restrict Matrix){
+void PredictionFilter(const float *__restrict c2, float *__restrict Residual){
     int i,j;
-    float LocalMatrix1[12];
-    float LocalMatrix2[12];
-    LocalMatrix2[0] = 1;
-    memcpy(&LocalMatrix2[1], c64, 11*sizeof(float));
+    float M1[12];
+    float M2[12];
+    M2[0] = 1;
+    memcpy(&M2[1], c2, 11*sizeof(float));
 
     for(i=0; i<12; i++){
         float x = 0;
         for(j=11; j>=0; j--){
-            x -= c64[j] * LocalMatrix2[j];
+            x -= c2[j] * M2[j];
             if(j != 11)
-                LocalMatrix2[j+1] = x*c64[j] + LocalMatrix2[j];
+                M2[j+1] = x*c2[j] + M2[j];
         }
-        LocalMatrix2[0] = x;
-        LocalMatrix1[i] = x;
+        M2[0] = x;
+        M1[i] = x;
 
         for(j=0; j<i; j++)
-            x -= LocalMatrix1[i-j-1] * Matrix[j];
+            x -= M1[i-j-1] * Residual[j];
 
-        Matrix[i] = x;
+        Residual[i] = x;
     }
 }

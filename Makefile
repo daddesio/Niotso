@@ -24,8 +24,8 @@ LDFLAGS = -m32 -static -static-libgcc
 ARFLAGS = rcs
 RCFLAGS = -F pe-i386
 
-CFLAGS_LANG_C   =
-CFLAGS_LANG_CPP =
+CFLAGS_LANG_C   = -ansi
+CFLAGS_LANG_CPP = -std=c++98
 
 ####
 ## [Profiles]
@@ -42,7 +42,14 @@ LDFLAGS_SPEED = $(LDFLAGS) -s -flto
 CFLAGS_DEBUG  = $(CFLAGS) -O0 -g3
 LDFLAGS_DEBUG = $(LDFLAGS)
 
-WARNINGS = -Wall -Wextra -pedantic
+WARNINGS = -Wall -Wextra -Wabi -pedantic
+
+ifeq($(debug), yes)
+    CFLAGS_SIZE = $(CFLAGS_DEBUG)
+    CFLAGS_SPEED = $(CFLAGS_DEBUG)
+    LDFLAGS_SIZE = $(LDFLAGS_DEBUG)
+    LDFLAGS_SPEED = $(LDFLAGS_DEBUG)
+endif
 
 
 ####
@@ -67,6 +74,8 @@ else ifeq ($(pgo),optimize)
     CFLAGS  += -fprofile-use
 endif
 
+niotso_buildsys = 1
+
 
 ####
 ## [Targets]
@@ -74,9 +83,9 @@ endif
 include packages.makefile
 
 filter_obj = *.o *.lo *.la *.Plo *.Pla *.gch *.pch *.obj *.res *.exp *.dep *.aps *.intermediate.manifest
-filter_exe = *.exe *.dll *.so *.a *.lib
+filter_exe = *.a *.lib $(niotso_exes) $(niotso_dlls)
 filter_profile = *.gcda
-filter_dist =  *.dsp *.dsw *.user *.ncb *.pdb *.idb *.opt *.plg *.suo */BuildLog.htm
+filter_dist =  *.dsp *.dsw *.user *.ncb *.pdb *.idb *.opt *.plg *.suo BuildLog.htm
 
 objclean:
 	$(RM_R) $(filter_obj)

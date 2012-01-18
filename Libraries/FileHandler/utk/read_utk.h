@@ -1,5 +1,5 @@
 /*
-    read_utk.h - Copyright (c) 2011 Fatbag <X-Fi6@phppoll.org>
+    read_utk.h - Copyright (c) 2011-2012 Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -33,12 +33,15 @@ typedef struct
 } utkheader_t;
 
 typedef struct {
-	const uint8_t *InData;
-	unsigned x, y;
-	unsigned a, b;
-	float c[88];
-	float d[324];
-	float DecompressedBlock[432];
+    const uint8_t *InData;
+    unsigned UnreadBitsValue, UnreadBitsCount;
+    int UseLattice;
+    unsigned NoiseFloor;
+    float FixedCodebook[64]; /* Fixed codebook gain matrix */
+    float ImpulseTrain[12]; /* Impulse train matrix */
+    float R[12]; /* Autocorrelation coefficient matrix */
+    float Delay[324];
+    float DecompressedBlock[432];
 } utkparams_t;
 
 #ifdef __cplusplus
@@ -48,12 +51,12 @@ extern "C" {
 int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, unsigned FileSize);
 int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames);
 void UTKGenerateTables(void);
-uint8_t ReadCC(utkparams_t *p, uint8_t i);
+uint8_t ReadCC(utkparams_t *p, uint8_t bits);
 void SetUTKParameters(utkparams_t *p);
 void DecompressBlock(utkparams_t *p);
-void Unknown1(utkparams_t *p, int Branch, float * Window, int Interval);
-void Unknown2(utkparams_t *p, unsigned Sample, unsigned Blocks);
-void Unknown2_1(float *__restrict c64, float *__restrict Matrix);
+void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval);
+void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks);
+void PredictionFilter(const float *__restrict c2, float *__restrict Residual);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /*
-    utkdecode.c - Copyright (c) 2011 Fatbag <X-Fi6@phppoll.org>
+    utkdecode.c - Copyright (c) 2011-2012 Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -39,6 +39,7 @@ int main(int argc, char *argv[]){
     DWORD bytestransferred = 0;
     uint8_t * UTKData;
     utkheader_t UTKHeader;
+    unsigned BeginningTime, EndingTime;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
         printf("Usage: utkdecode [-f] infile outfile\n"
@@ -108,10 +109,12 @@ int main(int argc, char *argv[]){
 
         UTKGenerateTables();
         
+        BeginningTime = GetTickCount();
         if(!utk_decode(UTKData+32, WaveData+44, UTKHeader.Frames)){
             printf("%sMemory for this file could not be allocated.", "utkdecode: error: ");
             return -1;
         }
+        EndingTime = GetTickCount();
 
         HeapFree(ProcessHeap, HEAP_NO_SERIALIZE, UTKData);
 
@@ -156,6 +159,8 @@ int main(int argc, char *argv[]){
                 return -1;
             }
         }
+        printf("Extracted %u bytes in %.2f seconds.\n", (unsigned) UTKHeader.dwOutSize,
+            ((float) (EndingTime - BeginningTime))/1000);
         WriteFile(hFile, WaveData, 44+UTKHeader.dwOutSize, &bytestransferred, NULL);
         CloseHandle(hFile);
     }
