@@ -24,9 +24,17 @@
  #define read_uint32(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)) | ((x)[2]<<(8*2)) | ((x)[3]<<(8*3)))
  #define read_uint16(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)))
 #endif
+#ifndef write_int32
+ #define write_uint16(dest, src) \
+    (dest)[0] = ((src)&0x00FF)>>(8*0); \
+    (dest)[1] = ((src)&0xFF00)>>(8*1)
+#endif
 
 #ifndef round
  #define round(x) ((x) >= 0 ? (x)+0.5 : (x)-0.5)
+#endif
+#ifndef min
+ #define min(x, y) ((x) > (y) ? (x) : (y))
 #endif
 
 #ifndef __inline
@@ -79,7 +87,7 @@ int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer
     SetUTKParameters(&p);
 
     while(Frames){
-        int i, BlockSize = (Frames > 432) ? 432 : Frames;
+        int i, BlockSize = min(Frames, 432);
         DecompressBlock(&p);
 
         for(i=0; i<BlockSize; i++){
@@ -90,8 +98,8 @@ int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer
             else if(value > 32768)
                 value = 32768;
 
-            *(OutBuffer++) = (value&0x00FF)>>(8*0);
-            *(OutBuffer++) = (value&0xFF00)>>(8*1);
+            write_uint16(OutBuffer, value);
+            OutBuffer += 2;
         }
         Frames -= BlockSize;
     }
@@ -305,25 +313,25 @@ void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks){
     }
 }
 
-void PredictionFilter(const float *__restrict c2, float *__restrict Residual){
+void PredictionFilter(const float *__restrict ImpulseTrain, float *__restrict Residual){
     int i,j;
-    float M1[12];
-    float M2[12];
-    M2[0] = 1;
-    memcpy(&M2[1], c2, 11*sizeof(float));
+    float ResidualGain[12];
+    float ImpulseGain[12];
+    ImpulseGain[0] = 1;
+    memcpy(&ImpulseGain[1], ImpulseTrain, 11*sizeof(float));
 
     for(i=0; i<12; i++){
         float x = 0;
         for(j=11; j>=0; j--){
-            x -= c2[j] * M2[j];
+            x -= ImpulseTrain[j] * ImpulseGain[j];
             if(j != 11)
-                M2[j+1] = x*c2[j] + M2[j];
+                ImpulseGain[j+1] = x*ImpulseTrain[j] + ImpulseGain[j];
         }
-        M2[0] = x;
-        M1[i] = x;
+        ImpulseGain[0] = x;
+        ResidualGain[i] = x;
 
         for(j=0; j<i; j++)
-            x -= M1[i-j-1] * Residual[j];
+            x -= ResidualGain[i-j-1] * Residual[j];
 
         Residual[i] = x;
     }

@@ -51,12 +51,12 @@ extern "C" {
 int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, unsigned FileSize);
 int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames);
 void UTKGenerateTables(void);
-uint8_t ReadCC(utkparams_t *p, uint8_t bits);
+uint8_t ReadBits(utkparams_t *p, uint8_t bits);
 void SetUTKParameters(utkparams_t *p);
 void DecompressBlock(utkparams_t *p);
 void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval);
 void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks);
-void PredictionFilter(const float *__restrict c2, float *__restrict Residual);
+void PredictionFilter(const float *__restrict ImpulseTrain, float *__restrict Residual);
 
 #ifdef __cplusplus
 }
