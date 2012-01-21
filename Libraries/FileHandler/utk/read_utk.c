@@ -93,10 +93,10 @@ int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer
         for(i=0; i<BlockSize; i++){
             int value = round(p.DecompressedBlock[i]);
 
-            if(value < -32767)
+            if(value < -32768)
+                value = -32768;
+            else if(value > 32767)
                 value = 32767;
-            else if(value > 32768)
-                value = 32768;
 
             write_uint16(OutBuffer, value);
             OutBuffer += 2;
