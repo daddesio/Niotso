@@ -1,0 +1,3 @@
+add_subdirectory(FileHandler)
+add_subdirectory(freetype)
+add_subdirectory(libvitaboy)

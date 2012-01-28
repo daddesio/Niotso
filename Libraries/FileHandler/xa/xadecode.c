@@ -1,5 +1,5 @@
 /*
-    xadecode.c - Copyright (c) 2011 Fatbag <X-Fi6@phppoll.org>
+    xadecode.c - Copyright (c) 2011-2012 Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -39,6 +39,7 @@ int main(int argc, char *argv[]){
     DWORD bytestransferred = 0;
     uint8_t * XAData;
     xaheader_t XAHeader;
+    unsigned BeginningTime, EndingTime;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
         printf("Usage: xadecode [-f] infile outfile\n"
@@ -106,10 +107,12 @@ int main(int argc, char *argv[]){
             return -1;
         }
 
+        BeginningTime = GetTickCount();
         if(!xa_decode(XAData+24, WaveData+44, XAHeader.Frames, XAHeader.nChannels)){
             printf("%sMemory for this file could not be allocated.", "xadecode: error: ");
             return -1;
         }
+        EndingTime = GetTickCount();
 
         HeapFree(ProcessHeap, HEAP_NO_SERIALIZE, XAData);
 
@@ -154,6 +157,8 @@ int main(int argc, char *argv[]){
                 return -1;
             }
         }
+        printf("Extracted %u bytes in %.2f seconds.\n", (unsigned) XAHeader.dwOutSize,
+            ((float) (EndingTime - BeginningTime))/1000);
         WriteFile(hFile, WaveData, 44+XAHeader.dwOutSize, &bytestransferred, NULL);
         CloseHandle(hFile);
     }

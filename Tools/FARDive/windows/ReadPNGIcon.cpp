@@ -1,5 +1,5 @@
 #include <windows.h>
-#include "../libpng-1.5.6/png.h"
+#include "../../../Libraries/FileHandler/libpng/png.h"
 
 extern HDC hDC;
 
