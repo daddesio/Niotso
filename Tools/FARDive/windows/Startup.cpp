@@ -1,6 +1,6 @@
 #include "Windows.hpp"
 #include "GUI.hpp"
-#include "../../../Libraries/FileHandler/libpng/png.h"
+#include <png.h>
 
 HBITMAP PNGIcon[MENUICONS];
 

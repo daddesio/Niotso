@@ -18,7 +18,7 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     # Base options
-    set(CFLAGS  "-Wall -Wextra -Wabi -m32 -mmmx -msse -msse2 -msse3 -mfpmath=both -msahf")
+    set(CFLAGS  "-Wall -Wextra -Wabi -pedantic -m32 -mmmx -msse -msse2 -msse3 -mfpmath=both -msahf")
     set(LDFLAGS "-m32")
     set(RCFLAGS "-F pe-i386")
     set(ASMFLAGS "-O3 -F win32")

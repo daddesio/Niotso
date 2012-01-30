@@ -1,4 +1,4 @@
-All you need installed to compile Niotso for Windows, Linux, or Mac is cmake 2.6 or newer, a compatible compiler (such as GCC 4.6 or newer), and NASM 2.0 or newer for libjpeg-turbo.
+All you need installed to compile Niotso for Windows, Linux, or Mac is cmake 2.6 or newer, a compatible compiler (such as GCC 4.6 or newer), and NASM 2.0 or newer for libjpeg-turbo and libmpg123.
 
 cd into the _build directory and run
  $ cmake -G "<Generator name>" ..
