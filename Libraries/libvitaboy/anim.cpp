@@ -96,6 +96,24 @@ void ReadMotion(Animation_t& Animation, Motion_t& Motion){
     }
 }
 
+void ReadPropEntry(KeyValuePair_t& Entry){
+    Entry.Key = VBFile.readstring();
+    printf(" | | | | | Key: %s\n", Entry.Key);
+    Entry.Value = VBFile.readstring();
+    printf(" | | | | | Value: %s\n", Entry.Value);
+}
+
+void ReadPropEntries(Prop_t& Prop){
+    unsigned count = Prop.EntriesCount = VBFile.readint32();
+    printf(" | | | | EntriesCount: %u\n", Prop.EntriesCount);
+    Prop.Entries = (KeyValuePair_t*) malloc(count * sizeof(KeyValuePair_t));
+    
+    for(unsigned i=0; i<count; i++){
+        printf(" | | | | [Entry %u]\n", i+1);
+        ReadPropEntry(Prop.Entries[i]);
+    }
+}
+
 void ReadPropsList(PropsList_t& PropsList){
     unsigned count = PropsList.PropsCount = VBFile.readint32();
     printf(" | | | PropsCount: %u\n", count);
@@ -103,12 +121,7 @@ void ReadPropsList(PropsList_t& PropsList){
 
     for(unsigned i=0; i<count; i++){
         printf(" | | | [Prop %u]\n", i+1);
-        PropsList.Props[i].Property = VBFile.readint32();
-        printf(" | | | | Property: %u\n", PropsList.Props[i].Property);
-        PropsList.Props[i].Key = VBFile.readstring();
-        printf(" | | | | Key: %s\n", PropsList.Props[i].Key);
-        PropsList.Props[i].Value = VBFile.readstring();
-        printf(" | | | | Value: %s\n", PropsList.Props[i].Value);
+        ReadPropEntries(PropsList.Props[i]);
     }
 }
 

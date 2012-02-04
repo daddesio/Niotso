@@ -84,10 +84,14 @@ struct Rotation_t {
     float w, x, y, z;
 };
 
-struct Prop_t {
-    uint32_t Property;
+struct KeyValuePair_t {
     char * Key;
     char * Value;
+};
+
+struct Prop_t {
+    uint32_t EntriesCount;
+    KeyValuePair_t * Entries;
 };
 
 struct PropsList_t {
@@ -142,6 +146,8 @@ struct Animation_t {
     Motion_t * Motions;
 };
 
+void ReadPropEntry(KeyValuePair_t& Entry);
+void ReadPropEntries(Prop_t& Prop);
 void ReadAnimation(Animation_t& Animation);
 void ReadMotion(Animation_t& Animation, Motion_t& Motion);
 void ReadPropsList(PropsList_t& PropsList);
