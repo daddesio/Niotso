@@ -1,0 +1,27 @@
+#include "config.h"
+
+1 VERSIONINFO
+FILEVERSION		VERSION_A,VERSION_B,VERSION_C,REVISION
+PRODUCTVERSION	VERSION_A,VERSION_B,VERSION_C,REVISION
+FILEOS			0x00040000L	/* VOS_NT - 32-bit Windows */
+FILETYPE		2			/* DLL */
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904B0"
+		BEGIN
+			VALUE "CompanyName",		"Niotso project"
+			VALUE "FileDescription",	"Free, open source C++ OpenGL TSO character rendering and animation library"
+			VALUE "FileVersion",		VERSION_STR
+			VALUE "InternalName",		PACKAGE
+			VALUE "LegalCopyright",		"Copyright © 2012"
+			VALUE "OriginalFilename",	PACKAGE".dll"
+			VALUE "ProductName",		PACKAGE
+			VALUE "ProductVersion",		VERSION_STR
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x0409, 0x04B0
+	END
+END
