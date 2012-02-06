@@ -8,6 +8,7 @@ set(LIBVITABOY_MINOR 1)
 set(LIBVITABOY_SOURCES
     anim.cpp
     libvitaboy.cpp
+    mesh.cpp
 )
 if(WIN32)
     set(LIBVITABOY_SOURCES ${LIBVITABOY_SOURCES} resource.rc)
@@ -30,3 +31,6 @@ set_target_properties(libvitaboy_shared PROPERTIES
 
 add_executable(vbparse vbparse.cpp)
 target_link_libraries(vbparse libvitaboy_static)
+
+add_executable(Renderer Renderer.cpp)
+target_link_libraries(Renderer libvitaboy_shared "${CMAKE_SOURCE_DIR}/Libraries/libvitaboy/libSOIL.a" opengl32 glu32)

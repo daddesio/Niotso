@@ -76,6 +76,10 @@ class VBFile_t {
 
 extern VBFile_t VBFile;
 
+/****
+** Animation (*.anim)
+*/
+
 struct Translation_t {
     float x, y, z;
 };
@@ -154,3 +158,37 @@ void ReadPropsList(PropsList_t& PropsList);
 void ReadPropsLists(Motion_t& Motion);
 void ReadTimePropsList(TimePropsList_t& TimePropsList);
 void ReadTimePropsLists(Motion_t& Motion);
+
+
+/****
+** Mesh (*.mesh)
+*/
+
+struct TextureVertex_t {
+    float u, v;
+};
+
+struct Vertex_t {
+    float x, y, z;
+};
+
+struct Face_t {
+    unsigned VertexA, VertexB, VertexC;
+};
+
+struct Mesh_t {
+    uint32_t Version;
+    uint32_t BoneCount;
+    char ** BoneNames;
+    uint32_t FaceCount;
+    Face_t * FaceData;
+    uint32_t BindingCount;
+    uint32_t TextureVertexCount;
+    TextureVertex_t * TextureVertexData;
+    uint32_t BlendDataCount;
+    uint32_t VertexCount;
+    Vertex_t * UnclothedVertexData;
+    Vertex_t * ClothedVertexData;
+};
+
+void ReadMesh(Mesh_t& Mesh);
