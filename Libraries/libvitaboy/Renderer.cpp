@@ -87,14 +87,14 @@ int InitGL(void)										// All Setup For OpenGL Goes Here
 
 int DrawGLScene(void)									// Here's Where We Do All The Drawing
 {
-    if(keys[0x41]){     if(zoom <=-1.0f) zoom += 0.05f;    } //A
-    if(keys[0x53]){     if(zoom >=-10.0f) zoom -= 0.05f;   } //S
-    if(keys[VK_UP]){    if((xrot+=1.0f) >=360)  xrot-=360; }
-    if(keys[VK_DOWN]){  if((xrot-=1.0f) <=-360) xrot+=360; }
-    if(keys[VK_RIGHT]){ if((yrot+=1.0f) >=360)  yrot-=360; }
+    if(keys['A']){      if(zoom <=-1.0f)  zoom+=0.05f;     }
+    if(keys['S']){      if(zoom >=-10.0f) zoom-=0.05f;     }
+    if(keys[VK_UP]){    if((xrot-=1.0f) <=-360) xrot+=360; }
+    if(keys[VK_DOWN]){  if((xrot+=1.0f) >=360)  xrot-=360; }
     if(keys[VK_LEFT]){  if((yrot-=1.0f) <=-360) yrot+=360; }
-    if(keys[0x5A]){     if((zrot+=1.0f) >=360)  zrot-=360; } //X
-    if(keys[0x58]){     if((zrot-=1.0f) <=-360) zrot+=360; } //Z
+    if(keys[VK_RIGHT]){ if((yrot+=1.0f) >=360)  yrot-=360; }
+    if(keys['X']){      if((zrot-=1.0f) <=-360) zrot+=360; }
+    if(keys['Z']){      if((zrot+=1.0f) >=360)  zrot-=360; }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear The Screen And The Depth Buffer
     glLoadIdentity();									// Reset The Current Modelview Matrix
