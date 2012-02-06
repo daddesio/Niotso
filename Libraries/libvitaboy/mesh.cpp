@@ -36,7 +36,7 @@ void ReadMesh(Mesh_t& Mesh){
     printf("TextureVertexCount: %u\n", Mesh.TextureVertexCount);
     Mesh.TextureVertexData = (TextureVertex_t*) malloc(Mesh.TextureVertexCount * sizeof(TextureVertex_t));
     for(unsigned i=0; i<Mesh.TextureVertexCount; i++){
-        Mesh.TextureVertexData[i].u = VBFile.readfloat();
+        Mesh.TextureVertexData[i].u = 1 - VBFile.readfloat();
         Mesh.TextureVertexData[i].v = 1 - VBFile.readfloat();
     }
     
