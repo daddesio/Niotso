@@ -75,10 +75,10 @@ void ReadMotion(Animation_t& Animation, Motion_t& Motion){
         unsigned pos = VBFile.getpos();
         VBFile.seekto(Animation.RotationsOffset + 16*Motion.RotationsOffset);
         for(unsigned i=0; i<Motion.FrameCount; i++){
-            Motion.Rotations[i].w = VBFile.readfloat();
             Motion.Rotations[i].x = VBFile.readfloat();
             Motion.Rotations[i].y = VBFile.readfloat();
             Motion.Rotations[i].z = VBFile.readfloat();
+            Motion.Rotations[i].w = VBFile.readfloat();
         }
         VBFile.seekto(pos);
     }
@@ -93,24 +93,6 @@ void ReadMotion(Animation_t& Animation, Motion_t& Motion){
     printf(" | HasTimePropsLists: %u\n", Motion.HasTimePropsLists);
     if(Motion.HasTimePropsLists){
         ReadTimePropsLists(Motion);
-    }
-}
-
-void ReadPropEntry(KeyValuePair_t& Entry){
-    Entry.Key = VBFile.readstring();
-    printf(" | | | | | Key: %s\n", Entry.Key);
-    Entry.Value = VBFile.readstring();
-    printf(" | | | | | Value: %s\n", Entry.Value);
-}
-
-void ReadPropEntries(Prop_t& Prop){
-    unsigned count = Prop.EntriesCount = VBFile.readint32();
-    printf(" | | | | EntriesCount: %u\n", Prop.EntriesCount);
-    Prop.Entries = (KeyValuePair_t*) malloc(count * sizeof(KeyValuePair_t));
-    
-    for(unsigned i=0; i<count; i++){
-        printf(" | | | | [Entry %u]\n", i+1);
-        ReadPropEntry(Prop.Entries[i]);
     }
 }
 

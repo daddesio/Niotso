@@ -1,8 +1,8 @@
 #include "libvitaboy.hpp"
 
 void ReadMesh(Mesh_t& Mesh){
+    printf("\n========== Mesh ==========\n");
     Mesh.Version = VBFile.readint32();
-    printf("========== Mesh ==========\n");
     printf("Version: %u\n", Mesh.Version);
     
     Mesh.BoneCount = VBFile.readint32();
@@ -23,21 +23,22 @@ void ReadMesh(Mesh_t& Mesh){
     }
     
     Mesh.BindingCount = VBFile.readint32();
+    Mesh.BoneBindings = (BoneBinding_t*) malloc(Mesh.BindingCount * sizeof(BoneBinding_t));
     printf("BindingCount: %u\n", Mesh.BindingCount);
     for(unsigned i=0; i<Mesh.BindingCount; i++){
-        VBFile.readint32();
-        VBFile.readint32();
-        VBFile.readint32();
-        VBFile.readint32();
-        VBFile.readint32();
+        Mesh.BoneBindings[i].BoneIndex = VBFile.readint32();
+        Mesh.BoneBindings[i].FirstVertex = VBFile.readint32();
+        Mesh.BoneBindings[i].VertexCount = VBFile.readint32();
+        Mesh.BoneBindings[i].FirstBlendedVertex = VBFile.readint32();
+        Mesh.BoneBindings[i].BlendedVertexCount = VBFile.readint32();
     }
     
     Mesh.TextureVertexCount = VBFile.readint32();
     printf("TextureVertexCount: %u\n", Mesh.TextureVertexCount);
     Mesh.TextureVertexData = (TextureVertex_t*) malloc(Mesh.TextureVertexCount * sizeof(TextureVertex_t));
     for(unsigned i=0; i<Mesh.TextureVertexCount; i++){
-        Mesh.TextureVertexData[i].u = 1 - VBFile.readfloat();
-        Mesh.TextureVertexData[i].v = 1 - VBFile.readfloat();
+        Mesh.TextureVertexData[i].u = VBFile.readfloat();
+        Mesh.TextureVertexData[i].v = VBFile.readfloat();
     }
     
     Mesh.BlendDataCount = VBFile.readint32();
@@ -49,14 +50,14 @@ void ReadMesh(Mesh_t& Mesh){
     
     Mesh.VertexCount = VBFile.readint32();
     printf("VertexCount: %u\n", Mesh.VertexCount);
-    Mesh.UnclothedVertexData = (Vertex_t*) malloc(Mesh.VertexCount * sizeof(Vertex_t));
-    Mesh.ClothedVertexData = (Vertex_t*) malloc(Mesh.VertexCount * sizeof(Vertex_t));
+    Mesh.VertexData = (Vertex_t*) malloc(Mesh.VertexCount * sizeof(Vertex_t));
+    Mesh.VertexNorms = (Vertex_t*) malloc(Mesh.VertexCount * sizeof(Vertex_t));
     for(unsigned i=0; i<Mesh.VertexCount; i++){
-        Mesh.UnclothedVertexData[i].x = VBFile.readfloat();
-        Mesh.UnclothedVertexData[i].y = VBFile.readfloat();
-        Mesh.UnclothedVertexData[i].z = VBFile.readfloat();
-        Mesh.ClothedVertexData[i].x = VBFile.readfloat();
-        Mesh.ClothedVertexData[i].y = VBFile.readfloat();
-        Mesh.ClothedVertexData[i].z = VBFile.readfloat();
+        Mesh.VertexData[i].x = VBFile.readfloat();
+        Mesh.VertexData[i].y = VBFile.readfloat();
+        Mesh.VertexData[i].z = VBFile.readfloat();
+        Mesh.VertexNorms[i].x = VBFile.readfloat();
+        Mesh.VertexNorms[i].y = VBFile.readfloat();
+        Mesh.VertexNorms[i].z = VBFile.readfloat();
     }
 }

@@ -18,34 +18,44 @@ HGLRC		hRC=NULL;		// Permanent Rendering Context
 HWND		hWnd=NULL;		// Holds Our Window Handle
 HINSTANCE	hInstance;		// Holds The Instance Of The Application
 
-bool	keys[256];			// Array Used For The Keyboard Routine
+bool	keys[256] = {0};			// Array Used For The Keyboard Routine
 bool	active=TRUE;		// Window Active Flag Set To TRUE By Default
 bool	fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
 
 float zoom = -4;
-float xrot = 0;
-float yrot = 0;
-float zrot = 90;
+struct CharacterPlacement_t {
+    Vertex_t Translation;
+    Vertex_t Rotation;
+};
 
-GLuint	texture[1];			// Storage For One Texture ( NEW )
+CharacterPlacement_t Character = {{0,0,0}, {0,0,0}};
 
-Mesh_t Mesh;
+GLuint	texture[2];			// Storage For One Texture ( NEW )
+enum { Texture_Head, Texture_Body };
+
+Skeleton_t Skeleton;
+Mesh_t HeadMesh, BodyMesh;
+
+bool DrawMesh = true;
+bool ShowSkeleton = true;
 
 LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
 int LoadGLTextures()									// Load Bitmaps And Convert To Textures
 {
-	/* load an image file directly as a new OpenGL texture */
-	texture[0] = SOIL_load_OGL_texture("texture.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
-	if(texture[0] == 0)
-		return false;
+    for(int i=0; i<2; i++){
+        /* load an image file directly as a new OpenGL texture */
+        texture[i] = SOIL_load_OGL_texture((i==0) ? "head.jpg" : "body.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+        if(texture[i] == 0)
+            return false;
 
-	// Typical Texture Generation Using Data From The Bitmap
-	glBindTexture(GL_TEXTURE_2D, texture[0]);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        // Typical Texture Generation Using Data From The Bitmap
+        glBindTexture(GL_TEXTURE_2D, texture[i]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    }
 	return true;										// Return Success
 }
 
@@ -79,40 +89,103 @@ int InitGL(void)										// All Setup For OpenGL Goes Here
 	glShadeModel(GL_SMOOTH);							// Enable Smooth Shading
 	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);				// Black Background
 	glClearDepth(1.0f);									// Depth Buffer Setup
+    glPointSize(5.0);
 	glEnable(GL_DEPTH_TEST);							// Enables Depth Testing
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_RESCALE_NORMAL);
+    glDisable(GL_BLEND);
 	glDepthFunc(GL_LEQUAL);								// The Type Of Depth Testing To Do
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Really Nice Perspective Calculations
 	return TRUE;										// Initialization Went OK
 }
 
+void DrawBonesMesh(Bone_t& Bone){
+    glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
+    float RotationMatrix[16];
+    FindQuaternionMatrix(RotationMatrix, &Bone.Rotation);
+    glMultMatrixf(RotationMatrix);
+
+    if(!strcmp(Bone.Name, "HEAD")){
+        glBindTexture(GL_TEXTURE_2D, texture[0]);
+        
+        glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), HeadMesh.VertexData);
+        glNormalPointer(GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), HeadMesh.VertexNorms);
+        glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float), HeadMesh.TextureVertexData);
+        glDrawElements(GL_TRIANGLES, HeadMesh.FaceCount*3, GL_UNSIGNED_INT, HeadMesh.FaceData);
+    }else{
+        glBindTexture(GL_TEXTURE_2D, texture[1]);
+        
+        glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), BodyMesh.VertexData);
+        glNormalPointer(GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), BodyMesh.VertexNorms);
+        glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float), BodyMesh.TextureVertexData);
+        glDrawElements(GL_TRIANGLES, BodyMesh.FaceCount*3, GL_UNSIGNED_INT, BodyMesh.FaceData);
+    }
+    
+    for(unsigned i=0; i<Bone.ChildrenCount; i++){
+        glPushMatrix();
+        DrawBonesMesh(*Bone.Children[i]);
+        glPopMatrix();
+    }
+}
+
+void DrawBonesSkeleton(Bone_t& Bone){
+    glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
+    float RotationMatrix[16];
+    FindQuaternionMatrix(RotationMatrix, &Bone.Rotation);
+    glMultMatrixf(RotationMatrix);
+    
+    if(!strcmp(Bone.Name, "ROOT"))
+        glColor3f(1.0, 0.0, 0.0);
+    else if(!strcmp(Bone.Name, "HEAD"))
+        glColor3f(1.0, 1.0, 0.0);
+    else
+        glColor3f(0.0, 1.0, 0.0);
+    glBegin(GL_POINTS); glVertex2f(0, 0); glEnd();
+    
+    for(unsigned i=0; i<Bone.ChildrenCount; i++){
+        glPushMatrix();
+        DrawBonesSkeleton(*Bone.Children[i]);
+        glPopMatrix();
+    }
+}
+
 int DrawGLScene(void)									// Here's Where We Do All The Drawing
 {
-    if(keys['A']){      if(zoom <=-1.0f)  zoom+=0.05f;     }
-    if(keys['S']){      if(zoom >=-10.0f) zoom-=0.05f;     }
-    if(keys[VK_UP]){    if((xrot-=1.0f) <=-360) xrot+=360; }
-    if(keys[VK_DOWN]){  if((xrot+=1.0f) >=360)  xrot-=360; }
-    if(keys[VK_LEFT]){  if((yrot-=1.0f) <=-360) yrot+=360; }
-    if(keys[VK_RIGHT]){ if((yrot+=1.0f) >=360)  yrot-=360; }
-    if(keys['X']){      if((zrot-=1.0f) <=-360) zrot+=360; }
-    if(keys['Z']){      if((zrot+=1.0f) >=360)  zrot-=360; }
+    if(keys['A'])      /*{if(zoom <=-1.0f)  zoom+=0.05f; }*/ zoom+=0.05f;
+    if(keys['S'])      /*{if(zoom >=-10.0f) zoom-=0.05f; }*/ zoom-=0.05f;
+    if(keys[VK_UP]){    if((Character.Rotation.x-=1.0f) <=-360) Character.Rotation.x+=360; }
+    if(keys[VK_DOWN]){  if((Character.Rotation.x+=1.0f) >=360)  Character.Rotation.x-=360; }
+    if(keys[VK_LEFT]){  if((Character.Rotation.y-=1.0f) <=-360) Character.Rotation.y+=360; }
+    if(keys[VK_RIGHT]){ if((Character.Rotation.y+=1.0f) >=360)  Character.Rotation.y-=360; }
+    if(keys['X']){      if((Character.Rotation.z-=1.0f) <=-360) Character.Rotation.z+=360; }
+    if(keys['Z']){      if((Character.Rotation.z+=1.0f) >=360)  Character.Rotation.z-=360; }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear The Screen And The Depth Buffer
-    glLoadIdentity();									// Reset The Current Modelview Matrix
     
-    glTranslatef(0.0f,0.0f,zoom);						// Move Into The Screen
-    glRotatef(xrot,1.0f,0.0f,0.0f);
-	glRotatef(yrot,0.0f,1.0f,0.0f);
-	glRotatef(zrot,0.0f,0.0f,1.0f);
+    glLoadIdentity();
+    glTranslatef(Character.Translation.x, Character.Translation.y, zoom + Character.Translation.z);
+    glRotatef(Character.Rotation.x,1.0f,0.0f,0.0f);
+    glRotatef(Character.Rotation.y,0.0f,1.0f,0.0f);
+    glRotatef(Character.Rotation.z,0.0f,0.0f,1.0f);
     
-    glBindTexture(GL_TEXTURE_2D, texture[0]);
+    if(DrawMesh){
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glColor3f(1.0, 1.0, 1.0);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        
+        DrawBonesMesh(Skeleton.Bones[0]);
+        
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    }
     
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), Mesh.UnclothedVertexData);
-    glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float), Mesh.TextureVertexData);
-    glDrawElements(GL_TRIANGLES, Mesh.FaceCount*3, GL_UNSIGNED_INT, Mesh.FaceData);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    if(ShowSkeleton){
+        glClear(GL_DEPTH_BUFFER_BIT);
+        DrawBonesSkeleton(Skeleton.Bones[0]);
+    }
 
 	return TRUE;										// Keep Going
 }
@@ -409,29 +482,80 @@ int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
     uint8_t *InData;
     DWORD bytestransferred;
     
-    hFile = CreateFile("mesh.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    hFile = CreateFile("skeleton.skel", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     if(hFile == INVALID_HANDLE_VALUE){
         if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            MessageBox(NULL, "The specified mesh does not exist.", "Error", MB_OK);
-            return -1;
+            MessageBox(NULL, "The specified skeleton does not exist.", "Error", MB_OK);
+            return 0;
         }
-        MessageBox(NULL, "The mesh could not be opened for reading.", "Error", MB_OK);
-        return -1;
+        MessageBox(NULL, "The skeleton could not be opened for reading.", "Error", MB_OK);
+        return 0;
     }
     FileSize = GetFileSize(hFile, NULL);
     InData = (uint8_t*) malloc(FileSize);
     if(InData == NULL){
-        MessageBox(NULL, "Memory for the mesh could not be allocated.", "Error", MB_OK);
-        return -1;
+        MessageBox(NULL, "Memory for the skeleton could not be allocated.", "Error", MB_OK);
+        return 0;
     }
     if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "The mesh could not be read.", "Error", MB_OK);
-        return -1;
+        MessageBox(NULL, "The skeleton could not be read.", "Error", MB_OK);
+        return 0;
     }
     CloseHandle(hFile);
     
     VBFile.set(InData, FileSize);
-    ReadMesh(Mesh);
+    ReadSkeleton(Skeleton);
+    free(InData);
+    
+    hFile = CreateFile("head.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if(hFile == INVALID_HANDLE_VALUE){
+        if(GetLastError() == ERROR_FILE_NOT_FOUND){
+            MessageBox(NULL, "head.mesh does not exist.", "Error", MB_OK);
+            return 0;
+        }
+        MessageBox(NULL, "head.mesh could not be opened for reading.", "Error", MB_OK);
+        return 0;
+    }
+    FileSize = GetFileSize(hFile, NULL);
+    InData = (uint8_t*) malloc(FileSize);
+    if(InData == NULL){
+        MessageBox(NULL, "Memory for head.mesh could not be allocated.", "Error", MB_OK);
+        return 0;
+    }
+    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
+        MessageBox(NULL, "The head.mesh could not be read.", "Error", MB_OK);
+        return 0;
+    }
+    CloseHandle(hFile);
+    
+    VBFile.set(InData, FileSize);
+    ReadMesh(HeadMesh);
+    free(InData);
+
+    hFile = CreateFile("body.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if(hFile == INVALID_HANDLE_VALUE){
+        if(GetLastError() == ERROR_FILE_NOT_FOUND){
+            MessageBox(NULL, "body.mesh does not exist.", "Error", MB_OK);
+            return 0;
+        }
+        MessageBox(NULL, "body.mesh could not be opened for reading.", "Error", MB_OK);
+        return 0;
+    }
+    FileSize = GetFileSize(hFile, NULL);
+    InData = (uint8_t*) malloc(FileSize);
+    if(InData == NULL){
+        MessageBox(NULL, "Memory for body.mesh could not be allocated.", "Error", MB_OK);
+        return 0;
+    }
+    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
+        MessageBox(NULL, "The body.mesh could not be read.", "Error", MB_OK);
+        return 0;
+    }
+    CloseHandle(hFile);
+    
+    VBFile.set(InData, FileSize);
+    ReadMesh(BodyMesh);
+    free(InData);
 
 	// Create Our OpenGL Window
 	if (!CreateGLWindow("libvitaboy - Renderer",640,480,16,fullscreen))

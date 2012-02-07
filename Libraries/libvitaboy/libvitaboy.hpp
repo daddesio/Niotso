@@ -77,7 +77,7 @@ class VBFile_t {
 extern VBFile_t VBFile;
 
 /****
-** Animation (*.anim)
+** Common
 */
 
 struct Translation_t {
@@ -85,7 +85,7 @@ struct Translation_t {
 };
 
 struct Rotation_t {
-    float w, x, y, z;
+    float x, y, z, w;
 };
 
 struct KeyValuePair_t {
@@ -102,6 +102,16 @@ struct PropsList_t {
     uint32_t PropsCount;
     Prop_t * Props;
 };
+
+void ReadPropEntry(KeyValuePair_t& Entry);
+void ReadPropEntries(Prop_t& Prop);
+void ReadPropsList(PropsList_t& PropsList);
+void FindQuaternionMatrix(float * Matrix, Rotation_t * Quaternion);
+
+
+/****
+** Animation (*.anim)
+*/
 
 struct TimeProp_t {
     uint32_t ID;
@@ -150,11 +160,8 @@ struct Animation_t {
     Motion_t * Motions;
 };
 
-void ReadPropEntry(KeyValuePair_t& Entry);
-void ReadPropEntries(Prop_t& Prop);
 void ReadAnimation(Animation_t& Animation);
 void ReadMotion(Animation_t& Animation, Motion_t& Motion);
-void ReadPropsList(PropsList_t& PropsList);
 void ReadPropsLists(Motion_t& Motion);
 void ReadTimePropsList(TimePropsList_t& TimePropsList);
 void ReadTimePropsLists(Motion_t& Motion);
@@ -176,6 +183,14 @@ struct Face_t {
     unsigned VertexA, VertexB, VertexC;
 };
 
+struct BoneBinding_t {
+    unsigned BoneIndex;
+    unsigned FirstVertex;
+    unsigned VertexCount;
+    unsigned FirstBlendedVertex;
+    unsigned BlendedVertexCount;
+};
+
 struct Mesh_t {
     uint32_t Version;
     uint32_t BoneCount;
@@ -183,12 +198,47 @@ struct Mesh_t {
     uint32_t FaceCount;
     Face_t * FaceData;
     uint32_t BindingCount;
+    BoneBinding_t * BoneBindings;
     uint32_t TextureVertexCount;
     TextureVertex_t * TextureVertexData;
     uint32_t BlendDataCount;
     uint32_t VertexCount;
-    Vertex_t * UnclothedVertexData;
-    Vertex_t * ClothedVertexData;
+    Vertex_t * VertexData;
+    Vertex_t * VertexNorms;
 };
 
 void ReadMesh(Mesh_t& Mesh);
+
+
+/****
+** Skeleton (*.skel)
+*/
+
+struct Bone_t {
+    uint32_t Unknown;
+    char * Name;
+    char * ParentsName;
+    uint8_t HasProps;
+    PropsList_t PropsList;
+    Translation_t Translation;
+    Rotation_t Rotation;
+    uint32_t CanTranslate;
+    uint32_t CanRotate;
+    uint32_t CanBlend;
+    float WiggleValue;
+    float WigglePower;
+    
+    unsigned ChildrenCount;
+    Bone_t ** Children;
+};
+
+struct Skeleton_t {
+    uint32_t Version;
+    char * Name;
+    uint16_t BoneCount;
+    Bone_t * Bones;
+};
+
+void ReadSkeleton(Skeleton_t& Bone);
+void ReadBone(Skeleton_t& Skeleton, Bone_t& Bone, unsigned Index);
+unsigned FindBone(Skeleton_t& Skeleton, const char * BoneName, unsigned Count);
