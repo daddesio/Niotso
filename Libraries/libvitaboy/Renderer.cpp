@@ -22,30 +22,37 @@ bool	keys[256] = {0};			// Array Used For The Keyboard Routine
 bool	active=TRUE;		// Window Active Flag Set To TRUE By Default
 bool	fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
 
-float zoom = -4;
+float zoom = -10;
 struct CharacterPlacement_t {
     Vertex_t Translation;
     Vertex_t Rotation;
 };
 
-CharacterPlacement_t Character = {{0,0,0}, {0,0,0}};
-
-GLuint	texture[2];			// Storage For One Texture ( NEW )
-enum { Texture_Head, Texture_Body };
+CharacterPlacement_t Character = {{0,-3,0}, {0,0,0}};
 
 Skeleton_t Skeleton;
-Mesh_t HeadMesh, BodyMesh;
 
-bool DrawMesh = true;
+unsigned TextureCount = 3;
+GLuint	texture[3];			// Storage For One Texture ( NEW )
+enum { Texture_Body, Texture_Head, Texture_Hand };
+const char* TexturePaths[] = {"body.jpg", "head.jpg", "hand.jpg"};
+
+unsigned MeshCount = 4;
+Mesh_t Meshes[4];
+enum { Mesh_Body, Mesh_Head, Mesh_LHand, Mesh_RHand };
+unsigned Mesh_UseTexture[] = { Texture_Body, Texture_Head, Texture_Hand, Texture_Hand };
+const char* MeshActivate[] = {NULL, "HEAD", "L_HAND", "R_HAND"};
+
+bool ShowMesh = true;
 bool ShowSkeleton = true;
 
 LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
 int LoadGLTextures()									// Load Bitmaps And Convert To Textures
 {
-    for(int i=0; i<2; i++){
+    for(int i=0; i<3; i++){
         /* load an image file directly as a new OpenGL texture */
-        texture[i] = SOIL_load_OGL_texture((i==0) ? "head.jpg" : "body.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+        texture[i] = SOIL_load_OGL_texture(TexturePaths[i], SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
         if(texture[i] == 0)
             return false;
 
@@ -85,11 +92,9 @@ int InitGL(void)										// All Setup For OpenGL Goes Here
 		return FALSE;									// If Texture Didn't Load Return FALSE
 	}
 
-	glEnable(GL_TEXTURE_2D);							// Enable Texture Mapping ( NEW )
 	glShadeModel(GL_SMOOTH);							// Enable Smooth Shading
 	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);				// Black Background
 	glClearDepth(1.0f);									// Depth Buffer Setup
-    glPointSize(5.0);
 	glEnable(GL_DEPTH_TEST);							// Enables Depth Testing
     glEnable(GL_CULL_FACE);
     glEnable(GL_RESCALE_NORMAL);
@@ -99,36 +104,105 @@ int InitGL(void)										// All Setup For OpenGL Goes Here
 	return TRUE;										// Initialization Went OK
 }
 
-void DrawBonesMesh(Bone_t& Bone){
+void TransformVertices(Bone_t& Bone){
     glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
-    float RotationMatrix[16];
-    FindQuaternionMatrix(RotationMatrix, &Bone.Rotation);
-    glMultMatrixf(RotationMatrix);
+    float Matrix[16];
+    FindQuaternionMatrix(Matrix, &Bone.Rotation);
+    glMultMatrixf(Matrix);
+    
+    unsigned MeshIndex = 0;
+    unsigned BoneIndex;
 
-    if(!strcmp(Bone.Name, "HEAD")){
-        glBindTexture(GL_TEXTURE_2D, texture[0]);
-        
-        glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), HeadMesh.VertexData);
-        glNormalPointer(GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), HeadMesh.VertexNorms);
-        glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float), HeadMesh.TextureVertexData);
-        glDrawElements(GL_TRIANGLES, HeadMesh.FaceCount*3, GL_UNSIGNED_INT, HeadMesh.FaceData);
-    }else{
-        glBindTexture(GL_TEXTURE_2D, texture[1]);
-        
-        glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), BodyMesh.VertexData);
-        glNormalPointer(GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), BodyMesh.VertexNorms);
-        glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float), BodyMesh.TextureVertexData);
-        glDrawElements(GL_TRIANGLES, BodyMesh.FaceCount*3, GL_UNSIGNED_INT, BodyMesh.FaceData);
+    for(unsigned i=1; i<MeshCount; i++){
+        if(!strcmp(Bone.Name, MeshActivate[i])){
+            MeshIndex = i;
+            break;
+        }
+    }
+    Mesh_t& Mesh = Meshes[MeshIndex];
+    for(BoneIndex=0; BoneIndex<Mesh.BindingCount; BoneIndex++){
+        if(!strcmp(Bone.Name, Mesh.BoneNames[Mesh.BoneBindings[BoneIndex].BoneIndex]))
+            break;
+    }
+
+    if(BoneIndex < Mesh.BindingCount){
+        for(unsigned i=0; i<Mesh.BoneBindings[BoneIndex].FixedVertexCount; i++){
+            glTranslatef(Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].x,
+                Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].y,
+                Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].z);
+            glGetFloatv(GL_MODELVIEW_MATRIX, Matrix);
+            Mesh.TransformedVertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].x = Matrix[12];
+            Mesh.TransformedVertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].y = Matrix[13];
+            Mesh.TransformedVertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].z = Matrix[14];
+            glTranslatef(-Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].x,
+                -Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].y,
+                -Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].z);
+        }
+        for(unsigned i=0; i<Mesh.BoneBindings[BoneIndex].BlendedVertexCount; i++){
+            glTranslatef(Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x,
+                Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].y,
+                Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].z);
+            glGetFloatv(GL_MODELVIEW_MATRIX, Matrix);
+            Mesh.TransformedVertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x = Matrix[12];
+            Mesh.TransformedVertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x = Matrix[13];
+            Mesh.TransformedVertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x = Matrix[14];
+            glTranslatef(-Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x,
+                -Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].y,
+                -Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].z);
+        }
     }
     
     for(unsigned i=0; i<Bone.ChildrenCount; i++){
         glPushMatrix();
-        DrawBonesMesh(*Bone.Children[i]);
+        TransformVertices(*Bone.Children[i]);
         glPopMatrix();
     }
 }
 
+void BlendVertices(){
+    for(unsigned i=0; i<MeshCount; i++){
+        Mesh_t& Mesh = Meshes[i];
+        for(unsigned i=0; i<Mesh.BlendedVertexCount; i++){
+            Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].x =
+                Mesh.BlendData[i].Weight * Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].x +
+                (1-Mesh.BlendData[i].Weight) * Mesh.TransformedVertexData[Mesh.BlendData[i].OtherVertex].x;
+            Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].y =
+                Mesh.BlendData[i].Weight * Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].y +
+                (1-Mesh.BlendData[i].Weight) * Mesh.TransformedVertexData[Mesh.BlendData[i].OtherVertex].y;
+            Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].z =
+                Mesh.BlendData[i].Weight * Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].z +
+                (1-Mesh.BlendData[i].Weight) * Mesh.TransformedVertexData[Mesh.BlendData[i].OtherVertex].z;
+        }
+    }
+}
+
+void DrawMeshes(){
+    glPointSize(2.0);
+    glColor3f(1.0, 1.0, 1.0);
+    glPushMatrix();
+    glLoadIdentity();
+    TransformVertices(Skeleton.Bones[0]);
+    glPopMatrix();
+    BlendVertices();
+    
+    glEnable(GL_TEXTURE_2D);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    for(unsigned i=0; i<MeshCount; i++){
+        glBindTexture(GL_TEXTURE_2D, texture[Mesh_UseTexture[i]]);
+        glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), Meshes[i].TransformedVertexData);
+        glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float), Meshes[i].TransformedTextureData);
+        glDrawElements(GL_TRIANGLES, Meshes[i].FaceCount*3, GL_UNSIGNED_INT, Meshes[i].FaceData);
+    }
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisable(GL_TEXTURE_2D);
+}
+
 void DrawBonesSkeleton(Bone_t& Bone){
+    glPointSize(5.0);
     glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
     float RotationMatrix[16];
     FindQuaternionMatrix(RotationMatrix, &Bone.Rotation);
@@ -140,7 +214,7 @@ void DrawBonesSkeleton(Bone_t& Bone){
         glColor3f(1.0, 1.0, 0.0);
     else
         glColor3f(0.0, 1.0, 0.0);
-    glBegin(GL_POINTS); glVertex2f(0, 0); glEnd();
+    glBegin(GL_POINTS); glVertex3f(0, 0, 0); glEnd();
     
     for(unsigned i=0; i<Bone.ChildrenCount; i++){
         glPushMatrix();
@@ -159,6 +233,10 @@ int DrawGLScene(void)									// Here's Where We Do All The Drawing
     if(keys[VK_RIGHT]){ if((Character.Rotation.y+=1.0f) >=360)  Character.Rotation.y-=360; }
     if(keys['X']){      if((Character.Rotation.z-=1.0f) <=-360) Character.Rotation.z+=360; }
     if(keys['Z']){      if((Character.Rotation.z+=1.0f) >=360)  Character.Rotation.z-=360; }
+    if(keys['K']){      Character.Translation.y-=0.05f; }
+    if(keys['I']){      Character.Translation.y+=0.05f; }
+    if(keys['J']){      Character.Translation.x-=0.05f; }
+    if(keys['L']){      Character.Translation.x+=0.05f; }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear The Screen And The Depth Buffer
     
@@ -168,18 +246,11 @@ int DrawGLScene(void)									// Here's Where We Do All The Drawing
     glRotatef(Character.Rotation.y,0.0f,1.0f,0.0f);
     glRotatef(Character.Rotation.z,0.0f,0.0f,1.0f);
     
-    if(DrawMesh){
+    if(ShowMesh){
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glColor3f(1.0, 1.0, 1.0);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         
-        DrawBonesMesh(Skeleton.Bones[0]);
-        
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
-        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        DrawMeshes();
     }
     
     if(ShowSkeleton){
@@ -238,7 +309,7 @@ void KillGLWindow(void)								// Properly Kill The Window
  *	bits			- Number Of Bits To Use For Color (8/16/24/32)			*
  *	fullscreenflag	- Use Fullscreen Mode (TRUE) Or Windowed Mode (FALSE)	*/
  
-BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscreenflag)
+BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fullscreenflag)
 {
 	GLuint		PixelFormat;			// Holds The Results After Searching For A Match
 	WNDCLASS	wc;						// Windows Class Structure
@@ -463,10 +534,10 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 	return DefWindowProc(hWnd,uMsg,wParam,lParam);
 }
 
-int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
-					HINSTANCE	hPrevInstance,		// Previous Instance
-					LPSTR		lpCmdLine,			// Command Line Parameters
-					int			nCmdShow)			// Window Show State
+int WINAPI WinMain(	HINSTANCE,		// Instance
+					HINSTANCE,		// Previous Instance
+					LPSTR,			// Command Line Parameters
+					int)			// Window Show State
 {
 	MSG		msg;									// Windows Message Structure
 	BOOL	done=FALSE;								// Bool Variable To Exit Loop
@@ -506,31 +577,6 @@ int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
     VBFile.set(InData, FileSize);
     ReadSkeleton(Skeleton);
     free(InData);
-    
-    hFile = CreateFile("head.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            MessageBox(NULL, "head.mesh does not exist.", "Error", MB_OK);
-            return 0;
-        }
-        MessageBox(NULL, "head.mesh could not be opened for reading.", "Error", MB_OK);
-        return 0;
-    }
-    FileSize = GetFileSize(hFile, NULL);
-    InData = (uint8_t*) malloc(FileSize);
-    if(InData == NULL){
-        MessageBox(NULL, "Memory for head.mesh could not be allocated.", "Error", MB_OK);
-        return 0;
-    }
-    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "The head.mesh could not be read.", "Error", MB_OK);
-        return 0;
-    }
-    CloseHandle(hFile);
-    
-    VBFile.set(InData, FileSize);
-    ReadMesh(HeadMesh);
-    free(InData);
 
     hFile = CreateFile("body.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     if(hFile == INVALID_HANDLE_VALUE){
@@ -548,13 +594,88 @@ int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
         return 0;
     }
     if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "The body.mesh could not be read.", "Error", MB_OK);
+        MessageBox(NULL, "body.mesh could not be read.", "Error", MB_OK);
         return 0;
     }
     CloseHandle(hFile);
     
     VBFile.set(InData, FileSize);
-    ReadMesh(BodyMesh);
+    ReadMesh(Meshes[0]);
+    free(InData);
+    
+    hFile = CreateFile("head.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if(hFile == INVALID_HANDLE_VALUE){
+        if(GetLastError() == ERROR_FILE_NOT_FOUND){
+            MessageBox(NULL, "head.mesh does not exist.", "Error", MB_OK);
+            return 0;
+        }
+        MessageBox(NULL, "head.mesh could not be opened for reading.", "Error", MB_OK);
+        return 0;
+    }
+    FileSize = GetFileSize(hFile, NULL);
+    InData = (uint8_t*) malloc(FileSize);
+    if(InData == NULL){
+        MessageBox(NULL, "Memory for head.mesh could not be allocated.", "Error", MB_OK);
+        return 0;
+    }
+    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
+        MessageBox(NULL, "head.mesh could not be read.", "Error", MB_OK);
+        return 0;
+    }
+    CloseHandle(hFile);
+    
+    VBFile.set(InData, FileSize);
+    ReadMesh(Meshes[1]);
+    free(InData);
+
+    hFile = CreateFile("lhand.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if(hFile == INVALID_HANDLE_VALUE){
+        if(GetLastError() == ERROR_FILE_NOT_FOUND){
+            MessageBox(NULL, "lhand.mesh does not exist.", "Error", MB_OK);
+            return 0;
+        }
+        MessageBox(NULL, "lhand.mesh could not be opened for reading.", "Error", MB_OK);
+        return 0;
+    }
+    FileSize = GetFileSize(hFile, NULL);
+    InData = (uint8_t*) malloc(FileSize);
+    if(InData == NULL){
+        MessageBox(NULL, "Memory for lhand.mesh could not be allocated.", "Error", MB_OK);
+        return 0;
+    }
+    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
+        MessageBox(NULL, "lhand.mesh could not be read.", "Error", MB_OK);
+        return 0;
+    }
+    CloseHandle(hFile);
+    
+    VBFile.set(InData, FileSize);
+    ReadMesh(Meshes[2]);
+    free(InData);
+
+    hFile = CreateFile("rhand.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if(hFile == INVALID_HANDLE_VALUE){
+        if(GetLastError() == ERROR_FILE_NOT_FOUND){
+            MessageBox(NULL, "rhand.mesh does not exist.", "Error", MB_OK);
+            return 0;
+        }
+        MessageBox(NULL, "rhand.mesh could not be opened for reading.", "Error", MB_OK);
+        return 0;
+    }
+    FileSize = GetFileSize(hFile, NULL);
+    InData = (uint8_t*) malloc(FileSize);
+    if(InData == NULL){
+        MessageBox(NULL, "Memory for rhand.mesh could not be allocated.", "Error", MB_OK);
+        return 0;
+    }
+    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
+        MessageBox(NULL, "rhand.mesh could not be read.", "Error", MB_OK);
+        return 0;
+    }
+    CloseHandle(hFile);
+    
+    VBFile.set(InData, FileSize);
+    ReadMesh(Meshes[3]);
     free(InData);
 
 	// Create Our OpenGL Window

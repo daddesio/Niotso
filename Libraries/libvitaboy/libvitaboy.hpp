@@ -185,10 +185,15 @@ struct Face_t {
 
 struct BoneBinding_t {
     unsigned BoneIndex;
-    unsigned FirstVertex;
-    unsigned VertexCount;
+    unsigned FirstFixedVertex;
+    unsigned FixedVertexCount;
     unsigned FirstBlendedVertex;
     unsigned BlendedVertexCount;
+};
+
+struct BlendData_t {
+    float Weight;
+    unsigned OtherVertex;
 };
 
 struct Mesh_t {
@@ -199,12 +204,16 @@ struct Mesh_t {
     Face_t * FaceData;
     uint32_t BindingCount;
     BoneBinding_t * BoneBindings;
-    uint32_t TextureVertexCount;
+    uint32_t FixedVertexCount;
     TextureVertex_t * TextureVertexData;
-    uint32_t BlendDataCount;
-    uint32_t VertexCount;
+    uint32_t BlendedVertexCount;
+    BlendData_t * BlendData;
+    uint32_t TotalVertexCount;
     Vertex_t * VertexData;
     Vertex_t * VertexNorms;
+    Vertex_t * TransformedVertexData;
+    Vertex_t * TransformedVertexNorms;
+    TextureVertex_t * TransformedTextureData;
 };
 
 void ReadMesh(Mesh_t& Mesh);
