@@ -217,20 +217,23 @@ void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation){
     static unsigned Frame = 0;
 
     for(unsigned i=0; i<Animation.MotionsCount; i++){
-        Bone_t& Bone = Skeleton.Bones[FindBone(Skeleton, Animation.Motions[i].BoneName, Skeleton.BoneCount)];
-        
-        if(Animation.Motions[i].HasTranslation){
-            Translation_t& Translation = Animation.Motions[i].Translations[Frame];
-            Bone.Translation.x = Translation.x;
-            Bone.Translation.y = Translation.y;
-            Bone.Translation.z = Translation.z;
-        }
-        if(Animation.Motions[i].HasRotation){
-            Rotation_t& Rotation = Animation.Motions[i].Rotations[Frame];
-            Bone.Rotation.x = Rotation.x;
-            Bone.Rotation.y = Rotation.y;
-            Bone.Rotation.z = Rotation.z;
-            Bone.Rotation.w = Rotation.w;
+        unsigned BoneIndex = FindBone(Skeleton, Animation.Motions[i].BoneName, Skeleton.BoneCount);
+        if(BoneIndex != (unsigned)-1){
+            Bone_t& Bone = Skeleton.Bones[BoneIndex];
+            
+            if(Animation.Motions[i].HasTranslation){
+                Translation_t& Translation = Animation.Motions[i].Translations[Frame];
+                Bone.Translation.x = Translation.x;
+                Bone.Translation.y = Translation.y;
+                Bone.Translation.z = Translation.z;
+            }
+            if(Animation.Motions[i].HasRotation){
+                Rotation_t& Rotation = Animation.Motions[i].Rotations[Frame];
+                Bone.Rotation.x = Rotation.x;
+                Bone.Rotation.y = Rotation.y;
+                Bone.Rotation.z = Rotation.z;
+                Bone.Rotation.w = Rotation.w;
+            }
         }
     }
     
