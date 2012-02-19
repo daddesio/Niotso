@@ -1,10 +1,18 @@
 /*
- *		This Code Was Created By Jeff Molofee 2000
- *		A HUGE Thanks To Fredric Echols For Cleaning Up
- *		And Optimizing The Base Code, Making It More Flexible!
- *		If You've Found This Code Useful, Please Let Me Know.
- *		Visit My Site At nehe.gamedev.net
- */
+    libvitaboy - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted, provided that the above
+    copyright notice and this permission notice appear in all copies.
+
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+*/
 
 #include <windows.h>		// Header File For Windows
 #include <gl\gl.h>			// Header File For The OpenGL32 Library
@@ -22,6 +30,8 @@ bool	keys[256] = {0};			// Array Used For The Keyboard Routine
 bool	active=TRUE;		// Window Active Flag Set To TRUE By Default
 bool	fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
 
+bool press = false;
+
 float zoom = -10;
 struct CharacterPlacement_t {
     Vertex_t Translation;
@@ -33,7 +43,7 @@ CharacterPlacement_t Character = {{0,-3,0}, {0,0,0}};
 Skeleton_t Skeleton;
 
 unsigned TextureCount = 3;
-GLuint	texture[3];			// Storage For One Texture ( NEW )
+GLuint	texture[3];
 enum { Texture_Body, Texture_Head, Texture_Hand };
 const char* TexturePaths[] = {"body.jpg", "head.jpg", "hand.jpg"};
 
@@ -42,6 +52,8 @@ Mesh_t Meshes[4];
 enum { Mesh_Body, Mesh_Head, Mesh_LHand, Mesh_RHand };
 unsigned Mesh_UseTexture[] = { Texture_Body, Texture_Head, Texture_Hand, Texture_Hand };
 const char* MeshActivate[] = {NULL, "HEAD", "L_HAND", "R_HAND"};
+
+Animation_t Animation;
 
 bool ShowMesh = true;
 bool ShowSkeleton = true;
@@ -52,7 +64,7 @@ int LoadGLTextures()									// Load Bitmaps And Convert To Textures
 {
     for(int i=0; i<3; i++){
         /* load an image file directly as a new OpenGL texture */
-        texture[i] = SOIL_load_OGL_texture(TexturePaths[i], SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+        texture[i] = SOIL_load_OGL_texture(TexturePaths[i], SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0);
         if(texture[i] == 0)
             return false;
 
@@ -201,6 +213,30 @@ void DrawMeshes(){
     glDisable(GL_TEXTURE_2D);
 }
 
+void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation){
+    static unsigned Frame = 0;
+
+    for(unsigned i=0; i<Animation.MotionsCount; i++){
+        Bone_t& Bone = Skeleton.Bones[FindBone(Skeleton, Animation.Motions[i].BoneName, Skeleton.BoneCount)];
+        
+        if(Animation.Motions[i].HasTranslation){
+            Translation_t& Translation = Animation.Motions[i].Translations[Frame];
+            Bone.Translation.x = Translation.x;
+            Bone.Translation.y = Translation.y;
+            Bone.Translation.z = Translation.z;
+        }
+        if(Animation.Motions[i].HasRotation){
+            Rotation_t& Rotation = Animation.Motions[i].Rotations[Frame];
+            Bone.Rotation.x = Rotation.x;
+            Bone.Rotation.y = Rotation.y;
+            Bone.Rotation.z = Rotation.z;
+            Bone.Rotation.w = Rotation.w;
+        }
+    }
+    
+    if(++Frame >= Animation.Motions[0].FrameCount) Frame = 0;
+}
+
 void DrawBonesSkeleton(Bone_t& Bone){
     glPointSize(5.0);
     glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
@@ -237,6 +273,7 @@ int DrawGLScene(void)									// Here's Where We Do All The Drawing
     if(keys['I']){      Character.Translation.y+=0.05f; }
     if(keys['J']){      Character.Translation.x-=0.05f; }
     if(keys['L']){      Character.Translation.x+=0.05f; }
+    if(keys['N']){      AdvanceFrame(Skeleton, Animation); }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear The Screen And The Depth Buffer
     
@@ -677,6 +714,33 @@ int WINAPI WinMain(	HINSTANCE,		// Instance
     VBFile.set(InData, FileSize);
     ReadMesh(Meshes[3]);
     free(InData);
+    
+    hFile = CreateFile("animation.anim", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if(hFile == INVALID_HANDLE_VALUE){
+        if(GetLastError() == ERROR_FILE_NOT_FOUND){
+            MessageBox(NULL, "animation.anim does not exist.", "Error", MB_OK);
+            return 0;
+        }
+        MessageBox(NULL, "animation.anim could not be opened for reading.", "Error", MB_OK);
+        return 0;
+    }
+    FileSize = GetFileSize(hFile, NULL);
+    InData = (uint8_t*) malloc(FileSize);
+    if(InData == NULL){
+        MessageBox(NULL, "Memory for animation.anim could not be allocated.", "Error", MB_OK);
+        return 0;
+    }
+    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
+        MessageBox(NULL, "animation.anim could not be read.", "Error", MB_OK);
+        return 0;
+    }
+    CloseHandle(hFile);
+    
+    VBFile.set(InData, FileSize);
+    ReadAnimation(Animation);
+    free(InData);
+    
+    AdvanceFrame(Skeleton, Animation);
 
 	// Create Our OpenGL Window
 	if (!CreateGLWindow("libvitaboy - Renderer",640,480,16,fullscreen))

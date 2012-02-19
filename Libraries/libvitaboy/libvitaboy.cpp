@@ -1,3 +1,19 @@
+/*
+    libvitaboy - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted, provided that the above
+    copyright notice and this permission notice appear in all copies.
+
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+*/
+
 #include "libvitaboy.hpp"
 
 VBFile_t VBFile;
@@ -20,6 +36,23 @@ void ReadPropEntries(Prop_t& Prop){
     }
 }
 
+void CombineQuaternions(Rotation_t * Destination, Rotation_t * Source){
+	// the constructor takes its arguments as (x, y, z, w)
+    float dx = Destination->x;
+    float dy = Destination->y;
+    float dz = Destination->z;
+    float dw = Destination->w;
+    float sx = Source->x;
+    float sy = Source->y;
+    float sz = Source->z;
+    float sw = Source->w;
+    
+	Destination->x = dw*sx + dx*sw + dy*sz - dz*sy;
+    Destination->y = dw*sy + dy*sw + dz*sx - dx*sz;
+    Destination->z = dw*sz + dz*sw + dx*sy - dy*sx;
+    Destination->w = dw*sw - dx*sx - dy*sy - dz*sz;
+}
+
 void FindQuaternionMatrix(float * Matrix, Rotation_t * Quaternion){
 	float x2 = Quaternion->x * Quaternion->x;
 	float y2 = Quaternion->y * Quaternion->y;
@@ -30,17 +63,17 @@ void FindQuaternionMatrix(float * Matrix, Rotation_t * Quaternion){
 	float wx = Quaternion->w * Quaternion->x;
 	float wy = Quaternion->w * Quaternion->y;
 	float wz = Quaternion->w * Quaternion->z;
- 
-    Matrix[0] = 1.0f - 2.0f * (y2 + z2);
-    Matrix[1] = 2.0f * (xy - wz);
-    Matrix[2] = 2.0f * (xz + wy);
-    Matrix[3] = 0.0f;
-    Matrix[4] = 2.0f * (xy + wz);
-    Matrix[5] = 1.0f - 2.0f * (x2 + z2);
-    Matrix[6] = 2.0f * (yz - wx);
-    Matrix[7] = 0.0f;
-    Matrix[8] = 2.0f * (xz - wy);
-    Matrix[9] = 2.0f * (yz + wx);
+
+    Matrix[0]  = 1.0f - 2.0f * (y2 + z2);
+    Matrix[1]  = 2.0f * (xy - wz);
+    Matrix[2]  = 2.0f * (xz + wy);
+    Matrix[3]  = 0.0f;
+    Matrix[4]  = 2.0f * (xy + wz);
+    Matrix[5]  = 1.0f - 2.0f * (x2 + z2);
+    Matrix[6]  = 2.0f * (yz - wx);
+    Matrix[7]  = 0.0f;
+    Matrix[8]  = 2.0f * (xz - wy);
+    Matrix[9]  = 2.0f * (yz + wx);
     Matrix[10] = 1.0f - 2.0f * (x2 + y2);
     Matrix[11] = 0.0f;
     Matrix[12] = 0.0f;

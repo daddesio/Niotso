@@ -1,3 +1,19 @@
+/*
+    libvitaboy - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted, provided that the above
+    copyright notice and this permission notice appear in all copies.
+
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+*/
+
 #include "libvitaboy.hpp"
 
 static unsigned motionnumber = 0;
@@ -49,18 +65,18 @@ void ReadMotion(Animation_t& Animation, Motion_t& Motion){
     printf(" | HasTranslation: %u\n", Motion.HasTranslation);
     Motion.HasRotation = VBFile.readint8();
     printf(" | HasRotation: %u\n", Motion.HasRotation);
-    Motion.TranslationsOffset = VBFile.readint32();
+    Motion.FirstTranslation = VBFile.readint32();
     if(Motion.HasTranslation)
-        printf(" | TranslationsOffset: %u\n", Motion.TranslationsOffset);
-    Motion.RotationsOffset = VBFile.readint32();
+        printf(" | FirstTranslation: %u\n", Motion.FirstTranslation);
+    Motion.FirstRotation = VBFile.readint32();
     if(Motion.HasRotation)
-        printf(" | RotationsOffset: %u\n", Motion.RotationsOffset);
+        printf(" | FirstRotation: %u\n", Motion.FirstRotation);
 
     if(Motion.HasTranslation){
         Motion.Translations = (Translation_t*) malloc(Motion.FrameCount * sizeof(Translation_t));
 
         unsigned pos = VBFile.getpos();
-        VBFile.seekto(Animation.TranslationsOffset + 12*Motion.TranslationsOffset);
+        VBFile.seekto(Animation.TranslationsOffset + 12*Motion.FirstTranslation);
         for(unsigned i=0; i<Motion.FrameCount; i++){
             Motion.Translations[i].x = VBFile.readfloat();
             Motion.Translations[i].y = VBFile.readfloat();
@@ -73,7 +89,7 @@ void ReadMotion(Animation_t& Animation, Motion_t& Motion){
         Motion.Rotations = (Rotation_t*) malloc(Motion.FrameCount * sizeof(Rotation_t));
 
         unsigned pos = VBFile.getpos();
-        VBFile.seekto(Animation.RotationsOffset + 16*Motion.RotationsOffset);
+        VBFile.seekto(Animation.RotationsOffset + 16*Motion.FirstRotation);
         for(unsigned i=0; i<Motion.FrameCount; i++){
             Motion.Rotations[i].x = VBFile.readfloat();
             Motion.Rotations[i].y = VBFile.readfloat();
