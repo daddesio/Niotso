@@ -14,6 +14,35 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+/*
+    Instructions:
+    You must have the following files in the same directory as the Renderer binary:
+    
+    Skeleton:
+    * skeleton.skel ("adult.skel" in ./avatardata/skeletons/)
+    
+    Meshes:
+    * body.mesh (pick one from ./avatardata/bodies/meshes/)
+    * head.mesh (pick one from ./avatardata/heads/meshes/)
+    * lhand.mesh (pick one from ./avatardata/hands/meshes/)
+    * rhand.mesh (pick one from ./avatardata/hands/meshes/)
+
+    Textures:
+    * body.jpg (pick one from ./avatardata/bodies/textures/)
+    * head.jpg (pick one from ./avatardata/heads/textures/)
+    * hand.jpg (pick one from ./avatardata/hands/textures/)
+    
+    Animation:
+    * animation.anim (pick one from avatardata/animations)
+    
+    ==== Controls ====
+    Arrow keys: Rotate the sim
+    i,j,k,l: Translate the sim around the screen
+    z,x: Rotate the sim like a clock
+    a,s: Zoom in, out
+    n: Animate the character
+*/
+
 #include <windows.h>		// Header File For Windows
 #include <gl\gl.h>			// Header File For The OpenGL32 Library
 #include <gl\glu.h>			// Header File For The GLu32 Library
