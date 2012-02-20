@@ -41,6 +41,7 @@
     z,x: Rotate the sim like a clock
     a,s: Zoom in, out
     n: Animate the character
+    F11: Enter/leave fullscreen
 */
 
 #include <windows.h>		// Header File For Windows
@@ -57,8 +58,8 @@ HWND		hWnd=NULL;		// Holds Our Window Handle
 HINSTANCE	hInstance;		// Holds The Instance Of The Application
 
 bool	keys[256] = {0};			// Array Used For The Keyboard Routine
-bool	active=TRUE;		// Window Active Flag Set To TRUE By Default
-bool	fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
+bool	active=true;		// Window Active Flag Set To TRUE By Default
+bool	fullscreen=false;	// Fullscreen Flag Set To Fullscreen Mode By Default
 
 float zoom = -10;
 struct CharacterPlacement_t {
@@ -88,6 +89,7 @@ bool ShowMesh = true;
 bool ShowSkeleton = true;
 
 LARGE_INTEGER ClockFreq, PreviousTime;
+float FramePeriod;
 
 LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
@@ -285,7 +287,7 @@ void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
                 w1 =  (float) sin((1.0f-FractionShown)*theta)/sinTheta;
                 w2 *= (float) sin(FractionShown       *theta)/sinTheta;
             } else {
-                w1 =  1.0f - FractionShown;
+                w1 = 1.0f - FractionShown;
                 w2 = FractionShown;
             }
 
@@ -420,11 +422,6 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
 	WNDCLASS	wc;						// Windows Class Structure
 	DWORD		dwExStyle;				// Window Extended Style
 	DWORD		dwStyle;				// Window Style
-	RECT		WindowRect;				// Grabs Rectangle Upper Left / Lower Right Values
-	WindowRect.left=(long)0;			// Set Left Value To 0
-	WindowRect.right=(long)width;		// Set Right Value To Requested Width
-	WindowRect.top=(long)0;				// Set Top Value To 0
-	WindowRect.bottom=(long)height;		// Set Bottom Value To Requested Height
 
 	fullscreen=fullscreenflag;			// Set The Global Fullscreen Flag
 
@@ -449,33 +446,12 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
 	if (fullscreen)												// Attempt Fullscreen Mode?
 	{
 		DEVMODE dmScreenSettings;								// Device Mode
-		memset(&dmScreenSettings,0,sizeof(dmScreenSettings));	// Makes Sure Memory's Cleared
-		dmScreenSettings.dmSize=sizeof(dmScreenSettings);		// Size Of The Devmode Structure
-		dmScreenSettings.dmPelsWidth	= width;				// Selected Screen Width
-		dmScreenSettings.dmPelsHeight	= height;				// Selected Screen Height
-		dmScreenSettings.dmBitsPerPel	= bits;					// Selected Bits Per Pixel
-		dmScreenSettings.dmFields=DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
-
-		// Try To Set Selected Mode And Get Results.  NOTE: CDS_FULLSCREEN Gets Rid Of Start Bar.
-		if (ChangeDisplaySettings(&dmScreenSettings,CDS_FULLSCREEN)!=DISP_CHANGE_SUCCESSFUL)
-		{
-			// If The Mode Fails, Offer Two Options.  Quit Or Use Windowed Mode.
-			if (MessageBox(NULL,"The Requested Fullscreen Mode Is Not Supported By\nYour Video Card. Use Windowed Mode Instead?","NeHe GL",MB_YESNO|MB_ICONEXCLAMATION)==IDYES)
-			{
-				fullscreen=FALSE;		// Windowed Mode Selected.  Fullscreen = FALSE
-			}
-			else
-			{
-				// Pop Up A Message Box Letting User Know The Program Is Closing.
-				MessageBox(NULL,"Program Will Now Close.","ERROR",MB_OK|MB_ICONSTOP);
-				return FALSE;									// Return FALSE
-			}
-		}
-	}
-
-	if (fullscreen)												// Are We Still In Fullscreen Mode?
-	{
-		dwExStyle=WS_EX_APPWINDOW;								// Window Extended Style
+        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dmScreenSettings);
+        width = dmScreenSettings.dmPelsWidth;
+        height = dmScreenSettings.dmPelsHeight;
+        bits = dmScreenSettings.dmBitsPerPel;
+        
+		dwExStyle=WS_EX_APPWINDOW | WS_EX_TOPMOST;								// Window Extended Style
 		dwStyle=WS_POPUP;										// Windows Style
 		ShowCursor(FALSE);										// Hide Mouse Pointer
 	}
@@ -485,6 +461,11 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
 		dwStyle=WS_OVERLAPPEDWINDOW;							// Windows Style
 	}
 
+    RECT		WindowRect;				// Grabs Rectangle Upper Left / Lower Right Values
+	WindowRect.left=(long)0;			// Set Left Value To 0
+	WindowRect.right=(long)width;		// Set Right Value To Requested Width
+	WindowRect.top=(long)0;				// Set Top Value To 0
+	WindowRect.bottom=(long)height;		// Set Bottom Value To Requested Height
 	AdjustWindowRectEx(&WindowRect, dwStyle, FALSE, dwExStyle);		// Adjust Window To True Requested Size
 
 	// Create The Window
@@ -617,20 +598,11 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 			break;									// Exit
 		}
 
-        case WM_QUIT:
-		case WM_CLOSE:								// Did We Receive A Close Message?
-		{
-			PostQuitMessage(0);						// Send A Quit Message
-			return 0;								// Jump Back
-		}
-
 		case WM_KEYDOWN:							// Is A Key Being Held Down?
 		{
-			keys[wParam] = TRUE;					// If So, Mark It As TRUE
-            
             if(wParam == VK_ESCAPE){
                 PostQuitMessage(0);
-            }else if(wParam == VK_F1){
+            }else if(wParam == VK_F11){
 				KillGLWindow();						// Kill Our Current Window
 				fullscreen=!fullscreen;				// Toggle Fullscreen / Windowed Mode
 				// Recreate Our OpenGL Window
@@ -639,6 +611,8 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 					PostQuitMessage(0);						// Quit If Window Was Not Created
 				}
 			}
+            else keys[wParam] = TRUE;
+            
 			return 0;								// Jump Back
 		}
 
@@ -653,6 +627,21 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 			ReSizeGLScene(LOWORD(lParam),HIWORD(lParam));  // LoWord=Width, HiWord=Height
 			return 0;								// Jump Back
 		}
+        
+        case WM_DEVMODECHANGE:
+        {
+            DEVMODE dm;
+            EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
+            FramePeriod = 1.0f/dm.dmDisplayFrequency;
+            return 0;
+        }
+        
+        case WM_QUIT:
+		case WM_CLOSE:								// Did We Receive A Close Message?
+		{
+			PostQuitMessage(0);						// Send A Quit Message
+			return 0;								// Jump Back
+		}
 	}
 
 	// Pass All Unhandled Messages To DefWindowProc
@@ -664,12 +653,6 @@ int WINAPI WinMain(	HINSTANCE,		// Instance
 					LPSTR,			// Command Line Parameters
 					int)			// Window Show State
 {
-	// Ask The User Which Screen Mode They Prefer
-	if (MessageBox(NULL,"Would You Like To Run In Fullscreen Mode?", "Start FullScreen?",MB_YESNO|MB_ICONQUESTION)==IDNO)
-	{
-		fullscreen=FALSE;							// Windowed Mode
-	}
-    
     HANDLE hFile;
     unsigned FileSize;
     uint8_t *InData;
@@ -833,6 +816,10 @@ int WINAPI WinMain(	HINSTANCE,		// Instance
 		return 0;									// Quit If Window Was Not Created
 	}
     
+    DEVMODE dm;
+    EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
+    FramePeriod = 1.0f/dm.dmDisplayFrequency;
+    
     bool quit = false;
     MSG msg;
     while(true){
@@ -849,7 +836,7 @@ int WINAPI WinMain(	HINSTANCE,		// Instance
         SwapBuffers(hDC);
         LARGE_INTEGER RenderTime;
         QueryPerformanceCounter(&RenderTime);
-        float SleepDuration = ((float)1/60 - (float)(RenderTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart) * 1000;
+        float SleepDuration = (FramePeriod - (float)(RenderTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart) * 1000;
         if(SleepDuration > 1) Sleep((unsigned) SleepDuration);
 	}
 
