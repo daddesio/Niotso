@@ -122,6 +122,7 @@ struct PropsList_t {
 void ReadPropEntry(KeyValuePair_t& Entry);
 void ReadPropEntries(Prop_t& Prop);
 void ReadPropsList(PropsList_t& PropsList);
+float DotProduct(Rotation_t * q1, Rotation_t * q2);
 void CombineQuaternions(Rotation_t * Destination, Rotation_t * Source);
 void FindQuaternionMatrix(float * Matrix, Rotation_t * Quaternion);
 

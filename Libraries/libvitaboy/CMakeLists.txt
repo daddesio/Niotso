@@ -34,4 +34,4 @@ add_executable(vbparse vbparse.cpp)
 target_link_libraries(vbparse libvitaboy_static)
 
 add_executable(Renderer Renderer.cpp)
-target_link_libraries(Renderer libvitaboy_shared "${CMAKE_SOURCE_DIR}/Libraries/libvitaboy/libSOIL.a" opengl32 glu32)
+target_link_libraries(Renderer libvitaboy_shared "${CMAKE_SOURCE_DIR}/Libraries/libvitaboy/libSOIL.a" opengl32 glu32 winmm)

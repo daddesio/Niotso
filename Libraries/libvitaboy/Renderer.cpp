@@ -44,6 +44,7 @@
 */
 
 #include <windows.h>		// Header File For Windows
+#include <math.h>
 #include <gl\gl.h>			// Header File For The OpenGL32 Library
 #include <gl\glu.h>			// Header File For The GLu32 Library
 #include <gl\glext.h>
@@ -58,8 +59,6 @@ HINSTANCE	hInstance;		// Holds The Instance Of The Application
 bool	keys[256] = {0};			// Array Used For The Keyboard Routine
 bool	active=TRUE;		// Window Active Flag Set To TRUE By Default
 bool	fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
-
-bool press = false;
 
 float zoom = -10;
 struct CharacterPlacement_t {
@@ -83,9 +82,12 @@ unsigned Mesh_UseTexture[] = { Texture_Body, Texture_Head, Texture_Hand, Texture
 const char* MeshActivate[] = {NULL, "HEAD", "L_HAND", "R_HAND"};
 
 Animation_t Animation;
+float AnimationTime = 0;
 
 bool ShowMesh = true;
 bool ShowSkeleton = true;
+
+LARGE_INTEGER ClockFreq, PreviousTime;
 
 LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
@@ -242,31 +244,57 @@ void DrawMeshes(){
     glDisable(GL_TEXTURE_2D);
 }
 
-void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation){
-    static unsigned Frame = 0;
+void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta){
+    float Duration = (float)Animation.Motions[0].FrameCount/30;
+    AnimationTime += TimeDelta;
+    while(AnimationTime >= Duration) AnimationTime -= Duration;
+    if(AnimationTime<0) AnimationTime = 0;
 
     for(unsigned i=0; i<Animation.MotionsCount; i++){
         unsigned BoneIndex = FindBone(Skeleton, Animation.Motions[i].BoneName, Skeleton.BoneCount);
-        if(BoneIndex != (unsigned)-1){
-            Bone_t& Bone = Skeleton.Bones[BoneIndex];
+        if(BoneIndex == (unsigned)-1) continue;
+        
+        Bone_t& Bone = Skeleton.Bones[BoneIndex];
+        
+        unsigned Frame = AnimationTime*30;
+        float FractionShown = AnimationTime*30 - Frame;
+        unsigned NextFrame = (Frame+1 != Animation.Motions[0].FrameCount) ? Frame+1 : 0;
+        
+        if(Animation.Motions[i].HasTranslation){
+            Translation_t& Translation = Animation.Motions[i].Translations[Frame];
+            Translation_t& NextTranslation = Animation.Motions[i].Translations[NextFrame];
+            Bone.Translation.x = (1-FractionShown)*Translation.x + FractionShown*NextTranslation.x;
+            Bone.Translation.y = (1-FractionShown)*Translation.y + FractionShown*NextTranslation.y;
+            Bone.Translation.z = (1-FractionShown)*Translation.z + FractionShown*NextTranslation.z;
+        }
+        if(Animation.Motions[i].HasRotation){
+            Rotation_t& Rotation = Animation.Motions[i].Rotations[Frame];
+            Rotation_t& NextRotation = Animation.Motions[i].Rotations[NextFrame];
             
-            if(Animation.Motions[i].HasTranslation){
-                Translation_t& Translation = Animation.Motions[i].Translations[Frame];
-                Bone.Translation.x = Translation.x;
-                Bone.Translation.y = Translation.y;
-                Bone.Translation.z = Translation.z;
+            //Use Slerp to interpolate
+            float w1, w2 = 1;
+            float cosTheta = DotProduct(&Rotation, &NextRotation);
+            if(cosTheta < 0){
+                cosTheta *= -1;
+                w2 *= -1;
             }
-            if(Animation.Motions[i].HasRotation){
-                Rotation_t& Rotation = Animation.Motions[i].Rotations[Frame];
-                Bone.Rotation.x = Rotation.x;
-                Bone.Rotation.y = Rotation.y;
-                Bone.Rotation.z = Rotation.z;
-                Bone.Rotation.w = Rotation.w;
+            float theta    = (float) acos(cosTheta);
+            float sinTheta = (float) sin(theta);
+
+            if(sinTheta > 0.001f){
+                w1 =  (float) sin((1.0f-FractionShown)*theta)/sinTheta;
+                w2 *= (float) sin(FractionShown       *theta)/sinTheta;
+            } else {
+                w1 =  1.0f - FractionShown;
+                w2 = FractionShown;
             }
+
+            Bone.Rotation.x = w1*Rotation.x + w2*NextRotation.x;
+            Bone.Rotation.y = w1*Rotation.y + w2*NextRotation.y;
+            Bone.Rotation.z = w1*Rotation.z + w2*NextRotation.z;
+            Bone.Rotation.w = w1*Rotation.w + w2*NextRotation.w;
         }
     }
-    
-    if(++Frame >= Animation.Motions[0].FrameCount) Frame = 0;
 }
 
 void DrawBonesSkeleton(Bone_t& Bone){
@@ -275,7 +303,7 @@ void DrawBonesSkeleton(Bone_t& Bone){
     float RotationMatrix[16];
     FindQuaternionMatrix(RotationMatrix, &Bone.Rotation);
     glMultMatrixf(RotationMatrix);
-    
+
     if(!strcmp(Bone.Name, "ROOT"))
         glColor3f(1.0, 0.0, 0.0);
     else if(!strcmp(Bone.Name, "HEAD"))
@@ -283,7 +311,7 @@ void DrawBonesSkeleton(Bone_t& Bone){
     else
         glColor3f(0.0, 1.0, 0.0);
     glBegin(GL_POINTS); glVertex3f(0, 0, 0); glEnd();
-    
+
     for(unsigned i=0; i<Bone.ChildrenCount; i++){
         glPushMatrix();
         DrawBonesSkeleton(*Bone.Children[i]);
@@ -293,19 +321,26 @@ void DrawBonesSkeleton(Bone_t& Bone){
 
 int DrawGLScene(void)									// Here's Where We Do All The Drawing
 {
-    if(keys['A'])      /*{if(zoom <=-1.0f)  zoom+=0.05f; }*/ zoom+=0.05f;
-    if(keys['S'])      /*{if(zoom >=-10.0f) zoom-=0.05f; }*/ zoom-=0.05f;
-    if(keys[VK_UP]){    if((Character.Rotation.x-=1.0f) <=-360) Character.Rotation.x+=360; }
-    if(keys[VK_DOWN]){  if((Character.Rotation.x+=1.0f) >=360)  Character.Rotation.x-=360; }
-    if(keys[VK_LEFT]){  if((Character.Rotation.y-=1.0f) <=-360) Character.Rotation.y+=360; }
-    if(keys[VK_RIGHT]){ if((Character.Rotation.y+=1.0f) >=360)  Character.Rotation.y-=360; }
-    if(keys['X']){      if((Character.Rotation.z-=1.0f) <=-360) Character.Rotation.z+=360; }
-    if(keys['Z']){      if((Character.Rotation.z+=1.0f) >=360)  Character.Rotation.z-=360; }
-    if(keys['K']){      Character.Translation.y-=0.05f; }
-    if(keys['I']){      Character.Translation.y+=0.05f; }
-    if(keys['J']){      Character.Translation.x-=0.05f; }
-    if(keys['L']){      Character.Translation.x+=0.05f; }
-    if(keys['N']){      AdvanceFrame(Skeleton, Animation); }
+    LARGE_INTEGER CurrentTime;
+    QueryPerformanceCounter(&CurrentTime);
+    
+    float TimeDelta = (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart;
+    if(TimeDelta < 0) TimeDelta = 0; //Safe-guard in case of system delay
+    PreviousTime = CurrentTime;
+
+    if(keys['A'])      /*{if(zoom <=-1.0f)  zoom+=0.05f; }*/ zoom+=3*TimeDelta;
+    if(keys['S'])      /*{if(zoom >=-10.0f) zoom-=0.05f; }*/ zoom-=3*TimeDelta;
+    if(keys[VK_UP]){    if((Character.Rotation.x-=60*TimeDelta) <=-360) Character.Rotation.x+=360; }
+    if(keys[VK_DOWN]){  if((Character.Rotation.x+=60*TimeDelta) >=360)  Character.Rotation.x-=360; }
+    if(keys[VK_LEFT]){  if((Character.Rotation.y-=60*TimeDelta) <=-360) Character.Rotation.y+=360; }
+    if(keys[VK_RIGHT]){ if((Character.Rotation.y+=60*TimeDelta) >=360)  Character.Rotation.y-=360; }
+    if(keys['X']){      if((Character.Rotation.z-=60*TimeDelta) <=-360) Character.Rotation.z+=360; }
+    if(keys['Z']){      if((Character.Rotation.z+=60*TimeDelta) >=360)  Character.Rotation.z-=360; }
+    if(keys['K']){      Character.Translation.y-=3*TimeDelta; }
+    if(keys['I']){      Character.Translation.y+=3*TimeDelta; }
+    if(keys['J']){      Character.Translation.x-=3*TimeDelta; }
+    if(keys['L']){      Character.Translation.x+=3*TimeDelta; }
+    if(keys['N']){      AdvanceFrame(Skeleton, Animation, TimeDelta); }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear The Screen And The Depth Buffer
     
@@ -377,7 +412,8 @@ void KillGLWindow(void)								// Properly Kill The Window
  *	height			- Height Of The GL Window Or Fullscreen Mode			*
  *	bits			- Number Of Bits To Use For Color (8/16/24/32)			*
  *	fullscreenflag	- Use Fullscreen Mode (TRUE) Or Windowed Mode (FALSE)	*/
- 
+
+typedef bool (APIENTRY *PFNWGLSWAPINTERVALFARPROC)(int);
 BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fullscreenflag)
 {
 	GLuint		PixelFormat;			// Holds The Results After Searching For A Match
@@ -539,6 +575,13 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
 		MessageBox(NULL,"Initialization Failed.","ERROR",MB_OK|MB_ICONEXCLAMATION);
 		return FALSE;								// Return FALSE
 	}
+    
+    PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT = 0;
+    wglSwapIntervalEXT = (PFNWGLSWAPINTERVALFARPROC)wglGetProcAddress("wglSwapIntervalEXT");
+    if(wglSwapIntervalEXT) wglSwapIntervalEXT(1);
+    
+    QueryPerformanceFrequency(&ClockFreq);
+    QueryPerformanceCounter(&PreviousTime);
 
 	return TRUE;									// Success
 }
@@ -574,6 +617,7 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 			break;									// Exit
 		}
 
+        case WM_QUIT:
 		case WM_CLOSE:								// Did We Receive A Close Message?
 		{
 			PostQuitMessage(0);						// Send A Quit Message
@@ -583,6 +627,18 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 		case WM_KEYDOWN:							// Is A Key Being Held Down?
 		{
 			keys[wParam] = TRUE;					// If So, Mark It As TRUE
+            
+            if(wParam == VK_ESCAPE){
+                PostQuitMessage(0);
+            }else if(wParam == VK_F1){
+				KillGLWindow();						// Kill Our Current Window
+				fullscreen=!fullscreen;				// Toggle Fullscreen / Windowed Mode
+				// Recreate Our OpenGL Window
+				if (!CreateGLWindow("NeHe's Solid Object Tutorial",640,480,16,fullscreen))
+				{
+					PostQuitMessage(0);						// Quit If Window Was Not Created
+				}
+			}
 			return 0;								// Jump Back
 		}
 
@@ -608,9 +664,6 @@ int WINAPI WinMain(	HINSTANCE,		// Instance
 					LPSTR,			// Command Line Parameters
 					int)			// Window Show State
 {
-	MSG		msg;									// Windows Message Structure
-	BOOL	done=FALSE;								// Bool Variable To Exit Loop
-
 	// Ask The User Which Screen Mode They Prefer
 	if (MessageBox(NULL,"Would You Like To Run In Fullscreen Mode?", "Start FullScreen?",MB_YESNO|MB_ICONQUESTION)==IDNO)
 	{
@@ -772,52 +825,32 @@ int WINAPI WinMain(	HINSTANCE,		// Instance
     ReadAnimation(Animation);
     free(InData);
     
-    AdvanceFrame(Skeleton, Animation);
+    AdvanceFrame(Skeleton, Animation, 0);
 
 	// Create Our OpenGL Window
 	if (!CreateGLWindow("libvitaboy - Renderer",640,480,16,fullscreen))
 	{
 		return 0;									// Quit If Window Was Not Created
 	}
-
-	while(!done)									// Loop That Runs While done=FALSE
-	{
-		if (PeekMessage(&msg,NULL,0,0,PM_REMOVE))	// Is There A Message Waiting?
-		{
-			if (msg.message==WM_QUIT)				// Have We Received A Quit Message?
-			{
-				done=TRUE;							// If So done=TRUE
-			}
-			else									// If Not, Deal With Window Messages
-			{
-				TranslateMessage(&msg);				// Translate The Message
-				DispatchMessage(&msg);				// Dispatch The Message
-			}
-		}
-		else										// If There Are No Messages
-		{
-			// Draw The Scene.  Watch For ESC Key And Quit Messages From DrawGLScene()
-			if ((active && !DrawGLScene()) || keys[VK_ESCAPE])	// Active?  Was There A Quit Received?
-			{
-				done=TRUE;							// ESC or DrawGLScene Signalled A Quit
-			}
-			else									// Not Time To Quit, Update Screen
-			{
-				SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
-			}
-
-			if (keys[VK_F1])						// Is F1 Being Pressed?
-			{
-				keys[VK_F1]=FALSE;					// If So Make Key FALSE
-				KillGLWindow();						// Kill Our Current Window
-				fullscreen=!fullscreen;				// Toggle Fullscreen / Windowed Mode
-				// Recreate Our OpenGL Window
-				if (!CreateGLWindow("NeHe's Solid Object Tutorial",640,480,16,fullscreen))
-				{
-					return 0;						// Quit If Window Was Not Created
-				}
-			}
-		}
+    
+    bool quit = false;
+    MSG msg;
+    while(true){
+        while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)){
+            TranslateMessage(&msg);				// Translate The Message
+            DispatchMessage(&msg);				// Dispatch The Message
+            
+            if(msg.message == WM_QUIT)
+                quit = true;
+        }
+        if(quit) break;
+        
+        DrawGLScene();
+        SwapBuffers(hDC);
+        LARGE_INTEGER RenderTime;
+        QueryPerformanceCounter(&RenderTime);
+        float SleepDuration = ((float)1/60 - (float)(RenderTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart) * 1000;
+        if(SleepDuration > 1) Sleep((unsigned) SleepDuration);
 	}
 
 	// Shutdown

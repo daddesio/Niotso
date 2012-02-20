@@ -36,6 +36,10 @@ void ReadPropEntries(Prop_t& Prop){
     }
 }
 
+float DotProduct(Rotation_t * q1, Rotation_t * q2){
+    return q1->x*q2->x + q1->y*q2->y + q1->z*q2->z + q1->w*q2->w;
+}
+
 void CombineQuaternions(Rotation_t * Destination, Rotation_t * Source){
 	// the constructor takes its arguments as (x, y, z, w)
     float dx = Destination->x;
