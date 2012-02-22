@@ -40,23 +40,6 @@ float DotProduct(Rotation_t * q1, Rotation_t * q2){
     return q1->x*q2->x + q1->y*q2->y + q1->z*q2->z + q1->w*q2->w;
 }
 
-void CombineQuaternions(Rotation_t * Destination, Rotation_t * Source){
-	// the constructor takes its arguments as (x, y, z, w)
-    float dx = Destination->x;
-    float dy = Destination->y;
-    float dz = Destination->z;
-    float dw = Destination->w;
-    float sx = Source->x;
-    float sy = Source->y;
-    float sz = Source->z;
-    float sw = Source->w;
-    
-	Destination->x = dw*sx + dx*sw + dy*sz - dz*sy;
-    Destination->y = dw*sy + dy*sw + dz*sx - dx*sz;
-    Destination->z = dw*sz + dz*sw + dx*sy - dy*sx;
-    Destination->w = dw*sw - dx*sx - dy*sy - dz*sz;
-}
-
 void FindQuaternionMatrix(float * Matrix, Rotation_t * Quaternion){
 	float x2 = Quaternion->x * Quaternion->x;
 	float y2 = Quaternion->y * Quaternion->y;

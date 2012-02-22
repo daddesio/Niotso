@@ -17,10 +17,10 @@
 /*
     Instructions:
     You must have the following files in the same directory as the Renderer binary:
-    
+
     Skeleton:
     * skeleton.skel ("adult.skel" in ./avatardata/skeletons/)
-    
+
     Meshes:
     * body.mesh (pick one from ./avatardata/bodies/meshes/)
     * head.mesh (pick one from ./avatardata/heads/meshes/)
@@ -31,10 +31,10 @@
     * body.jpg (pick one from ./avatardata/bodies/textures/)
     * head.jpg (pick one from ./avatardata/heads/textures/)
     * hand.jpg (pick one from ./avatardata/hands/textures/)
-    
+
     Animation:
-    * animation.anim (pick one from avatardata/animations)
-    
+    * animation.anim (pick one from ./avatardata/animations/)
+
     ==== Controls ====
     Arrow keys: Rotate the sim
     i,j,k,l: Translate the sim around the screen
@@ -44,43 +44,44 @@
     F11: Enter/leave fullscreen
 */
 
-#include <windows.h>		// Header File For Windows
+#include <windows.h>
 #include <math.h>
-#include <gl\gl.h>			// Header File For The OpenGL32 Library
-#include <gl\glu.h>			// Header File For The GLu32 Library
+#include <gl\gl.h>
+#include <gl\glu.h>
 #include <gl\glext.h>
+#include <FileHandler.hpp>
 #include "SOIL.h"
 #include "libvitaboy.hpp"
 
-HDC			hDC=NULL;		// Private GDI Device Context
-HGLRC		hRC=NULL;		// Permanent Rendering Context
-HWND		hWnd=NULL;		// Holds Our Window Handle
-HINSTANCE	hInstance;		// Holds The Instance Of The Application
+HDC       hDC=NULL;
+HGLRC     hRC=NULL;
+HWND      hWnd=NULL;
+HINSTANCE hInstance;
 
-bool	keys[256] = {0};			// Array Used For The Keyboard Routine
-bool	active=true;		// Window Active Flag Set To TRUE By Default
-bool	fullscreen=false;	// Fullscreen Flag Set To Fullscreen Mode By Default
+bool keys[256] = {0};
+bool active=true;
+bool fullscreen=false;
 
 float zoom = -10;
 struct CharacterPlacement_t {
     Vertex_t Translation;
     Vertex_t Rotation;
 };
-
 CharacterPlacement_t Character = {{0,-3,0}, {0,0,0}};
 
 Skeleton_t Skeleton;
 
-unsigned TextureCount = 3;
-GLuint	texture[3];
+const unsigned TextureCount = 3;
+GLuint texture[3];
 enum { Texture_Body, Texture_Head, Texture_Hand };
-const char* TexturePaths[] = {"body.jpg", "head.jpg", "hand.jpg"};
+const char* const TexturePaths[] = {"body.jpg", "head.jpg", "hand.jpg"};
 
-unsigned MeshCount = 4;
+const unsigned MeshCount = 4;
 Mesh_t Meshes[4];
 enum { Mesh_Body, Mesh_Head, Mesh_LHand, Mesh_RHand };
-unsigned Mesh_UseTexture[] = { Texture_Body, Texture_Head, Texture_Hand, Texture_Hand };
-const char* MeshActivate[] = {NULL, "HEAD", "L_HAND", "R_HAND"};
+const char* const MeshPaths[]    = {"body.mesh", "head.mesh", "lhand.mesh", "rhand.mesh" };
+const unsigned Mesh_UseTexture[] = { Texture_Body, Texture_Head, Texture_Hand, Texture_Hand };
+const char* const MeshActivate[] = {NULL, "HEAD", "L_HAND", "R_HAND"};
 
 Animation_t Animation;
 float AnimationTime = 0;
@@ -91,70 +92,64 @@ bool ShowSkeleton = true;
 LARGE_INTEGER ClockFreq, PreviousTime;
 float FramePeriod;
 
-LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-int LoadGLTextures()									// Load Bitmaps And Convert To Textures
+int LoadGLTextures()
 {
     for(int i=0; i<3; i++){
-        /* load an image file directly as a new OpenGL texture */
         texture[i] = SOIL_load_OGL_texture(TexturePaths[i], SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0);
         if(texture[i] == 0)
             return false;
 
-        // Typical Texture Generation Using Data From The Bitmap
         glBindTexture(GL_TEXTURE_2D, texture[i]);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
-	return true;										// Return Success
+    return true;
 }
 
-void ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
+void ResizeScene(GLsizei width, GLsizei height)
 {
-	if (height==0)										// Prevent A Divide By Zero By
-	{
-		height=1;										// Making Height Equal One
-	}
+    if(height==0) height++;
 
-	glViewport(0,0,width,height);						// Reset The Current Viewport
+    glViewport(0,0,width,height);
 
-	glMatrixMode(GL_PROJECTION);						// Select The Projection Matrix
-	glLoadIdentity();									// Reset The Projection Matrix
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
 
-	// Calculate The Aspect Ratio Of The Window
-	gluPerspective(45.0f,(GLfloat)width/(GLfloat)height,0.1f,100.0f);
+    // Calculate The Aspect Ratio Of The Window
+    gluPerspective(45.0f,(GLfloat)width/(GLfloat)height,0.1f,100.0f);
 
-	glMatrixMode(GL_MODELVIEW);							// Select The Modelview Matrix
-	glLoadIdentity();									// Reset The Modelview Matrix
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 }
 
-int InitGL(void)										// All Setup For OpenGL Goes Here
+int InitGL()
 {
-	if (!LoadGLTextures())								// Jump To Texture Loading Routine ( NEW )
-	{
-		return FALSE;									// If Texture Didn't Load Return FALSE
-	}
+    if(!LoadGLTextures())
+        return false;
 
-	glShadeModel(GL_SMOOTH);							// Enable Smooth Shading
-	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);				// Black Background
-	glClearDepth(1.0f);									// Depth Buffer Setup
-	glEnable(GL_DEPTH_TEST);							// Enables Depth Testing
+    glShadeModel(GL_SMOOTH);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearDepth(1.0f);
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glEnable(GL_RESCALE_NORMAL);
     glDisable(GL_BLEND);
-	glDepthFunc(GL_LEQUAL);								// The Type Of Depth Testing To Do
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Really Nice Perspective Calculations
-	return TRUE;										// Initialization Went OK
+    glDepthFunc(GL_LEQUAL);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    return true;
 }
 
-void TransformVertices(Bone_t& Bone){
+void TransformVertices(Bone_t& Bone)
+{
     glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
     float Matrix[16];
     FindQuaternionMatrix(Matrix, &Bone.Rotation);
     glMultMatrixf(Matrix);
-    
+
     unsigned MeshIndex = 0;
     unsigned BoneIndex;
 
@@ -172,56 +167,65 @@ void TransformVertices(Bone_t& Bone){
 
     if(BoneIndex < Mesh.BindingCount){
         for(unsigned i=0; i<Mesh.BoneBindings[BoneIndex].FixedVertexCount; i++){
-            glTranslatef(Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].x,
-                Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].y,
-                Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].z);
+            unsigned VertexIndex = Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i;
+            Vertex_t& RelativeVertex = Mesh.VertexData[VertexIndex];
+            Vertex_t& AbsoluteVertex = Mesh.TransformedVertexData[VertexIndex];
+            
+            glTranslatef(RelativeVertex.x, RelativeVertex.y, RelativeVertex.z);
             glGetFloatv(GL_MODELVIEW_MATRIX, Matrix);
-            Mesh.TransformedVertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].x = Matrix[12];
-            Mesh.TransformedVertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].y = Matrix[13];
-            Mesh.TransformedVertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].z = Matrix[14];
-            glTranslatef(-Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].x,
-                -Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].y,
-                -Mesh.VertexData[Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i].z);
+            AbsoluteVertex.x = Matrix[12];
+            AbsoluteVertex.y = Matrix[13];
+            AbsoluteVertex.z = Matrix[14];
+            glTranslatef(-RelativeVertex.x, -RelativeVertex.y, -RelativeVertex.z);
         }
         for(unsigned i=0; i<Mesh.BoneBindings[BoneIndex].BlendedVertexCount; i++){
-            glTranslatef(Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x,
-                Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].y,
-                Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].z);
+            unsigned VertexIndex = Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i;
+            Vertex_t& RelativeVertex = Mesh.VertexData[VertexIndex];
+            Vertex_t& AbsoluteVertex = Mesh.TransformedVertexData[VertexIndex];
+            
+            glTranslatef(RelativeVertex.x, RelativeVertex.y, RelativeVertex.z);
             glGetFloatv(GL_MODELVIEW_MATRIX, Matrix);
-            Mesh.TransformedVertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x = Matrix[12];
-            Mesh.TransformedVertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x = Matrix[13];
-            Mesh.TransformedVertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x = Matrix[14];
-            glTranslatef(-Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].x,
-                -Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].y,
-                -Mesh.VertexData[Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i].z);
+            AbsoluteVertex.x = Matrix[12];
+            AbsoluteVertex.y = Matrix[13];
+            AbsoluteVertex.z = Matrix[14];
+            glTranslatef(-RelativeVertex.x, -RelativeVertex.y, -RelativeVertex.z);
         }
     }
-    
-    for(unsigned i=0; i<Bone.ChildrenCount; i++){
-        glPushMatrix();
-        TransformVertices(*Bone.Children[i]);
-        glPopMatrix();
+
+    if(Bone.ChildrenCount == 1){
+        TransformVertices(*Bone.Children[0]);
+    }else if(Bone.ChildrenCount > 1){
+        for(unsigned i=0; i<Bone.ChildrenCount; i++){
+            glPushMatrix();
+            TransformVertices(*Bone.Children[i]);
+            glPopMatrix();
+        }
     }
 }
 
-void BlendVertices(){
+void BlendVertices()
+{
     for(unsigned i=0; i<MeshCount; i++){
         Mesh_t& Mesh = Meshes[i];
         for(unsigned i=0; i<Mesh.BlendedVertexCount; i++){
-            Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].x =
-                Mesh.BlendData[i].Weight * Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].x +
-                (1-Mesh.BlendData[i].Weight) * Mesh.TransformedVertexData[Mesh.BlendData[i].OtherVertex].x;
-            Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].y =
-                Mesh.BlendData[i].Weight * Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].y +
-                (1-Mesh.BlendData[i].Weight) * Mesh.TransformedVertexData[Mesh.BlendData[i].OtherVertex].y;
-            Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].z =
-                Mesh.BlendData[i].Weight * Mesh.TransformedVertexData[Mesh.FixedVertexCount + i].z +
-                (1-Mesh.BlendData[i].Weight) * Mesh.TransformedVertexData[Mesh.BlendData[i].OtherVertex].z;
+            unsigned Weight = Mesh.BlendData[i].Weight;
+            Vertex_t& BlendedVertex = Mesh.TransformedVertexData[Mesh.FixedVertexCount + i];
+            Vertex_t& FixedVertex = Mesh.TransformedVertexData[Mesh.FixedVertexCount + i];
+            BlendedVertex.x =
+                Weight     * BlendedVertex.x +
+                (1-Weight) * FixedVertex.x;
+            BlendedVertex.y =
+                Weight     * BlendedVertex.y +
+                (1-Weight) * FixedVertex.y;
+            BlendedVertex.z =
+                Weight     * BlendedVertex.z +
+                (1-Weight) * FixedVertex.z;
         }
     }
 }
 
-void DrawMeshes(){
+void DrawMeshes()
+{
     glPointSize(2.0);
     glColor3f(1.0, 1.0, 1.0);
     glPushMatrix();
@@ -229,7 +233,7 @@ void DrawMeshes(){
     TransformVertices(Skeleton.Bones[0]);
     glPopMatrix();
     BlendVertices();
-    
+
     glEnable(GL_TEXTURE_2D);
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -246,7 +250,8 @@ void DrawMeshes(){
     glDisable(GL_TEXTURE_2D);
 }
 
-void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta){
+void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
+{
     float Duration = (float)Animation.Motions[0].FrameCount/30;
     AnimationTime += TimeDelta;
     while(AnimationTime >= Duration) AnimationTime -= Duration;
@@ -255,13 +260,13 @@ void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
     for(unsigned i=0; i<Animation.MotionsCount; i++){
         unsigned BoneIndex = FindBone(Skeleton, Animation.Motions[i].BoneName, Skeleton.BoneCount);
         if(BoneIndex == (unsigned)-1) continue;
-        
+
         Bone_t& Bone = Skeleton.Bones[BoneIndex];
-        
+
         unsigned Frame = AnimationTime*30;
         float FractionShown = AnimationTime*30 - Frame;
         unsigned NextFrame = (Frame+1 != Animation.Motions[0].FrameCount) ? Frame+1 : 0;
-        
+
         if(Animation.Motions[i].HasTranslation){
             Translation_t& Translation = Animation.Motions[i].Translations[Frame];
             Translation_t& NextTranslation = Animation.Motions[i].Translations[NextFrame];
@@ -272,7 +277,7 @@ void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
         if(Animation.Motions[i].HasRotation){
             Rotation_t& Rotation = Animation.Motions[i].Rotations[Frame];
             Rotation_t& NextRotation = Animation.Motions[i].Rotations[NextFrame];
-            
+
             //Use Slerp to interpolate
             float w1, w2 = 1;
             float cosTheta = DotProduct(&Rotation, &NextRotation);
@@ -299,7 +304,8 @@ void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
     }
 }
 
-void DrawBonesSkeleton(Bone_t& Bone){
+void DrawBonesSkeleton(Bone_t& Bone)
+{
     glPointSize(5.0);
     glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
     float RotationMatrix[16];
@@ -314,22 +320,34 @@ void DrawBonesSkeleton(Bone_t& Bone){
         glColor3f(0.0, 1.0, 0.0);
     glBegin(GL_POINTS); glVertex3f(0, 0, 0); glEnd();
 
-    for(unsigned i=0; i<Bone.ChildrenCount; i++){
-        glPushMatrix();
-        DrawBonesSkeleton(*Bone.Children[i]);
-        glPopMatrix();
+    if(Bone.ChildrenCount == 1){
+        DrawBonesSkeleton(*Bone.Children[0]);
+    }else if(Bone.ChildrenCount > 1){
+        for(unsigned i=0; i<Bone.ChildrenCount; i++){
+            glPushMatrix();
+            DrawBonesSkeleton(*Bone.Children[i]);
+            glPopMatrix();
+        }
     }
 }
 
-int DrawGLScene(void)									// Here's Where We Do All The Drawing
+void DrawSkeleton()
 {
+    glPushMatrix();
+    DrawBonesSkeleton(Skeleton.Bones[0]);
+    glPopMatrix();
+}
+
+int DrawGLScene()
+{
+    //Obtain the current time
     LARGE_INTEGER CurrentTime;
     QueryPerformanceCounter(&CurrentTime);
-    
     float TimeDelta = (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart;
     if(TimeDelta < 0) TimeDelta = 0; //Safe-guard in case of system delay
     PreviousTime = CurrentTime;
 
+    //Handle user interaction
     if(keys['A'])      /*{if(zoom <=-1.0f)  zoom+=0.05f; }*/ zoom+=3*TimeDelta;
     if(keys['S'])      /*{if(zoom >=-10.0f) zoom-=0.05f; }*/ zoom-=3*TimeDelta;
     if(keys[VK_UP]){    if((Character.Rotation.x-=60*TimeDelta) <=-360) Character.Rotation.x+=360; }
@@ -344,503 +362,330 @@ int DrawGLScene(void)									// Here's Where We Do All The Drawing
     if(keys['L']){      Character.Translation.x+=3*TimeDelta; }
     if(keys['N']){      AdvanceFrame(Skeleton, Animation, TimeDelta); }
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear The Screen And The Depth Buffer
-    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear the screen and the depth buffer
+
     glLoadIdentity();
     glTranslatef(Character.Translation.x, Character.Translation.y, zoom + Character.Translation.z);
     glRotatef(Character.Rotation.x,1.0f,0.0f,0.0f);
     glRotatef(Character.Rotation.y,0.0f,1.0f,0.0f);
     glRotatef(Character.Rotation.z,0.0f,0.0f,1.0f);
-    
+
     if(ShowMesh){
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glColor3f(1.0, 1.0, 1.0);
-        
+
         DrawMeshes();
     }
-    
+
     if(ShowSkeleton){
         glClear(GL_DEPTH_BUFFER_BIT);
-        DrawBonesSkeleton(Skeleton.Bones[0]);
+        DrawSkeleton();
     }
 
-	return TRUE;										// Keep Going
+    return true;
 }
 
-void KillGLWindow(void)								// Properly Kill The Window
+void KillGLWindow()
 {
-	if (fullscreen)										// Are We In Fullscreen Mode?
-	{
-		ChangeDisplaySettings(NULL,0);					// If So Switch Back To The Desktop
-		ShowCursor(TRUE);								// Show Mouse Pointer
-	}
+    if(fullscreen){
+        ChangeDisplaySettings(NULL, 0); //Reset to the desktop resolution
+        ShowCursor(true);
+    }
 
-	if (hRC)											// Do We Have A Rendering Context?
-	{
-		if (!wglMakeCurrent(NULL,NULL))					// Are We Able To Release The DC And RC Contexts?
-		{
-			MessageBox(NULL,"Release Of DC And RC Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
-		}
+    if(hRC){
+        wglMakeCurrent(NULL, NULL);
+        wglDeleteContext(hRC);
+        hRC = NULL;
+    }
 
-		if (!wglDeleteContext(hRC))						// Are We Able To Delete The RC?
-		{
-			MessageBox(NULL,"Release Rendering Context Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
-		}
-		hRC=NULL;										// Set RC To NULL
-	}
+    if(hDC){
+        ReleaseDC(hWnd,hDC);
+        hDC = NULL;
+    }
 
-	if (hDC && !ReleaseDC(hWnd,hDC))					// Are We Able To Release The DC
-	{
-		MessageBox(NULL,"Release Device Context Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
-		hDC=NULL;										// Set DC To NULL
-	}
+    if(hWnd){
+        DestroyWindow(hWnd);
+        hWnd = NULL;
+    }
 
-	if (hWnd && !DestroyWindow(hWnd))					// Are We Able To Destroy The Window?
-	{
-		MessageBox(NULL,"Could Not Release hWnd.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
-		hWnd=NULL;										// Set hWnd To NULL
-	}
-
-	if (!UnregisterClass("OpenGL",hInstance))			// Are We Able To Unregister Class
-	{
-		MessageBox(NULL,"Could Not Unregister Class.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
-		hInstance=NULL;									// Set hInstance To NULL
-	}
+    UnregisterClass("OpenGL", hInstance);
+    hInstance = NULL;
 }
-
-/*	This Code Creates Our OpenGL Window.  Parameters Are:					*
- *	title			- Title To Appear At The Top Of The Window				*
- *	width			- Width Of The GL Window Or Fullscreen Mode				*
- *	height			- Height Of The GL Window Or Fullscreen Mode			*
- *	bits			- Number Of Bits To Use For Color (8/16/24/32)			*
- *	fullscreenflag	- Use Fullscreen Mode (TRUE) Or Windowed Mode (FALSE)	*/
 
 typedef bool (APIENTRY *PFNWGLSWAPINTERVALFARPROC)(int);
 BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fullscreenflag)
 {
-	GLuint		PixelFormat;			// Holds The Results After Searching For A Match
-	WNDCLASS	wc;						// Windows Class Structure
-	DWORD		dwExStyle;				// Window Extended Style
-	DWORD		dwStyle;				// Window Style
+    fullscreen = fullscreenflag;
+    hInstance = GetModuleHandle(NULL);
 
-	fullscreen=fullscreenflag;			// Set The Global Fullscreen Flag
+    WNDCLASS wc = {
+        CS_HREDRAW | CS_VREDRAW | CS_OWNDC, //style
+        (WNDPROC) WndProc,   //lpfnWndProc
+        0,                   //cbClsExtra
+        0,                   //cbWndExtra
+        hInstance,           //hInstance
+        (HICON) LoadImage(NULL, IDI_WINLOGO, IMAGE_ICON, 0, 0, LR_SHARED), //hIcon
+        (HCURSOR) LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED | LR_DEFAULTSIZE), //hCursor
+        NULL,                //hbrBackground
+        NULL,                //lpszMenuName
+        "OpenGL"             //lpszClassName
+    };
 
-	hInstance			= GetModuleHandle(NULL);				// Grab An Instance For Our Window
-	wc.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;	// Redraw On Size, And Own DC For Window.
-	wc.lpfnWndProc		= (WNDPROC) WndProc;					// WndProc Handles Messages
-	wc.cbClsExtra		= 0;									// No Extra Window Data
-	wc.cbWndExtra		= 0;									// No Extra Window Data
-	wc.hInstance		= hInstance;							// Set The Instance
-	wc.hIcon			= LoadIcon(NULL, IDI_WINLOGO);			// Load The Default Icon
-	wc.hCursor			= LoadCursor(NULL, IDC_ARROW);			// Load The Arrow Pointer
-	wc.hbrBackground	= NULL;									// No Background Required For GL
-	wc.lpszMenuName		= NULL;									// We Don't Want A Menu
-	wc.lpszClassName	= "OpenGL";								// Set The Class Name
-
-	if (!RegisterClass(&wc))									// Attempt To Register The Window Class
-	{
-		MessageBox(NULL,"Failed To Register The Window Class.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;											// Return FALSE
-	}
-	
-	if (fullscreen)												// Attempt Fullscreen Mode?
-	{
-		DEVMODE dmScreenSettings;								// Device Mode
-        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dmScreenSettings);
-        width = dmScreenSettings.dmPelsWidth;
-        height = dmScreenSettings.dmPelsHeight;
-        bits = dmScreenSettings.dmBitsPerPel;
-        
-		dwExStyle=WS_EX_APPWINDOW | WS_EX_TOPMOST;								// Window Extended Style
-		dwStyle=WS_POPUP;										// Windows Style
-		ShowCursor(FALSE);										// Hide Mouse Pointer
-	}
-	else
-	{
-		dwExStyle=WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;			// Window Extended Style
-		dwStyle=WS_OVERLAPPEDWINDOW;							// Windows Style
-	}
-
-    RECT		WindowRect;				// Grabs Rectangle Upper Left / Lower Right Values
-	WindowRect.left=(long)0;			// Set Left Value To 0
-	WindowRect.right=(long)width;		// Set Right Value To Requested Width
-	WindowRect.top=(long)0;				// Set Top Value To 0
-	WindowRect.bottom=(long)height;		// Set Bottom Value To Requested Height
-	AdjustWindowRectEx(&WindowRect, dwStyle, FALSE, dwExStyle);		// Adjust Window To True Requested Size
-
-	// Create The Window
-	if (!(hWnd=CreateWindowEx(	dwExStyle,							// Extended Style For The Window
-								"OpenGL",							// Class Name
-								title,								// Window Title
-								dwStyle |							// Defined Window Style
-								WS_CLIPSIBLINGS |					// Required Window Style
-								WS_CLIPCHILDREN,					// Required Window Style
-								0, 0,								// Window Position
-								WindowRect.right-WindowRect.left,	// Calculate Window Width
-								WindowRect.bottom-WindowRect.top,	// Calculate Window Height
-								NULL,								// No Parent Window
-								NULL,								// No Menu
-								hInstance,							// Instance
-								NULL)))								// Dont Pass Anything To WM_CREATE
-	{
-		KillGLWindow();								// Reset The Display
-		MessageBox(NULL,"Window Creation Error.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
-	}
-
-	static	PIXELFORMATDESCRIPTOR pfd=				// pfd Tells Windows How We Want Things To Be
-	{
-		sizeof(PIXELFORMATDESCRIPTOR),				// Size Of This Pixel Format Descriptor
-		1,											// Version Number
-		PFD_DRAW_TO_WINDOW |						// Format Must Support Window
-		PFD_SUPPORT_OPENGL |						// Format Must Support OpenGL
-		PFD_DOUBLEBUFFER,							// Must Support Double Buffering
-		PFD_TYPE_RGBA,								// Request An RGBA Format
-		bits,										// Select Our Color Depth
-		0, 0, 0, 0, 0, 0,							// Color Bits Ignored
-		0,											// No Alpha Buffer
-		0,											// Shift Bit Ignored
-		0,											// No Accumulation Buffer
-		0, 0, 0, 0,									// Accumulation Bits Ignored
-		16,											// 16Bit Z-Buffer (Depth Buffer)  
-		0,											// No Stencil Buffer
-		0,											// No Auxiliary Buffer
-		PFD_MAIN_PLANE,								// Main Drawing Layer
-		0,											// Reserved
-		0, 0, 0										// Layer Masks Ignored
-	};
-	
-	if (!(hDC=GetDC(hWnd)))							// Did We Get A Device Context?
-	{
-		KillGLWindow();								// Reset The Display
-		MessageBox(NULL,"Can't Create A GL Device Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
-	}
-
-	if (!(PixelFormat=ChoosePixelFormat(hDC,&pfd)))	// Did Windows Find A Matching Pixel Format?
-	{
-		KillGLWindow();								// Reset The Display
-		MessageBox(NULL,"Can't Find A Suitable PixelFormat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
-	}
-
-	if(!SetPixelFormat(hDC,PixelFormat,&pfd))		// Are We Able To Set The Pixel Format?
-	{
-		KillGLWindow();								// Reset The Display
-		MessageBox(NULL,"Can't Set The PixelFormat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
-	}
-
-	if (!(hRC=wglCreateContext(hDC)))				// Are We Able To Get A Rendering Context?
-	{
-		KillGLWindow();								// Reset The Display
-		MessageBox(NULL,"Can't Create A GL Rendering Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
-	}
-
-	if(!wglMakeCurrent(hDC,hRC))					// Try To Activate The Rendering Context
-	{
-		KillGLWindow();								// Reset The Display
-		MessageBox(NULL,"Can't Activate The GL Rendering Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
-	}
-
-	ShowWindow(hWnd,SW_SHOW);						// Show The Window
-	SetForegroundWindow(hWnd);						// Slightly Higher Priority
-	SetFocus(hWnd);									// Sets Keyboard Focus To The Window
-	ReSizeGLScene(width, height);					// Set Up Our Perspective GL Screen
-
-	if (!InitGL())									// Initialize Our Newly Created GL Window
-	{
-		KillGLWindow();								// Reset The Display
-		MessageBox(NULL,"Initialization Failed.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
-	}
+    if(!RegisterClass(&wc)){
+        MessageBox(NULL, "Failed to registrer the window class.", NULL, MB_OK | MB_ICONERROR);
+        return false;
+    }
     
+    DWORD dwStyle, dwExStyle;
+
+    if(fullscreen){
+        DEVMODE dmScreenSettings;
+        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dmScreenSettings);
+        width  = dmScreenSettings.dmPelsWidth;
+        height = dmScreenSettings.dmPelsHeight;
+        bits   = dmScreenSettings.dmBitsPerPel;
+
+        dwExStyle = WS_EX_APPWINDOW | WS_EX_TOPMOST;
+        dwStyle = WS_POPUP;
+        ShowCursor(false);
+    }else{
+        dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+        dwStyle = WS_OVERLAPPEDWINDOW;
+    }
+
+    RECT WindowRect;
+    WindowRect.left   = 0;
+    WindowRect.right  = width;
+    WindowRect.top    = 0;
+    WindowRect.bottom = height;
+    AdjustWindowRectEx(&WindowRect, dwStyle, false, dwExStyle);
+
+    // Create The Window
+    if(!(hWnd = CreateWindowEx(dwExStyle, "OpenGL",
+        title,
+        dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+        0, 0,
+        WindowRect.right-WindowRect.left,
+        WindowRect.bottom-WindowRect.top,
+        NULL, NULL, hInstance, NULL))
+    ){
+        KillGLWindow();
+        MessageBox(NULL, "Window creation error.", NULL, MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    const PIXELFORMATDESCRIPTOR pfd = {
+        sizeof(PIXELFORMATDESCRIPTOR), 1, //Size and version
+        PFD_DRAW_TO_WINDOW |              //dwFlags
+        PFD_SUPPORT_OPENGL |
+        PFD_DOUBLEBUFFER,
+        PFD_TYPE_RGBA,                    //iPixelType
+        bits,                             //cColorBits
+        0, 0, 0, 0, 0, 0, 0, 0,           //R,G,B,A bits
+        0, 0, 0, 0, 0,                    //Accumulation buffer bits
+        16,                               //cDepthBits
+        0,                                //cStencilBits
+        0,                                //cAuxBuffers
+        PFD_MAIN_PLANE,                   //iLayerType
+        0,                                //Reserved
+        0, 0, 0                           //Masks
+    };
+
+    hDC = GetDC(hWnd);
+    if(!hDC){
+        KillGLWindow();
+        MessageBox(NULL, "Failed to create an OpenGL device context.", NULL, MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    unsigned PixelFormat = ChoosePixelFormat(hDC, &pfd);
+    if(!PixelFormat){
+        KillGLWindow();
+        MessageBox(NULL, "Can't find a suitable PixelFormat.", NULL, MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    if(!SetPixelFormat(hDC,PixelFormat, &pfd)){
+        KillGLWindow();
+        MessageBox(NULL, "Can't set the PixelFormat.", NULL, MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    hRC = wglCreateContext(hDC);
+    if(!hRC){
+        KillGLWindow();
+        MessageBox(NULL, "Failed to create an OpenGL rendering context.", NULL, MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    if(!wglMakeCurrent(hDC, hRC)){
+        KillGLWindow();
+        MessageBox(NULL, "Failed to activate an OpenGL device context.", NULL, MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    ShowWindow(hWnd,SW_SHOW);
+    SetForegroundWindow(hWnd);
+    SetFocus(hWnd);
+    ResizeScene(width, height);
+
+    if(!InitGL()){
+        KillGLWindow();
+        MessageBox(NULL, "Initialization failed.", NULL, MB_OK | MB_ICONERROR);
+        return false;
+    }
+
     PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT = 0;
     wglSwapIntervalEXT = (PFNWGLSWAPINTERVALFARPROC)wglGetProcAddress("wglSwapIntervalEXT");
     if(wglSwapIntervalEXT) wglSwapIntervalEXT(1);
-    
+
     QueryPerformanceFrequency(&ClockFreq);
     QueryPerformanceCounter(&PreviousTime);
 
-	return TRUE;									// Success
+    return true;
 }
 
-LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
-							UINT	uMsg,			// Message For This Window
-							WPARAM	wParam,			// Additional Message Information
-							LPARAM	lParam)			// Additional Message Information
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	switch (uMsg)									// Check For Windows Messages
-	{
-		case WM_ACTIVATE:							// Watch For Window Activate Message
-		{
-			// LoWord Can Be WA_INACTIVE, WA_ACTIVE, WA_CLICKACTIVE,
-			// The High-Order Word Specifies The Minimized State Of The Window Being Activated Or Deactivated.
-			// A NonZero Value Indicates The Window Is Minimized.
-			if ((LOWORD(wParam) != WA_INACTIVE) && !((BOOL)HIWORD(wParam)))
-				active=TRUE;						// Program Is Active
-			else
-				active=FALSE;						// Program Is No Longer Active
-
-			return 0;								// Return To The Message Loop
-		}
-
-		case WM_SYSCOMMAND:							// Intercept System Commands
-		{
-			switch (wParam)							// Check System Calls
-			{
-				case SC_SCREENSAVE:					// Screensaver Trying To Start?
-				case SC_MONITORPOWER:				// Monitor Trying To Enter Powersave?
-				return 0;							// Prevent From Happening
-			}
-			break;									// Exit
-		}
-
-		case WM_KEYDOWN:							// Is A Key Being Held Down?
-		{
-            if(wParam == VK_ESCAPE){
+    switch (uMsg) {
+    case WM_KEYDOWN: {
+        if(wParam == VK_ESCAPE){
+            PostQuitMessage(0);
+        }else if(wParam == VK_F11 && !keys[VK_F11]){
+            KillGLWindow();
+            fullscreen = !fullscreen;
+            if(!CreateGLWindow("libvitaboy - Renderer",640,480,16,fullscreen)){
                 PostQuitMessage(0);
-            }else if(wParam == VK_F11){
-				KillGLWindow();						// Kill Our Current Window
-				fullscreen=!fullscreen;				// Toggle Fullscreen / Windowed Mode
-				// Recreate Our OpenGL Window
-				if (!CreateGLWindow("NeHe's Solid Object Tutorial",640,480,16,fullscreen))
-				{
-					PostQuitMessage(0);						// Quit If Window Was Not Created
-				}
-			}
-            else keys[wParam] = TRUE;
-            
-			return 0;								// Jump Back
-		}
+            }
+        }
 
-		case WM_KEYUP:								// Has A Key Been Released?
-		{
-			keys[wParam] = FALSE;					// If So, Mark It As FALSE
-			return 0;								// Jump Back
-		}
+        keys[wParam] = true;
+    } return 0;
 
-		case WM_SIZE:								// Resize The OpenGL Window
-		{
-			ReSizeGLScene(LOWORD(lParam),HIWORD(lParam));  // LoWord=Width, HiWord=Height
-			return 0;								// Jump Back
-		}
-        
-        case WM_DEVMODECHANGE:
-        {
-            DEVMODE dm;
-            EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
-            FramePeriod = 1.0f/dm.dmDisplayFrequency;
+    case WM_KEYUP: {
+        keys[wParam] = false;
+    } return 0;
+
+    case WM_ACTIVATE: {
+        // LoWord Can Be WA_INACTIVE, WA_ACTIVE, WA_CLICKACTIVE,
+        // The High-Order Word Specifies The Minimized State Of The Window Being Activated Or Deactivated.
+        // A NonZero Value Indicates The Window Is Minimized.
+        if ((LOWORD(wParam) != WA_INACTIVE) && !((BOOL)HIWORD(wParam)))
+            active = true;
+        else
+            active = false;
+    } return 0;
+
+    case WM_SIZE: {
+        ResizeScene(LOWORD(lParam),HIWORD(lParam));
+    } return 0;
+
+    case WM_SYSCOMMAND: {
+        switch (wParam) {
+        case SC_SCREENSAVE:
+        case SC_MONITORPOWER:
             return 0;
         }
-        
-        case WM_QUIT:
-		case WM_CLOSE:								// Did We Receive A Close Message?
-		{
-			PostQuitMessage(0);						// Send A Quit Message
-			return 0;								// Jump Back
-		}
-	}
+    } break;
 
-	// Pass All Unhandled Messages To DefWindowProc
-	return DefWindowProc(hWnd,uMsg,wParam,lParam);
+    case WM_DEVMODECHANGE: {
+        DEVMODE dm;
+        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
+        FramePeriod = 1.0f/dm.dmDisplayFrequency;
+    } return 0;
+
+    case WM_CLOSE: {
+        PostQuitMessage(0);
+    } return 0;
+    }
+    
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-int WINAPI WinMain(	HINSTANCE,		// Instance
-					HINSTANCE,		// Previous Instance
-					LPSTR,			// Command Line Parameters
-					int)			// Window Show State
+bool Read(const char * Filename, uint8_t ** InData){
+    *InData = File::ReadFile(Filename);
+    if(*InData != NULL){
+        VBFile.set(*InData, File::FileSize);
+        return true;
+    }
+
+    const char * Message;
+    switch(File::Error){
+    case FERR_NOT_FOUND:
+        Message = "%s does not exist.";
+        break;
+    case FERR_OPEN:
+        Message = "%s could not be opened for reading.";
+        break;
+    case FERR_BLANK:
+        Message = "%s is corrupt or invalid.";
+        break;
+    case FERR_MEMORY:
+        Message = "Memory for %s could not be allocated.";
+        break;
+    default:
+        Message = "%s could not be read.";
+        break;
+    }
+    
+    char Buffer[1024];
+    sprintf(Buffer, Message, Filename);
+    MessageBox(hWnd, Buffer, NULL, MB_OK | MB_ICONERROR);
+    return false;
+}
+
+int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
-    HANDLE hFile;
-    unsigned FileSize;
-    uint8_t *InData;
-    DWORD bytestransferred;
+    uint8_t * InData;
     
-    hFile = CreateFile("skeleton.skel", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            MessageBox(NULL, "The specified skeleton does not exist.", "Error", MB_OK);
-            return 0;
-        }
-        MessageBox(NULL, "The skeleton could not be opened for reading.", "Error", MB_OK);
+    if(!Read("skeleton.skel", &InData))
         return 0;
-    }
-    FileSize = GetFileSize(hFile, NULL);
-    InData = (uint8_t*) malloc(FileSize);
-    if(InData == NULL){
-        MessageBox(NULL, "Memory for the skeleton could not be allocated.", "Error", MB_OK);
-        return 0;
-    }
-    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "The skeleton could not be read.", "Error", MB_OK);
-        return 0;
-    }
-    CloseHandle(hFile);
-    
-    VBFile.set(InData, FileSize);
     ReadSkeleton(Skeleton);
     free(InData);
 
-    hFile = CreateFile("body.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            MessageBox(NULL, "body.mesh does not exist.", "Error", MB_OK);
+    for(unsigned i=0; i<MeshCount; i++){
+        if(!Read(MeshPaths[i], &InData))
             return 0;
-        }
-        MessageBox(NULL, "body.mesh could not be opened for reading.", "Error", MB_OK);
-        return 0;
+        ReadMesh(Meshes[i]);
+        free(InData);
     }
-    FileSize = GetFileSize(hFile, NULL);
-    InData = (uint8_t*) malloc(FileSize);
-    if(InData == NULL){
-        MessageBox(NULL, "Memory for body.mesh could not be allocated.", "Error", MB_OK);
-        return 0;
-    }
-    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "body.mesh could not be read.", "Error", MB_OK);
-        return 0;
-    }
-    CloseHandle(hFile);
     
-    VBFile.set(InData, FileSize);
-    ReadMesh(Meshes[0]);
-    free(InData);
-    
-    hFile = CreateFile("head.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            MessageBox(NULL, "head.mesh does not exist.", "Error", MB_OK);
-            return 0;
-        }
-        MessageBox(NULL, "head.mesh could not be opened for reading.", "Error", MB_OK);
+    if(!Read("animation.anim", &InData))
         return 0;
-    }
-    FileSize = GetFileSize(hFile, NULL);
-    InData = (uint8_t*) malloc(FileSize);
-    if(InData == NULL){
-        MessageBox(NULL, "Memory for head.mesh could not be allocated.", "Error", MB_OK);
-        return 0;
-    }
-    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "head.mesh could not be read.", "Error", MB_OK);
-        return 0;
-    }
-    CloseHandle(hFile);
-    
-    VBFile.set(InData, FileSize);
-    ReadMesh(Meshes[1]);
-    free(InData);
-
-    hFile = CreateFile("lhand.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            MessageBox(NULL, "lhand.mesh does not exist.", "Error", MB_OK);
-            return 0;
-        }
-        MessageBox(NULL, "lhand.mesh could not be opened for reading.", "Error", MB_OK);
-        return 0;
-    }
-    FileSize = GetFileSize(hFile, NULL);
-    InData = (uint8_t*) malloc(FileSize);
-    if(InData == NULL){
-        MessageBox(NULL, "Memory for lhand.mesh could not be allocated.", "Error", MB_OK);
-        return 0;
-    }
-    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "lhand.mesh could not be read.", "Error", MB_OK);
-        return 0;
-    }
-    CloseHandle(hFile);
-    
-    VBFile.set(InData, FileSize);
-    ReadMesh(Meshes[2]);
-    free(InData);
-
-    hFile = CreateFile("rhand.mesh", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            MessageBox(NULL, "rhand.mesh does not exist.", "Error", MB_OK);
-            return 0;
-        }
-        MessageBox(NULL, "rhand.mesh could not be opened for reading.", "Error", MB_OK);
-        return 0;
-    }
-    FileSize = GetFileSize(hFile, NULL);
-    InData = (uint8_t*) malloc(FileSize);
-    if(InData == NULL){
-        MessageBox(NULL, "Memory for rhand.mesh could not be allocated.", "Error", MB_OK);
-        return 0;
-    }
-    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "rhand.mesh could not be read.", "Error", MB_OK);
-        return 0;
-    }
-    CloseHandle(hFile);
-    
-    VBFile.set(InData, FileSize);
-    ReadMesh(Meshes[3]);
-    free(InData);
-    
-    hFile = CreateFile("animation.anim", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            MessageBox(NULL, "animation.anim does not exist.", "Error", MB_OK);
-            return 0;
-        }
-        MessageBox(NULL, "animation.anim could not be opened for reading.", "Error", MB_OK);
-        return 0;
-    }
-    FileSize = GetFileSize(hFile, NULL);
-    InData = (uint8_t*) malloc(FileSize);
-    if(InData == NULL){
-        MessageBox(NULL, "Memory for animation.anim could not be allocated.", "Error", MB_OK);
-        return 0;
-    }
-    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        MessageBox(NULL, "animation.anim could not be read.", "Error", MB_OK);
-        return 0;
-    }
-    CloseHandle(hFile);
-    
-    VBFile.set(InData, FileSize);
     ReadAnimation(Animation);
     free(InData);
-    
+
     AdvanceFrame(Skeleton, Animation, 0);
 
-	// Create Our OpenGL Window
-	if (!CreateGLWindow("libvitaboy - Renderer",640,480,16,fullscreen))
-	{
-		return 0;									// Quit If Window Was Not Created
-	}
-    
+    if(!CreateGLWindow("libvitaboy - Renderer",640,480,16,fullscreen)){
+        return 0;
+    }
+
     DEVMODE dm;
     EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
     FramePeriod = 1.0f/dm.dmDisplayFrequency;
-    
+
     bool quit = false;
     MSG msg;
     while(true){
         while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)){
-            TranslateMessage(&msg);				// Translate The Message
-            DispatchMessage(&msg);				// Dispatch The Message
-            
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+
             if(msg.message == WM_QUIT)
                 quit = true;
         }
         if(quit) break;
-        
+
         DrawGLScene();
         SwapBuffers(hDC);
         LARGE_INTEGER RenderTime;
         QueryPerformanceCounter(&RenderTime);
         float SleepDuration = (FramePeriod - (float)(RenderTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart) * 1000;
         if(SleepDuration > 1) Sleep((unsigned) SleepDuration);
-	}
+    }
 
-	// Shutdown
-	KillGLWindow();									// Kill The Window
-	return (msg.wParam);							// Exit The Program
+    //Shutdown
+    KillGLWindow();
+    return (msg.wParam);
 }
