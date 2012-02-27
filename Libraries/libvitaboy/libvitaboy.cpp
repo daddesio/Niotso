@@ -18,6 +18,15 @@
 
 VBFile_t VBFile;
 
+void ReadAsset(Asset_t& Asset, bool ReadGroup){
+    Asset.Group = (ReadGroup) ? VBFile.readint32() : 0xA96F6D42;
+    printf(" | Group: %u\n", Asset.Group);
+    Asset.File = VBFile.readint32();
+    printf(" | File: %u\n", Asset.File);
+    Asset.Type = VBFile.readint32();
+    printf(" | Type: %u\n", Asset.Type);
+}
+
 void ReadPropEntry(KeyValuePair_t& Entry){
     Entry.Key = VBFile.readstring();
     printf(" | | | | | Key: %s\n", Entry.Key);
@@ -29,7 +38,7 @@ void ReadPropEntries(Prop_t& Prop){
     unsigned count = Prop.EntriesCount = VBFile.readint32();
     printf(" | | | | EntriesCount: %u\n", Prop.EntriesCount);
     Prop.Entries = (KeyValuePair_t*) malloc(count * sizeof(KeyValuePair_t));
-    
+
     for(unsigned i=0; i<count; i++){
         printf(" | | | | [Entry %u]\n", i+1);
         ReadPropEntry(Prop.Entries[i]);

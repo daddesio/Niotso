@@ -7,8 +7,14 @@ set(LIBVITABOY_MINOR 1)
 
 set(LIBVITABOY_SOURCES
     anim.cpp
+    apr.cpp
+    bnd.cpp
+    col.cpp
+    hag.cpp
     libvitaboy.cpp
     mesh.cpp
+    oft.cpp
+    po.cpp
     skel.cpp
 )
 if(WIN32)
@@ -33,7 +39,7 @@ set_target_properties(libvitaboy_shared PROPERTIES
     CLEAN_DIRECT_OUTPUT 1)
 
 add_executable(vbparse vbparse.cpp)
-target_link_libraries(vbparse libvitaboy_static)
+target_link_libraries(vbparse libvitaboy_static FileHandler_shared)
 
 add_executable(Renderer Renderer.cpp)
-target_link_libraries(Renderer libvitaboy_shared "${CMAKE_SOURCE_DIR}/Libraries/libvitaboy/libSOIL.a" FileHandler_shared opengl32 glu32 winmm)
+target_link_libraries(Renderer libvitaboy_shared FileHandler_shared opengl32 glu32 winmm)

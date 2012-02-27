@@ -14,19 +14,51 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#ifndef FILEHANDLER_HPP
+#define FILEHANDLER_HPP
+
+#include <stdlib.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <stdio.h>
+#ifndef NOWINDOWS
+ #include <windows.h>
+#endif
+
+struct Asset_t {
+    uint32_t Group;
+    uint32_t File;
+    uint32_t Type;
+};
+
 enum FErr {
     FERR_NOT_FOUND,
     FERR_OPEN,
     FERR_BLANK,
     FERR_MEMORY,
-    FERR_READ
+    FERR_READ,
+    FERR_UNRECOGNIZED
+};
+
+enum ImageFormat_t {
+    FIMG_BGR24
+};
+
+struct Image_t {
+    unsigned Width, Height;
+    ImageFormat_t Format;
+    uint8_t * Data;
 };
 
 namespace File {
 
 extern int Error;
-extern unsigned FileSize;
+extern size_t FileSize;
 
 uint8_t * ReadFile(const char * Filename);
+Image_t * ReadImageFile(const char * Filename);
+uint8_t * ReadJPG(Image_t * Image, const uint8_t * InData, size_t FileSize);
 
 }
+
+#endif

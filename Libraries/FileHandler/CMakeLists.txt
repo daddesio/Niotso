@@ -3,6 +3,7 @@ project(FileHandler)
 
 add_subdirectory(libexpat)
 add_subdirectory(libfar)
+add_subdirectory(libjpeg-turbo)
 add_subdirectory(libpng)
 add_subdirectory(utk)
 add_subdirectory(xa)
@@ -14,6 +15,7 @@ set(FILEHANDLER_MINOR  0)
 
 set(FILEHANDLER_SOURCES
     File.cpp
+    Image.cpp
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
@@ -32,4 +34,4 @@ set_target_properties(FileHandler_shared PROPERTIES
     PREFIX ""
     IMPORT_PREFIX ""
     CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(FileHandler_shared kernel32)
+target_link_libraries(FileHandler_shared kernel32 jpegturbo_static)

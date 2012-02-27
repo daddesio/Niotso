@@ -20,7 +20,7 @@ void ReadMesh(Mesh_t& Mesh){
     printf("\n========== Mesh ==========\n");
     Mesh.Version = VBFile.readint32();
     printf("Version: %u\n", Mesh.Version);
-    
+
     Mesh.BoneCount = VBFile.readint32();
     printf("BoneCount: %u\n", Mesh.BoneCount);
     Mesh.BoneNames = (char**) malloc(Mesh.BoneCount * sizeof(char*));
@@ -28,7 +28,7 @@ void ReadMesh(Mesh_t& Mesh){
         Mesh.BoneNames[i] = VBFile.readstring();
         printf("| Bone %u: %s\n", i+1, Mesh.BoneNames[i]);
     }
-    
+
     Mesh.FaceCount = VBFile.readint32();
     printf("FaceCount: %u\n", Mesh.FaceCount);
     Mesh.FaceData = (Face_t*) malloc(Mesh.FaceCount * sizeof(Face_t));
@@ -37,7 +37,7 @@ void ReadMesh(Mesh_t& Mesh){
         Mesh.FaceData[i].VertexB = VBFile.readint32();
         Mesh.FaceData[i].VertexC = VBFile.readint32();
     }
-    
+
     Mesh.BindingCount = VBFile.readint32();
     Mesh.BoneBindings = (BoneBinding_t*) malloc(Mesh.BindingCount * sizeof(BoneBinding_t));
     printf("BindingCount: %u\n", Mesh.BindingCount);
@@ -48,7 +48,7 @@ void ReadMesh(Mesh_t& Mesh){
         Mesh.BoneBindings[i].FirstBlendedVertex = VBFile.readint32();
         Mesh.BoneBindings[i].BlendedVertexCount = VBFile.readint32();
     }
-    
+
     Mesh.FixedVertexCount = VBFile.readint32();
     printf("FixedVertexCount: %u\n", Mesh.FixedVertexCount);
     Mesh.TextureVertexData = (TextureVertex_t*) malloc(Mesh.FixedVertexCount * sizeof(TextureVertex_t));
@@ -56,7 +56,7 @@ void ReadMesh(Mesh_t& Mesh){
         Mesh.TextureVertexData[i].u = VBFile.readfloat();
         Mesh.TextureVertexData[i].v = VBFile.readfloat();
     }
-    
+
     Mesh.BlendedVertexCount = VBFile.readint32();
     printf("BlendedVertexCount: %u\n", Mesh.BlendedVertexCount);
     Mesh.BlendData = (BlendData_t*) malloc(Mesh.BlendedVertexCount * sizeof(BlendData_t));
@@ -64,7 +64,7 @@ void ReadMesh(Mesh_t& Mesh){
         Mesh.BlendData[i].Weight = (float)VBFile.readint32()/0x8000;
         Mesh.BlendData[i].OtherVertex = VBFile.readint32();
     }
-    
+
     Mesh.TotalVertexCount = VBFile.readint32();
     printf("TotalVertexCount: %u\n", Mesh.TotalVertexCount);
     Mesh.VertexData = (Vertex_t*) malloc(Mesh.TotalVertexCount * sizeof(Vertex_t));
@@ -79,7 +79,7 @@ void ReadMesh(Mesh_t& Mesh){
         Mesh.VertexNorms[i].x = VBFile.readfloat();
         Mesh.VertexNorms[i].y = VBFile.readfloat();
         Mesh.VertexNorms[i].z = VBFile.readfloat();
-        
+
         if(i<Mesh.FixedVertexCount){
             //Fixed vertex
             Mesh.TransformedTextureData[i].u = Mesh.TextureVertexData[i].u;

@@ -14,50 +14,54 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#ifndef LIBVITABOY_HPP
+#define LIBVITABOY_HPP
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <memory.h>
+#include <FileHandler.hpp>
 
 class VBFile_t {
   private:
     const uint8_t *Buffer, *Position;
     unsigned Size;
-    
+
   public:
     inline void set(const void *_Buffer, unsigned _Size){
         Buffer = (const uint8_t*) _Buffer;
         Position = (const uint8_t*) _Buffer;
         Size = _Size;
     }
-    
+
     inline unsigned getpos(){
         return Position-Buffer;
     }
-    
+
     inline void seekto(unsigned offset){
         Position = Buffer+offset;
     }
-    
+
     inline uint32_t readint32(){
         uint32_t value = (uint32_t)((Position[0]<<(8*3)) | (Position[1]<<(8*2)) | (Position[2]<<(8*1)) | (Position[3]<<(8*0)));
         Position += 4;
         return value;
     }
-    
+
     inline uint32_t readint16(){
         uint16_t value = (uint16_t)((Position[0]<<(8*1)) | (Position[1]<<(8*0)));
         Position += 2;
         return value;
     }
-    
+
     inline uint32_t readint8(){
         uint8_t value = (uint8_t)((Position[0]<<(8*0)));
         Position += 1;
         return value;
     }
-    
+
     inline float readfloat(){
         //Obviously a platform-dependent implementation
         float value;
@@ -65,12 +69,12 @@ class VBFile_t {
         Position += 4;
         return value;
     }
-    
+
     inline void readbytes(void* Destination, unsigned length){
         memcpy(Destination, Position, length);
         Position += length;
     }
-    
+
     inline char* readstring(){
         //Read a Pascal string with 1 length byte
         unsigned length = readint8();
@@ -79,7 +83,7 @@ class VBFile_t {
         string[length] = '\0';
         return string;
     }
-    
+
     inline char* readstring2(){
         //Read a Pascal string with 2 length bytes
         unsigned length = readint16();
@@ -95,6 +99,11 @@ extern VBFile_t VBFile;
 /****
 ** Common
 */
+
+enum ReadGroup {
+    NOGROUP,
+    READGROUP
+};
 
 struct Translation_t {
     float x, y, z;
@@ -119,6 +128,7 @@ struct PropsList_t {
     Prop_t * Props;
 };
 
+void ReadAsset(Asset_t& Asset, bool ReadGroup);
 void ReadPropEntry(KeyValuePair_t& Entry);
 void ReadPropEntries(Prop_t& Prop);
 void ReadPropsList(PropsList_t& PropsList);
@@ -145,7 +155,7 @@ struct Motion_t {
     uint32_t Unknown;
     char * BoneName;
     uint32_t FrameCount;
-    float Duration;
+    float Duration; //Converted to seconds
     uint8_t HasTranslation;
     uint8_t HasRotation;
     uint32_t FirstTranslation;
@@ -165,7 +175,7 @@ struct Motion_t {
 struct Animation_t {
     uint32_t Version;
     char * Name;
-    float Duration;
+    float Duration; //Converted to seconds
     float Distance;
     uint8_t IsMoving;
     uint32_t TranslationsCount;
@@ -183,6 +193,64 @@ void ReadMotion(Animation_t& Animation, Motion_t& Motion);
 void ReadPropsLists(Motion_t& Motion);
 void ReadTimePropsList(TimePropsList_t& TimePropsList);
 void ReadTimePropsLists(Motion_t& Motion);
+
+
+/****
+** Appearance (*.apr)
+*/
+
+struct Appearance_t {
+    uint32_t Version;
+    Asset_t Thumbnail;
+    uint32_t BindingCount;
+    Asset_t * Bindings;
+};
+
+void ReadAppearance(Appearance_t& Appearance);
+
+/****
+** Binding (*.bnd)
+*/
+
+struct Binding_t {
+    uint32_t Version;
+    char * BoneName;
+    uint32_t MeshDef;
+    Asset_t Mesh;
+    uint32_t AppearanceDef;
+    Asset_t Appearance;
+};
+
+void ReadBinding(Binding_t& Binding);
+
+
+/****
+** Collection (*.col)
+*/
+
+struct PODef_t {
+    uint32_t Index;
+    Asset_t PO;
+};
+
+struct Collection_t {
+    uint32_t POCount;
+    PODef_t * PurchasableOutfits;
+};
+
+void ReadCollection(Collection_t& Collection);
+
+
+/****
+** Hand Group (*.hag)
+*/
+
+struct HandGroup_t {
+    uint32_t Version;
+    Asset_t HandAppearances[18];
+};
+
+void ReadHandGroup(HandGroup_t& HandGroup);
 
 
 /****
@@ -238,6 +306,48 @@ void ReadMesh(Mesh_t& Mesh);
 
 
 /****
+** Outfit (*.oft)
+*/
+
+enum OutfitColor {
+    OutfitColor_Light,
+    OutfitColor_Medium,
+    OutfitColor_Dark
+};
+
+enum OutfitRegion {
+    OutfitRegion_Head = 0,
+    OutfitRegion_Body = 18
+};
+
+struct Outfit_t {
+    uint32_t Version;
+    uint32_t Unknown;
+    Asset_t Appearance[3];
+    uint32_t Group;
+    uint32_t Region;
+};
+
+void ReadOutfit(Outfit_t& Outfit);
+
+
+/****
+** Purchasable Outfit (*.po)
+*/
+
+struct PurchasableOutfit_t {
+    uint32_t Version;
+    uint32_t Unknown;
+    uint32_t OutfitDef;
+    Asset_t Outfit;
+    uint32_t CollectionDef;
+    Asset_t Collection;
+};
+
+void ReadPurchasableOutfit(PurchasableOutfit_t& PurchasableOutfit);
+
+
+/****
 ** Skeleton (*.skel)
 */
 
@@ -254,7 +364,7 @@ struct Bone_t {
     uint32_t CanBlend;
     float WiggleValue;
     float WigglePower;
-    
+
     unsigned ChildrenCount;
     Bone_t ** Children;
 };
@@ -269,3 +379,5 @@ struct Skeleton_t {
 void ReadSkeleton(Skeleton_t& Bone);
 void ReadBone(Skeleton_t& Skeleton, Bone_t& Bone, unsigned Index);
 unsigned FindBone(Skeleton_t& Skeleton, const char * BoneName, unsigned Count);
+
+#endif

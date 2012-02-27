@@ -14,7 +14,8 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include <windows.h>
+#include <stdio.h>
+#include <FileHandler.hpp>
 #include "libvitaboy.hpp"
 
 enum VBFileType {
@@ -32,7 +33,7 @@ enum VBFileType {
 int main(int argc, char *argv[]){
     int type;
     char * InFile;
-    
+
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
         printf("Usage: vbparse [-t type] infile\n"
         "Parse a TSO VitaBoy file.\n"
@@ -53,7 +54,7 @@ int main(int argc, char *argv[]){
         "Home page: <http://www.niotso.org/>");
         return 0;
     }
-    
+
     if(argc >= 4 && !strcmp(argv[1], "-t")){
         if(!stricmp(argv[2], "anim"))      type = 0;
         else if(!stricmp(argv[2], "apr"))  type = 1;
@@ -86,40 +87,70 @@ int main(int argc, char *argv[]){
         }
         InFile = argv[1];
     }
-    
-    HANDLE ProcessHeap = GetProcessHeap();
-    HANDLE hFile;
-    unsigned FileSize;
-    uint8_t *InData;
-    DWORD bytestransferred;
-    
-    hFile = CreateFile(InFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            printf("%sThe specified input file does not exist.", "vbparse: Error: ");
-            return -1;
-        }
-        printf("%sThe input file could not be opened for reading.", "vbparse: Error: ");
-        return -1;
-    }
-    FileSize = GetFileSize(hFile, NULL);
-    InData = (uint8_t*) HeapAlloc(ProcessHeap, HEAP_NO_SERIALIZE, FileSize);
+
+    uint8_t *InData = File::ReadFile(InFile);
     if(InData == NULL){
-        printf("%sMemory for this file could not be allocated.", "vbparse: Error: ");
+        const char * Message;
+        switch(File::Error){
+        case FERR_NOT_FOUND:
+            Message = "%s does not exist.";
+            break;
+        case FERR_OPEN:
+            Message = "%s could not be opened for reading.";
+            break;
+        case FERR_BLANK:
+            Message = "%s is corrupt or invalid.";
+            break;
+        case FERR_MEMORY:
+            Message = "Memory for %s could not be allocated.";
+            break;
+        default:
+            Message = "%s could not be read.";
+            break;
+        }
+        printf(Message, InFile);
         return -1;
     }
-    if(!ReadFile(hFile, InData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        printf("%sThe input file could not be read.", "vbparse: Error: ");
-        return -1;
-    }
-    CloseHandle(hFile);
-    
-    VBFile.set(InData, FileSize);
-    
-    if(type == VBFILE_ANIM){
+
+    VBFile.set(InData, File::FileSize);
+
+    switch(type){
+    case VBFILE_ANIM:
         Animation_t Animation;
         ReadAnimation(Animation);
+        break;
+    case VBFILE_APR:
+        Appearance_t Appearance;
+        ReadAppearance(Appearance);
+        break;
+    case VBFILE_BND:
+        Binding_t Binding;
+        ReadBinding(Binding);
+        break;
+    case VBFILE_COL:
+        Collection_t Collection;
+        ReadCollection(Collection);
+        break;
+    case VBFILE_HAG:
+        HandGroup_t HandGroup;
+        ReadHandGroup(HandGroup);
+        break;
+    case VBFILE_MESH:
+        Mesh_t Mesh;
+        ReadMesh(Mesh);
+        break;
+    case VBFILE_OFT:
+        Outfit_t Outfit;
+        ReadOutfit(Outfit);
+        break;
+    case VBFILE_PO:
+        PurchasableOutfit_t PurchasableOutfit;
+        ReadPurchasableOutfit(PurchasableOutfit);
+        break;
+    case VBFILE_SKEL:
+        Skeleton_t Skeleton;
+        ReadSkeleton(Skeleton);
     }
-    
+
     return 0;
 }

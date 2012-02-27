@@ -44,13 +44,11 @@
     F11: Enter/leave fullscreen
 */
 
-#include <windows.h>
 #include <math.h>
 #include <gl\gl.h>
 #include <gl\glu.h>
 #include <gl\glext.h>
 #include <FileHandler.hpp>
-#include "SOIL.h"
 #include "libvitaboy.hpp"
 
 HDC       hDC=NULL;
@@ -72,7 +70,7 @@ CharacterPlacement_t Character = {{0,-3,0}, {0,0,0}};
 Skeleton_t Skeleton;
 
 const unsigned TextureCount = 3;
-GLuint texture[3];
+unsigned texture[3];
 enum { Texture_Body, Texture_Head, Texture_Hand };
 const char* const TexturePaths[] = {"body.jpg", "head.jpg", "hand.jpg"};
 
@@ -94,14 +92,47 @@ float FramePeriod;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-int LoadGLTextures()
+void DisplayFileError(const char * Filename){
+    const char * Message;
+    switch(File::Error){
+    case FERR_NOT_FOUND:
+        Message = "%s does not exist.";
+        break;
+    case FERR_OPEN:
+        Message = "%s could not be opened for reading.";
+        break;
+    case FERR_BLANK:
+    case FERR_UNRECOGNIZED:
+        Message = "%s is corrupt or invalid.";
+        break;
+    case FERR_MEMORY:
+        Message = "Memory for %s could not be allocated.";
+        break;
+    default:
+        Message = "%s could not be read.";
+        break;
+    }
+
+    char Buffer[1024];
+    sprintf(Buffer, Message, Filename);
+    MessageBox(hWnd, Buffer, NULL, MB_OK | MB_ICONERROR);
+}
+
+bool LoadTextures()
 {
+    glGenTextures(3, texture);
     for(int i=0; i<3; i++){
-        texture[i] = SOIL_load_OGL_texture(TexturePaths[i], SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0);
-        if(texture[i] == 0)
+        Image_t * Image = File::ReadImageFile(TexturePaths[i]);
+        if(!Image){
+            DisplayFileError(TexturePaths[i]);
             return false;
+        }
 
         glBindTexture(GL_TEXTURE_2D, texture[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, Image->Width, Image->Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Image->Data);
+        free(Image->Data);
+        free(Image);
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -126,9 +157,9 @@ void ResizeScene(GLsizei width, GLsizei height)
     glLoadIdentity();
 }
 
-int InitGL()
+bool InitGL()
 {
-    if(!LoadGLTextures())
+    if(!LoadTextures())
         return false;
 
     glShadeModel(GL_SMOOTH);
@@ -170,7 +201,7 @@ void TransformVertices(Bone_t& Bone)
             unsigned VertexIndex = Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i;
             Vertex_t& RelativeVertex = Mesh.VertexData[VertexIndex];
             Vertex_t& AbsoluteVertex = Mesh.TransformedVertexData[VertexIndex];
-            
+
             glTranslatef(RelativeVertex.x, RelativeVertex.y, RelativeVertex.z);
             glGetFloatv(GL_MODELVIEW_MATRIX, Matrix);
             AbsoluteVertex.x = Matrix[12];
@@ -182,7 +213,7 @@ void TransformVertices(Bone_t& Bone)
             unsigned VertexIndex = Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i;
             Vertex_t& RelativeVertex = Mesh.VertexData[VertexIndex];
             Vertex_t& AbsoluteVertex = Mesh.TransformedVertexData[VertexIndex];
-            
+
             glTranslatef(RelativeVertex.x, RelativeVertex.y, RelativeVertex.z);
             glGetFloatv(GL_MODELVIEW_MATRIX, Matrix);
             AbsoluteVertex.x = Matrix[12];
@@ -240,8 +271,10 @@ void DrawMeshes()
 
     for(unsigned i=0; i<MeshCount; i++){
         glBindTexture(GL_TEXTURE_2D, texture[Mesh_UseTexture[i]]);
-        glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float), Meshes[i].TransformedVertexData);
-        glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float), Meshes[i].TransformedTextureData);
+        glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float),
+            Meshes[i].TransformedVertexData);
+        glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float),
+            Meshes[i].TransformedTextureData);
         glDrawElements(GL_TRIANGLES, Meshes[i].FaceCount*3, GL_UNSIGNED_INT, Meshes[i].FaceData);
     }
 
@@ -255,7 +288,7 @@ void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
     float Duration = (float)Animation.Motions[0].FrameCount/30;
     AnimationTime += TimeDelta;
     while(AnimationTime >= Duration) AnimationTime -= Duration;
-    if(AnimationTime<0) AnimationTime = 0;
+    if(AnimationTime<0) AnimationTime = 0; //Safe-guard against rounding error
 
     for(unsigned i=0; i<Animation.MotionsCount; i++){
         unsigned BoneIndex = FindBone(Skeleton, Animation.Motions[i].BoneName, Skeleton.BoneCount);
@@ -435,7 +468,7 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
         MessageBox(NULL, "Failed to registrer the window class.", NULL, MB_OK | MB_ICONERROR);
         return false;
     }
-    
+
     DWORD dwStyle, dwExStyle;
 
     if(fullscreen){
@@ -598,7 +631,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
     } return 0;
     }
-    
+
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
@@ -609,35 +642,14 @@ bool Read(const char * Filename, uint8_t ** InData){
         return true;
     }
 
-    const char * Message;
-    switch(File::Error){
-    case FERR_NOT_FOUND:
-        Message = "%s does not exist.";
-        break;
-    case FERR_OPEN:
-        Message = "%s could not be opened for reading.";
-        break;
-    case FERR_BLANK:
-        Message = "%s is corrupt or invalid.";
-        break;
-    case FERR_MEMORY:
-        Message = "Memory for %s could not be allocated.";
-        break;
-    default:
-        Message = "%s could not be read.";
-        break;
-    }
-    
-    char Buffer[1024];
-    sprintf(Buffer, Message, Filename);
-    MessageBox(hWnd, Buffer, NULL, MB_OK | MB_ICONERROR);
+    DisplayFileError(Filename);
     return false;
 }
 
 int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
     uint8_t * InData;
-    
+
     if(!Read("skeleton.skel", &InData))
         return 0;
     ReadSkeleton(Skeleton);
@@ -649,7 +661,7 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         ReadMesh(Meshes[i]);
         free(InData);
     }
-    
+
     if(!Read("animation.anim", &InData))
         return 0;
     ReadAnimation(Animation);

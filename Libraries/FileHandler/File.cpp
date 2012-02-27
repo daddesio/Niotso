@@ -1,5 +1,5 @@
 /*
-    libvitaboy - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -14,8 +14,6 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include <stdint.h>
-#include <windows.h>
 #include "FileHandler.hpp"
 
 namespace File {
@@ -23,20 +21,27 @@ namespace File {
 int Error = 0;
 unsigned FileSize = 0;
 
+const uint8_t Signature[][4] = {
+    {0xFF,0xD8,0xFF,0xE0} //JPEG
+};
+const uint8_t SignatureSize[] = {
+    4 //JPEG
+};
+
 uint8_t * ReadFile(const char * Filename){
     HANDLE hFile = CreateFile(Filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     if(hFile == INVALID_HANDLE_VALUE){
         File::Error = (GetLastError() == ERROR_FILE_NOT_FOUND) ? FERR_NOT_FOUND : FERR_OPEN;
         return NULL;
     }
-    
+
     FileSize = GetFileSize(hFile, NULL);
     if(FileSize == 0){
         CloseHandle(hFile);
         File::Error = FERR_BLANK;
         return NULL;
     }
-    
+
     uint8_t * InData = (uint8_t*) malloc(FileSize);
     if(InData == NULL){
         CloseHandle(hFile);
@@ -47,7 +52,7 @@ uint8_t * ReadFile(const char * Filename){
     DWORD bytestransferred;
     BOOL result = ::ReadFile(hFile, InData, FileSize, &bytestransferred, NULL);
     CloseHandle(hFile);
-    
+
     if(!result || bytestransferred != FileSize){
         free(InData);
         File::Error = FERR_READ;
