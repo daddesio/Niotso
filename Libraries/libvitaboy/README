@@ -1,0 +1,67 @@
+***************************************************************************
+* ** libvitaboy - Open source OpenGL TSO character animation library   ** *
+* ** Copyright (c) 2012 Drew D'Addesio ("Fatbag", <X-Fi6@phppoll.org>) ** *
+*                                                                         *
+* Use and distribution of all files in the "include" and "lib" folders    *
+* are governed under the ISC License, included with this source code in   *
+* "COPYING".                                                              *
+*                                                                         *
+* All other files included but not aforementioned are not copyrighted,    *
+* and are distributed into the public domain.                             *
+***************************************************************************
+
+
+libvitaboy is a cross-platform C++ library for parsing the various character rendering formats used in The Sims Online and using
+that information to render and animate the 3D characters of the game using OpenGL.
+
+Formats include:
+  (*) ANIM (Animation)
+  (*) APR  (Appearance)
+  (*) BND  (Binding)
+  (*) COL  (Collection)
+  (*) HAG  (Hand Group)
+  (*) MESH (Mesh)
+  (*) OFT  (Outfit)
+  (*) PO   (Purchasable Outfit)
+  (*) SKEL (Skeleton)
+
+
+1.  What this library will do for you
+
+You can use this library to render a character in a fixed location.
+
+
+2.  Compiling
+
+Compiling is straightforward. The Makefiles and project files should already be set up for you, and are easy to tweak.
+Before compiling the library, make your changes to config.h to specify what's compiled in.
+
+  a. Compiling from a Makefile
+
+    Makefiles are listed in the top directory in the format Makefile.$(PLATFORM). Just copy the one applicable to your platform
+    to the destination file "Makefile" and run GNU make.
+
+  b. Compiling from a project file
+
+    Project files are held within their own directories. They can be opened up with the target IDE and be compiled by
+    invoking the compile action of that IDE.
+
+  c. Compiling using your own Makefile or project file
+
+    It's possible no such file exists for your platform. In this case, look at whichever Makefile is most relevant to your
+    platform, copy all source files down (.cpp, .hpp, ...), and add it your own Makefile or project. In theory,
+    it should work. :)
+
+libvitaboy is intended to work with any C++ compiler. If not, and the compiler is not only modern and popular but also free
+software (gratis, libre, open source software), please report it as a bug.
+
+
+3. Useful links
+
+libvitaboy is hosted by and maintained by the Niotso project.
+Home page: <http://www.niotso.org/>
+Don Hopkins documentation:
+  (*) http://www.donhopkins.com/drupal/node/20 [Sims Character Animation File Format]
+  (*) http://www.donhopkins.com/drupal/node/21 [Details on The Sims Character Animation File Format and Rendering]
+  (*) http://www.donhopkins.com/drupal/node/19 [Sims VitaBoy Character Animation Library Documentation]
+  (*) http://www.donhopkins.com/home/movies/   [Index of Archived Streaming QuickTime Movies]

@@ -1,0 +1,8 @@
+libvitaboy 1.0.0 (2012-03-04)  Fatbag
+
+ * first stable release
+ * read support for ANIM, APR, BND, COL, HAG, MESH, OFT, PO, SKEL
+ * working rendering and animation of characters in OpenGL
+ * basic keyboard controls
+ * support for environments: MinGW
+ * support for platforms: i686, x86-64

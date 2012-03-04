@@ -1,0 +1,152 @@
+<script>
+
+window.onload = init;
+
+function LoadSpriteset(names) {
+    images = new Array(names.length);
+    imagesloaded = 0;
+    imagecount = 1 + names.length * 3;
+    ext = ['a', 'p', 'z'];
+    for (i = 0; i < names.length; i++) {
+        images[i] = new Array(3);
+        for (j = 0; j < 3; j++) {
+            img = new Image();
+            img.idi = i, img.idj = j;
+            img.src = names[i] + '_' + ext[j] + ".png";
+            img.onload = function() {
+                context.drawImage(this, 0, 0);
+                images[this.idi][this.idj] = context.getImageData(0, 0, 136, 384);
+                delete this;
+                if (++imagesloaded == imagecount) {
+                    redraw = true;
+                    setInterval(update, 16);
+                }
+            };
+        }
+    }
+}
+
+function init() {
+    // capture keys
+    left = 0;
+    right = 0;
+    up = 0;
+    down = 0;
+
+    window.onkeydown = function(evt) {
+        if (evt.keyCode == 37) left = 1;
+        if (evt.keyCode == 38) up = 1;
+        if (evt.keyCode == 39) right = 1;
+        if (evt.keyCode == 40) down = 1;
+    };
+
+    window.onkeyup = function(evt) {
+        if (evt.keyCode == 37) left = 0;
+        if (evt.keyCode == 38) up = 0;
+        if (evt.keyCode == 39) right = 0;
+        if (evt.keyCode == 40) down = 0;
+    };
+    // end capture keys
+
+    // The game does not use true isometric projection because each tile is 128x64 (close), 64x32 (medium), or 32x16 (far)
+    // which, when tilex or tiley is the hypotenuse, does not form a 30-60-90 triangle.
+    // It's actually arctan(1/2)-arctan(2/1)-90. The image is compressed vertically a bit to allow for power-of-2 texture sizes.
+    tilex = 0;
+    tiley = 0;
+    sin60 = 2.0/Math.sqrt(5); // sin(arctan(2)) or cos(arctan(1/2))
+    sin30 = 1.0/Math.sqrt(5); // sin(arctan(1/2)) or cos(arctan(2))
+    sqrt5120 = 32*Math.sqrt(5);
+
+    debug = document.getElementById('debug');
+    canvas = document.getElementById('draw');
+    context = canvas.getContext('2d');
+
+    background = new Image();
+    background.src = "background.png";
+    background.onload = function() {
+        context.drawImage(this, 0, 0);
+        delete this;
+        background = context.getImageData(0, 0, 136, 384);
+        if (++imagesloaded == imagecount) {
+            redraw = true;
+            setInterval(update, 16);
+        }
+    }
+    LoadSpriteset(["Chair-Liv-Deco_large_front", "tower_large_ne"]);
+
+    render = context.createImageData(136, 384);
+}
+
+function Blend(sourceid, soffset)
+{
+    sa = images[sourceid][0].data[soffset+0] / 255.0;
+    if (sa == 0) return;
+    sr = images[sourceid][1].data[soffset+0];
+    sg = images[sourceid][1].data[soffset+1];
+    sb = images[sourceid][1].data[soffset+2];
+    if (sa == 255) {
+        render.data[dest+0] = sr;
+        render.data[dest+1] = sr;
+        render.data[dest+2] = sr;
+        return;
+    }
+
+    dr = render.data[dest+0];
+    dg = render.data[dest+1];
+    db = render.data[dest+2];
+    da = 1.0 - sa;
+
+    render.data[dest+0] = da * dr + sa * sr;
+    render.data[dest+1] = da * dg + sa * sg;
+    render.data[dest+2] = da * db + sa * sb;
+}
+
+
+function update() {
+    if (!left && !right && !up && !down && !redraw) return;
+    redraw = false;
+
+    if (left == 1)  tilex -= 1;
+    if (right == 1) tilex += 1;
+    if (up == 1)    tiley += 1;
+    if (down == 1)  tiley -= 1;
+
+    screenx = Math.round((tilex + tiley)*sin60);
+    screeny = Math.round((tilex - tiley)*sin30);
+    z = screeny*1.5;
+
+    for (y = 0; y < 384; y++) {
+        for (x = 0; x < 136; x++) {
+            dest = (y*136+x)*4;
+            render.data[dest+0] = background.data[dest+0];
+            render.data[dest+1] = background.data[dest+1];
+            render.data[dest+2] = background.data[dest+2];
+            render.data[dest+3] = 255;
+
+            // Shift: read from the data so-many bytes ago. Subtract rather than add.
+            if (y-screeny >= 0 && y-screeny < 384 && x-screenx >= 0 && x-screenx < 136) {
+                source = ((y-screeny)*136 + x-screenx)*4;
+
+                if (images[1][2].data[source] != 255 && images[1][2].data[source] - z < images[0][2].data[dest]) {
+                    // Object 2 on top
+                    Blend(0, dest);
+                    Blend(1, source);
+                } else {
+                    // Object 1 on top
+                    Blend(1, source);
+                    Blend(0, dest);
+                }
+            } else {
+                // Object 1 only
+                Blend(0, dest);
+            }
+        }
+    }
+
+    context.putImageData(render, 0, 0);
+    debug.innerHTML = "Tile x: " + tilex/sqrt5120 + "<br />Tile y: " + tiley/sqrt5120 + "<br />Screen x: " + screenx + "<br />Screen y: " + screeny + "<br />z: " + z;
+}
+</script>
+
+<div id="debug"></div>
+<canvas width="136" height="384" id="draw" style="border: 1px solid #888"></canvas>

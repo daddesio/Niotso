@@ -1,0 +1,8 @@
+Add these files:
+
+* Chair-Liv-Deco_large_front_a.png
+* Chair-Liv-Deco_large_front_p.png
+* Chair-Liv-Deco_large_front_z.png
+* tower_large_ne_a.png
+* tower_large_ne_p.png
+* tower_large_ne_z.png

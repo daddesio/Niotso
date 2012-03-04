@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(FileHandler)
 
+add_subdirectory(iff)
 add_subdirectory(libexpat)
 add_subdirectory(libfar)
 add_subdirectory(libjpeg-turbo)
