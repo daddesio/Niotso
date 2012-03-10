@@ -43,52 +43,56 @@ void ReadMesh(Mesh_t& Mesh){
     printf("BindingCount: %u\n", Mesh.BindingCount);
     for(unsigned i=0; i<Mesh.BindingCount; i++){
         Mesh.BoneBindings[i].BoneIndex = VBFile.readint32();
-        Mesh.BoneBindings[i].FirstFixedVertex = VBFile.readint32();
-        Mesh.BoneBindings[i].FixedVertexCount = VBFile.readint32();
-        Mesh.BoneBindings[i].FirstBlendedVertex = VBFile.readint32();
-        Mesh.BoneBindings[i].BlendedVertexCount = VBFile.readint32();
+        Mesh.BoneBindings[i].FirstRealVertex = VBFile.readint32();
+        Mesh.BoneBindings[i].RealVertexCount = VBFile.readint32();
+        Mesh.BoneBindings[i].FirstBlendVertex = VBFile.readint32();
+        Mesh.BoneBindings[i].BlendVertexCount = VBFile.readint32();
     }
 
-    Mesh.FixedVertexCount = VBFile.readint32();
-    printf("FixedVertexCount: %u\n", Mesh.FixedVertexCount);
-    Mesh.TextureVertexData = (TextureVertex_t*) malloc(Mesh.FixedVertexCount * sizeof(TextureVertex_t));
-    for(unsigned i=0; i<Mesh.FixedVertexCount; i++){
-        Mesh.TextureVertexData[i].u = VBFile.readfloat();
-        Mesh.TextureVertexData[i].v = VBFile.readfloat();
+    Mesh.RealVertexCount = VBFile.readint32();
+    printf("RealVertexCount: %u\n", Mesh.RealVertexCount);
+    TextureVertex_t * TextureVertexData = (TextureVertex_t*) malloc(Mesh.RealVertexCount * sizeof(TextureVertex_t));
+    for(unsigned i=0; i<Mesh.RealVertexCount; i++){
+        TextureVertexData[i].u = VBFile.readfloat();
+        TextureVertexData[i].v = VBFile.readfloat();
     }
 
-    Mesh.BlendedVertexCount = VBFile.readint32();
-    printf("BlendedVertexCount: %u\n", Mesh.BlendedVertexCount);
-    Mesh.BlendData = (BlendData_t*) malloc(Mesh.BlendedVertexCount * sizeof(BlendData_t));
-    for(unsigned i=0; i<Mesh.BlendedVertexCount; i++){
-        Mesh.BlendData[i].Weight = (float)VBFile.readint32()/0x8000;
-        Mesh.BlendData[i].OtherVertex = VBFile.readint32();
+    Mesh.BlendVertexCount = VBFile.readint32();
+    printf("BlendVertexCount: %u\n", Mesh.BlendVertexCount);
+    BlendData_t * BlendData = (BlendData_t*) malloc(Mesh.BlendVertexCount * sizeof(BlendData_t));
+    for(unsigned i=0; i<Mesh.BlendVertexCount; i++){
+        BlendData[i].Weight = (float)VBFile.readint32()/0x8000;
+        BlendData[i].OtherVertex = VBFile.readint32();
     }
 
     Mesh.TotalVertexCount = VBFile.readint32();
     printf("TotalVertexCount: %u\n", Mesh.TotalVertexCount);
     Mesh.VertexData = (Vertex_t*) malloc(Mesh.TotalVertexCount * sizeof(Vertex_t));
-    Mesh.VertexNorms = (Vertex_t*) malloc(Mesh.TotalVertexCount * sizeof(Vertex_t));
     Mesh.TransformedVertexData = (Vertex_t*) malloc(Mesh.TotalVertexCount * sizeof(Vertex_t));
-    Mesh.TransformedVertexNorms = (Vertex_t*) malloc(Mesh.TotalVertexCount * sizeof(Vertex_t));
-    Mesh.TransformedTextureData = (TextureVertex_t*) malloc(Mesh.TotalVertexCount * sizeof(Vertex_t));
     for(unsigned i=0; i<Mesh.TotalVertexCount; i++){
-        Mesh.VertexData[i].x = VBFile.readfloat();
-        Mesh.VertexData[i].y = VBFile.readfloat();
-        Mesh.VertexData[i].z = VBFile.readfloat();
-        Mesh.VertexNorms[i].x = VBFile.readfloat();
-        Mesh.VertexNorms[i].y = VBFile.readfloat();
-        Mesh.VertexNorms[i].z = VBFile.readfloat();
+        Mesh.VertexData[i].Coord.x = VBFile.readfloat();
+        Mesh.VertexData[i].Coord.y = VBFile.readfloat();
+        Mesh.VertexData[i].Coord.z = VBFile.readfloat();
+        Mesh.TransformedVertexData[i].NormalCoord.x = VBFile.readfloat();
+        Mesh.TransformedVertexData[i].NormalCoord.y = VBFile.readfloat();
+        Mesh.TransformedVertexData[i].NormalCoord.z = VBFile.readfloat();
 
-        if(i<Mesh.FixedVertexCount){
+        if(i<Mesh.RealVertexCount){
             //Fixed vertex
-            Mesh.TransformedTextureData[i].u = Mesh.TextureVertexData[i].u;
-            Mesh.TransformedTextureData[i].v = Mesh.TextureVertexData[i].v;
+            Mesh.TransformedVertexData[i].TextureCoord.u = TextureVertexData[i].u;
+            Mesh.TransformedVertexData[i].TextureCoord.v = TextureVertexData[i].v;
         }else{
-            //Blended vertex; inherit
-            TextureVertex_t& Parent = Mesh.TextureVertexData[Mesh.BlendData[i-Mesh.FixedVertexCount].OtherVertex];
-            Mesh.TransformedTextureData[i].u = Parent.u;
-            Mesh.TransformedTextureData[i].v = Parent.v;
+            //Blended vertex
+            Mesh.TransformedVertexData[i].BlendData.Weight      = BlendData[i-Mesh.RealVertexCount].Weight;
+            Mesh.TransformedVertexData[i].BlendData.OtherVertex = BlendData[i-Mesh.RealVertexCount].OtherVertex;
+            
+            //Inherit texture coordinates
+            TextureVertex_t& Parent = TextureVertexData[Mesh.TransformedVertexData[i].BlendData.OtherVertex];
+            Mesh.TransformedVertexData[i].TextureCoord.u = Parent.u;
+            Mesh.TransformedVertexData[i].TextureCoord.v = Parent.v;
         }
     }
+    
+    free(TextureVertexData);
+    free(BlendData);
 }

@@ -43,6 +43,12 @@ class VBFile_t {
     inline void seekto(unsigned offset){
         Position = Buffer+offset;
     }
+    inline void seekahead(unsigned count){
+        Position += count;
+    }
+    inline void seekback(unsigned count){
+        Position -= count;
+    }
 
     inline uint32_t readint32(){
         uint32_t value = (uint32_t)((Position[0]<<(8*3)) | (Position[1]<<(8*2)) | (Position[2]<<(8*1)) | (Position[3]<<(8*0)));
@@ -261,8 +267,30 @@ struct TextureVertex_t {
     float u, v;
 };
 
-struct Vertex_t {
+struct Coord_t {
     float x, y, z;
+};
+
+struct TextureCoord_t {
+    float u, v;
+};
+
+struct NormalCoord_t {
+    float x, y, z;
+};
+
+struct BlendData_t {
+    float Weight;
+    unsigned OtherVertex;
+};
+
+struct Vertex_t {
+    Coord_t Coord;
+    TextureCoord_t TextureCoord;
+    NormalCoord_t NormalCoord;
+    
+    unsigned BoneIndex;
+    BlendData_t BlendData;
 };
 
 struct Face_t {
@@ -271,15 +299,10 @@ struct Face_t {
 
 struct BoneBinding_t {
     unsigned BoneIndex;
-    unsigned FirstFixedVertex;
-    unsigned FixedVertexCount;
-    unsigned FirstBlendedVertex;
-    unsigned BlendedVertexCount;
-};
-
-struct BlendData_t {
-    float Weight;
-    unsigned OtherVertex;
+    unsigned FirstRealVertex;
+    unsigned RealVertexCount;
+    unsigned FirstBlendVertex;
+    unsigned BlendVertexCount;
 };
 
 struct Mesh_t {
@@ -290,16 +313,11 @@ struct Mesh_t {
     Face_t * FaceData;
     uint32_t BindingCount;
     BoneBinding_t * BoneBindings;
-    uint32_t FixedVertexCount;
-    TextureVertex_t * TextureVertexData;
-    uint32_t BlendedVertexCount;
-    BlendData_t * BlendData;
+    uint32_t RealVertexCount;
+    uint32_t BlendVertexCount;
     uint32_t TotalVertexCount;
     Vertex_t * VertexData;
-    Vertex_t * VertexNorms;
     Vertex_t * TransformedVertexData;
-    Vertex_t * TransformedVertexNorms;
-    TextureVertex_t * TransformedTextureData;
 };
 
 void ReadMesh(Mesh_t& Mesh);

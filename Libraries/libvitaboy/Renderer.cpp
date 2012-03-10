@@ -61,9 +61,12 @@ bool active=true;
 bool fullscreen=false;
 
 float zoom = -10;
+struct BasicVertex_t {
+    float x, y, z;
+};
 struct CharacterPlacement_t {
-    Vertex_t Translation;
-    Vertex_t Rotation;
+    BasicVertex_t Translation;
+    BasicVertex_t Rotation;
 };
 CharacterPlacement_t Character = {{0,-3,0}, {0,0,0}};
 
@@ -197,29 +200,29 @@ void TransformVertices(Bone_t& Bone)
     }
 
     if(BoneIndex < Mesh.BindingCount){
-        for(unsigned i=0; i<Mesh.BoneBindings[BoneIndex].FixedVertexCount; i++){
-            unsigned VertexIndex = Mesh.BoneBindings[BoneIndex].FirstFixedVertex + i;
+        for(unsigned i=0; i<Mesh.BoneBindings[BoneIndex].RealVertexCount; i++){
+            unsigned VertexIndex = Mesh.BoneBindings[BoneIndex].FirstRealVertex + i;
             Vertex_t& RelativeVertex = Mesh.VertexData[VertexIndex];
             Vertex_t& AbsoluteVertex = Mesh.TransformedVertexData[VertexIndex];
 
-            glTranslatef(RelativeVertex.x, RelativeVertex.y, RelativeVertex.z);
+            glTranslatef(RelativeVertex.Coord.x, RelativeVertex.Coord.y, RelativeVertex.Coord.z);
             glGetFloatv(GL_MODELVIEW_MATRIX, Matrix);
-            AbsoluteVertex.x = Matrix[12];
-            AbsoluteVertex.y = Matrix[13];
-            AbsoluteVertex.z = Matrix[14];
-            glTranslatef(-RelativeVertex.x, -RelativeVertex.y, -RelativeVertex.z);
+            AbsoluteVertex.Coord.x = Matrix[12];
+            AbsoluteVertex.Coord.y = Matrix[13];
+            AbsoluteVertex.Coord.z = Matrix[14];
+            glTranslatef(-RelativeVertex.Coord.x, -RelativeVertex.Coord.y, -RelativeVertex.Coord.z);
         }
-        for(unsigned i=0; i<Mesh.BoneBindings[BoneIndex].BlendedVertexCount; i++){
-            unsigned VertexIndex = Mesh.FixedVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendedVertex + i;
+        for(unsigned i=0; i<Mesh.BoneBindings[BoneIndex].BlendVertexCount; i++){
+            unsigned VertexIndex = Mesh.RealVertexCount + Mesh.BoneBindings[BoneIndex].FirstBlendVertex + i;
             Vertex_t& RelativeVertex = Mesh.VertexData[VertexIndex];
             Vertex_t& AbsoluteVertex = Mesh.TransformedVertexData[VertexIndex];
 
-            glTranslatef(RelativeVertex.x, RelativeVertex.y, RelativeVertex.z);
+            glTranslatef(RelativeVertex.Coord.x, RelativeVertex.Coord.y, RelativeVertex.Coord.z);
             glGetFloatv(GL_MODELVIEW_MATRIX, Matrix);
-            AbsoluteVertex.x = Matrix[12];
-            AbsoluteVertex.y = Matrix[13];
-            AbsoluteVertex.z = Matrix[14];
-            glTranslatef(-RelativeVertex.x, -RelativeVertex.y, -RelativeVertex.z);
+            AbsoluteVertex.Coord.x = Matrix[12];
+            AbsoluteVertex.Coord.y = Matrix[13];
+            AbsoluteVertex.Coord.z = Matrix[14];
+            glTranslatef(-RelativeVertex.Coord.x, -RelativeVertex.Coord.y, -RelativeVertex.Coord.z);
         }
     }
 
@@ -238,19 +241,19 @@ void BlendVertices()
 {
     for(unsigned i=0; i<MeshCount; i++){
         Mesh_t& Mesh = Meshes[i];
-        for(unsigned i=0; i<Mesh.BlendedVertexCount; i++){
-            unsigned Weight = Mesh.BlendData[i].Weight;
-            Vertex_t& BlendedVertex = Mesh.TransformedVertexData[Mesh.FixedVertexCount + i];
-            Vertex_t& FixedVertex = Mesh.TransformedVertexData[Mesh.FixedVertexCount + i];
-            BlendedVertex.x =
-                Weight     * BlendedVertex.x +
-                (1-Weight) * FixedVertex.x;
-            BlendedVertex.y =
-                Weight     * BlendedVertex.y +
-                (1-Weight) * FixedVertex.y;
-            BlendedVertex.z =
-                Weight     * BlendedVertex.z +
-                (1-Weight) * FixedVertex.z;
+        for(unsigned i=0; i<Mesh.BlendVertexCount; i++){
+            Vertex_t& BlendVertex = Mesh.TransformedVertexData[Mesh.RealVertexCount + i];
+            float Weight = BlendVertex.BlendData.Weight;
+            Vertex_t& RealVertex = Mesh.TransformedVertexData[BlendVertex.BlendData.OtherVertex];
+            RealVertex.Coord.x =
+                Weight     * BlendVertex.Coord.x +
+                (1-Weight) * RealVertex.Coord.x;
+            RealVertex.Coord.y =
+                Weight     * BlendVertex.Coord.y +
+                (1-Weight) * RealVertex.Coord.y;
+            RealVertex.Coord.z =
+                Weight     * BlendVertex.Coord.z +
+                (1-Weight) * RealVertex.Coord.z;
         }
     }
 }
@@ -271,10 +274,8 @@ void DrawMeshes()
 
     for(unsigned i=0; i<MeshCount; i++){
         glBindTexture(GL_TEXTURE_2D, texture[Mesh_UseTexture[i]]);
-        glVertexPointer(3, GL_FLOAT, offsetof(Vertex_t, y)-offsetof(Vertex_t, x)-sizeof(float),
-            Meshes[i].TransformedVertexData);
-        glTexCoordPointer(2, GL_FLOAT, offsetof(TextureVertex_t, v)-offsetof(TextureVertex_t, u)-sizeof(float),
-            Meshes[i].TransformedTextureData);
+        glVertexPointer(3, GL_FLOAT, sizeof(Vertex_t), &Meshes[i].TransformedVertexData[0].Coord);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(Vertex_t), &Meshes[i].TransformedVertexData[0].TextureCoord);
         glDrawElements(GL_TRIANGLES, Meshes[i].FaceCount*3, GL_UNSIGNED_INT, Meshes[i].FaceData);
     }
 

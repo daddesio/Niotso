@@ -1,5 +1,5 @@
 /*
-    iffexport.c - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    iff2html.c - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -32,12 +32,12 @@ int main(int argc, char *argv[]){
     IFFChunkNode * ChunkNode;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
-        printf("Usage: iffexport [-f] infile OutDirectory\n"
-        "Export the resources of an EA IFF file.\n"
+        printf("Usage: iff2html [-f] infile outfile\n"
+        "Produce an HTML webpage describing an EA IFF file.\n"
         "Use -f to force overwriting without confirmation.\n"
         "\n"
         "Report bugs to <X-Fi6@phppoll.org>.\n"
-        "iffexport is maintained by the Niotso project.\n"
+        "iff2html is maintained by the Niotso project.\n"
         "Home page: <http://www.niotso.org/>\n");
         return 0;
     }
@@ -58,24 +58,24 @@ int main(int argc, char *argv[]){
     hFile = CreateFile(InFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     if(hFile == INVALID_HANDLE_VALUE){
         if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            printf("%sThe specified input file does not exist.", "iffexport: error: ");
+            printf("%sThe specified input file does not exist.", "iff2html: error: ");
             return -1;
         }
-        printf("%sThe input file could not be opened for reading.", "iffexport: error: ");
+        printf("%sThe input file could not be opened for reading.", "iff2html: error: ");
         return -1;
     }
     FileSize = GetFileSize(hFile, NULL);
     if(FileSize < 64){
-        printf("%sNot a valid IFF file.", "iffexport: error: ");
+        printf("%sNot a valid IFF file.", "iff2html: error: ");
         return -1;
     }
     IFFData = HeapAlloc(ProcessHeap, HEAP_NO_SERIALIZE, FileSize);
     if(IFFData == NULL){
-        printf("%sMemory for this file could not be allocated.", "iffexport: error: ");
+        printf("%sMemory for this file could not be allocated.", "iff2html: error: ");
         return -1;
     }
     if(!ReadFile(hFile, IFFData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
-        printf("%sThe input file could not be read.", "iffexport: error: ");
+        printf("%sThe input file could not be read.", "iff2html: error: ");
         return -1;
     }
     CloseHandle(hFile);
@@ -86,11 +86,11 @@ int main(int argc, char *argv[]){
 
     IFFFileInfo = iff_create();
     if(IFFFileInfo == NULL){
-        printf("%sMemory for this file could not be allocated.", "iffexport: error: ");
+        printf("%sMemory for this file could not be allocated.", "iff2html: error: ");
         return -1;
     }
     if(!iff_read_header(IFFFileInfo, IFFData, FileSize)){
-        printf("%sNot a valid IFF file.", "iffexport: error: ");
+        printf("%sNot a valid IFF file.", "iff2html: error: ");
         return -1;
     }
 
@@ -99,44 +99,11 @@ int main(int argc, char *argv[]){
     */
 
     if(!iff_enumerate_chunks(IFFFileInfo, IFFData+64, FileSize-64)){
-        printf("%sChunk data is corrupt.", "iffexport: error: ");
+        printf("%sChunk data is corrupt.", "iff2html: error: ");
         return -1;
     }
 
     chunkcount = IFFFileInfo->ChunkCount;
-    printf("This IFF file contains %u chunks.\n\nExporting\n", chunkcount);
-
-    /****
-    ** Extract each entry
-    */
-    for(ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk){
-        char name[256], destination[256];
-        char filter[] = "\\/:*?\"<>|";
-        int i;
-
-        chunk++;
-        sprintf(name, "%03u-%s-%04X-%s", chunk, ChunkNode->Chunk.Type, ChunkNode->Chunk.ChunkID, ChunkNode->Chunk.Label);
-        for(i=0; i<9; i++){
-            char * c = name;
-            while((c = strchr(c, filter[i])) != NULL)
-                *c = '.';
-        }
-        sprintf(destination, "%s/%s.%s", OutDirectory, name, (!memcmp(ChunkNode->Chunk.Type, "BMP_", 4)) ? "bmp" : "dat");
-
-        hFile = CreateFile(destination, GENERIC_WRITE, 0, NULL, CREATE_NEW+overwrite,
-            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-        if(hFile == INVALID_HANDLE_VALUE){
-            printf(" (%u/%u) Skipped (%s): %s\n", chunk, chunkcount,
-                (!overwrite && GetLastError() == ERROR_FILE_EXISTS) ? "file exists" : "could not open",
-                name);
-            continue;
-        }
-
-        printf(" (%u/%u) %s (%u bytes)\n", chunk, chunkcount, name, ChunkNode->Chunk.Size-76);
-
-        WriteFile(hFile, ChunkNode->Chunk.Data, ChunkNode->Chunk.Size-76, &bytestransferred, NULL);
-        CloseHandle(hFile);
-    }
 
     return 0;
 }

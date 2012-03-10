@@ -1,8 +1,14 @@
+libvitaboy 1.0.1 (2012-03-10)  Fatbag
+
+ * Corrected the BlendVertices function; blend vertices tug real vertices, not the other way around
+ * Interleaved all vertex data (coords, texcoords, normals, blend weights) into the VertexData array
+
+
 libvitaboy 1.0.0 (2012-03-04)  Fatbag
 
- * first stable release
- * read support for ANIM, APR, BND, COL, HAG, MESH, OFT, PO, SKEL
- * working rendering and animation of characters in OpenGL
- * basic keyboard controls
- * support for environments: MinGW
- * support for platforms: i686, x86-64
+ * First stable release
+ * Read support for ANIM, APR, BND, COL, HAG, MESH, OFT, PO, SKEL
+ * Working rendering and animation of characters in OpenGL
+ * Basic keyboard controls
+ * Support for environments: MinGW
+ * Support for platforms: i686, x86-64
