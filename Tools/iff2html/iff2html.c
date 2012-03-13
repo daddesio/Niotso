@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <windows.h>
 #include <iff/iff.h>
+#include "md5.h"
 
 #ifndef min
  #define min(x,y) ((x) < (y) ? (x) : (y))
@@ -26,12 +27,33 @@
  #define max(x,y) ((x) > (y) ? (x) : (y))
 #endif
 
+void printsize(FILE * hFile, size_t FileSize){
+    /* For our purposes, our units are best described in kB and MB */
+    size_t temp = FileSize;
+    unsigned position = 1;
+    if(FileSize >= 1048576)
+        fprintf(hFile, "%.1f MB (", (float)FileSize/1048576);
+    else
+        fprintf(hFile, "%.1f kB (", (float)FileSize/1024);
+    while((temp/=1000) != 0)
+        position *= 1000;
+    fprintf(hFile, "%u", FileSize/position);
+    FileSize -= (FileSize/position)*position;
+    while((position/=1000) != 0){
+        fprintf(hFile, ",%.3u", FileSize/position);
+        FileSize -= (FileSize/position)*position;
+    }
+    fprintf(hFile, " bytes)");
+}
+
 int main(int argc, char *argv[]){
     unsigned i;
     FILE * hFile;
     int overwrite = 0;
     char *InFile, *OutFile = NULL;
-    DWORD FileSize;
+    size_t FileSize;
+    struct MD5Context md5c;
+    unsigned char digest[16];
     uint8_t * IFFData;
     unsigned chunk = 0;
     IFFFile * IFFFileInfo;
@@ -120,11 +142,16 @@ int main(int argc, char *argv[]){
         printf("%sChunk data is corrupt.", "iff2html: error: ");
         return -1;
     }
+    
+    /* Calculate the MD5, and then we can free the IFF data because we're done with it */
+    MD5Init(&md5c);
+    MD5Update(&md5c, IFFData, FileSize);
+    MD5Final(digest, &md5c);
+    free(IFFData);
 
-    for(chunk = 1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, chunk++){
-        printf("Chunk %u:\n", chunk);
+    for(chunk = 1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, chunk++)
         iff_parse_chunk(&ChunkNode->Chunk, ChunkNode->Chunk.Data);
-    }
+    
 
     /****
     ** Open the output file and write the header
@@ -153,7 +180,8 @@ int main(int argc, char *argv[]){
     ** We're splitting fprintf by line to guarantee compatibility;
     ** even C99 compilers are only required to support 4096 byte strings in printf()-related functions
     */
-    fprintf(hFile, "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n");
+    fprintf(hFile,
+        "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n");
     fprintf(hFile, "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\" dir=\"ltr\">\n");
     fprintf(hFile, "<head>\n");
     fprintf(hFile, "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n");
@@ -224,6 +252,14 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "</head>\n");
     fprintf(hFile, "<body>\n");
     fprintf(hFile, "<h1>%s</h1>\n", InFile);
+    fprintf(hFile, "<div id=\"attributes\">\n");
+    fprintf(hFile, "<div>");
+    for(i=0; i<16; i++)
+        fprintf(hFile, "%.2x", digest[i]);
+    fprintf(hFile, " (md5), ");
+    printsize(hFile, FileSize);
+    fprintf(hFile, "</div>\n");
+    fprintf(hFile, "<div>Dumped by iff2html.</div></div>\n");
     fprintf(hFile, "\n");
     fprintf(hFile, "<div id=\"toc\"><div><b>Contents</b> &ndash; %u chunks</div>\n", IFFFileInfo->ChunkCount);
     fprintf(hFile, "<ul>\n");
@@ -245,7 +281,11 @@ int main(int argc, char *argv[]){
 
         if(ChunkNode->Chunk.FormattedData == NULL){
             fprintf(hFile, "The contents of this chunk could not be parsed.\n");
-        }else if(!strcmp(ChunkNode->Chunk.Type, "STR#")){
+        }else if(!strcmp(ChunkNode->Chunk.Type, "STR#")  ||
+            !strcmp(ChunkNode->Chunk.Type, "CTSS") ||
+            !strcmp(ChunkNode->Chunk.Type, "FAMs") ||
+            !strcmp(ChunkNode->Chunk.Type, "TTAs") ){
+
             /****
             ** STR# parsing
             */
@@ -298,10 +338,13 @@ int main(int argc, char *argv[]){
                     fprintf(hFile, "<tr><td rowspan=\"%u\">%s</td>\n", StringData->LanguageSets[LanguageSet].PairCount,
                         LanguageStrings[LanguageSet]);
                     for(PairIndex=1, PairNode = StringData->LanguageSets[LanguageSet].FirstPair; PairNode;
-                        PairNode = PairNode->NextPair, PairIndex++)
+                        PairNode = PairNode->NextPair, PairIndex++){
+                        if(PairIndex != 1)
+                            fprintf(hFile, "<tr>");
                         fprintf(hFile, "<td>%u</td><td>%s</td><td>%s</td></tr>\n", PairIndex,
                             (PairNode->Pair.Key)   != NULL ? PairNode->Pair.Key   : "",
                             (PairNode->Pair.Value) != NULL ? PairNode->Pair.Value : "");
+                    }
                 }
 
                 fprintf(hFile, "</table>\n");
@@ -311,7 +354,8 @@ int main(int argc, char *argv[]){
         fprintf(hFile, "</div>\n\n");
     }
 
-    fprintf(hFile, "<div id=\"footer\">This page was generated by the use of <a href=\"http://www.niotso.org/\">iff2html</a>.\n");
+    fprintf(hFile,
+        "<div id=\"footer\">This page was generated by the use of <a href=\"http://www.niotso.org/\">iff2html</a>.\n");
     fprintf(hFile, "The content of this page may be subject to copyright by the author(s) of the original iff file.</div>\n");
     fprintf(hFile, "</body>\n");
     fprintf(hFile, "</html>");

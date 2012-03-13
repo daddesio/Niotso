@@ -20,7 +20,10 @@
 #include "iff.h"
 
 int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
-    if(!strcmp(ChunkInfo->Type, "STR#"))
+    if( !strcmp(ChunkInfo->Type, "STR#")  ||
+        !strcmp(ChunkInfo->Type, "CTSS") ||
+        !strcmp(ChunkInfo->Type, "FAMs") ||
+        !strcmp(ChunkInfo->Type, "TTAs") )
         return iff_parse_str(ChunkInfo, Buffer);
     return 0;
 }
@@ -28,8 +31,8 @@ int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     /* No bounds checking yet */
     IFF_STR * StringData;
-    unsigned Size = ChunkInfo->Size - 64;
-    if(Size < 4)
+    unsigned Size = ChunkInfo->Size - 76;
+    if(Size < 2)
         return 0;
     ChunkInfo->FormattedData = malloc(sizeof(IFF_STR));
     if(ChunkInfo->FormattedData == NULL)
@@ -38,6 +41,8 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     StringData = (IFF_STR*) ChunkInfo->FormattedData;
     StringData->Format = read_int16le(Buffer);
     Buffer += 2;
+    if(Size-2 < 2) /* TSO allows this; as seen in the animations chunk in personglobals.iff */
+        return 1;
     
     switch(StringData->Format){
     

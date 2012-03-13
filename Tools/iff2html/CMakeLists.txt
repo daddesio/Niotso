@@ -3,6 +3,7 @@ project(iff2html)
 
 set(IFF2HTML_SOURCES
     iff2html.c
+    md5.c
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
