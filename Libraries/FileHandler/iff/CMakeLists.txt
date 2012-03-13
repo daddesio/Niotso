@@ -4,7 +4,6 @@ project(iff)
 set(IFF_SOURCES
     chunks.c
     iff.c
-    iffexport.c
 )
 
-add_executable(iffexport ${IFF_SOURCES})
+add_executable(iffexport iffexport.c ${IFF_SOURCES})

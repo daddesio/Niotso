@@ -85,11 +85,6 @@ void ReadMesh(Mesh_t& Mesh){
             //Blended vertex
             Mesh.TransformedVertexData[i].BlendData.Weight      = BlendData[i-Mesh.RealVertexCount].Weight;
             Mesh.TransformedVertexData[i].BlendData.OtherVertex = BlendData[i-Mesh.RealVertexCount].OtherVertex;
-            
-            //Inherit texture coordinates
-            TextureVertex_t& Parent = TextureVertexData[Mesh.TransformedVertexData[i].BlendData.OtherVertex];
-            Mesh.TransformedVertexData[i].TextureCoord.u = Parent.u;
-            Mesh.TransformedVertexData[i].TextureCoord.v = Parent.v;
         }
     }
     

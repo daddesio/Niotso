@@ -17,24 +17,31 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <windows.h>
-#include "iff.h"
+#include <iff/iff.h>
+
+#ifndef min
+ #define min(x,y) ((x) < (y) ? (x) : (y))
+#endif
+#ifndef max
+ #define max(x,y) ((x) > (y) ? (x) : (y))
+#endif
 
 int main(int argc, char *argv[]){
-    HANDLE hFile;
+    unsigned i;
+    FILE * hFile;
     int overwrite = 0;
-    char *InFile, *OutDirectory;
-    HANDLE ProcessHeap = GetProcessHeap();
+    char *InFile, *OutFile = NULL;
     DWORD FileSize;
-    DWORD bytestransferred = 0;
     uint8_t * IFFData;
-    unsigned chunkcount, chunk = 0;
+    unsigned chunk = 0;
     IFFFile * IFFFileInfo;
     IFFChunkNode * ChunkNode;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
-        printf("Usage: iff2html [-f] infile outfile\n"
+        printf("Usage: iff2html [-f] infile (outfile)\n"
         "Produce an HTML webpage describing an EA IFF file.\n"
         "Use -f to force overwriting without confirmation.\n"
+        "If outfile is unspecified, file.iff will output to file.html.\n"
         "\n"
         "Report bugs to <X-Fi6@phppoll.org>.\n"
         "iff2html is maintained by the Niotso project.\n"
@@ -45,10 +52,21 @@ int main(int argc, char *argv[]){
     if(argc >= 4 && !strcmp(argv[1], "-f")){
         overwrite++;
         InFile = argv[2];
-        OutDirectory = argv[3];
-    }else{
-        InFile = argv[1];
-        OutDirectory = argv[2];
+        OutFile = argv[3];
+    }else if(argc == 3){
+        if(!strcmp(argv[1], "-f")){
+            overwrite++;
+            InFile = argv[2];
+        }else{
+            InFile = argv[1];
+            OutFile = argv[2];
+        }
+    }else InFile = argv[1];
+    if(OutFile == NULL){
+        unsigned length = strlen(InFile);
+        OutFile = malloc(max(length+2, 6));
+        strcpy(OutFile, InFile);
+        strcpy(max(OutFile+length-4, OutFile), ".html");
     }
 
     /****
@@ -56,29 +74,29 @@ int main(int argc, char *argv[]){
     */
 
     hFile = CreateFile(InFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            printf("%sThe specified input file does not exist.", "iff2html: error: ");
-            return -1;
-        }
-        printf("%sThe input file could not be opened for reading.", "iff2html: error: ");
+    hFile = fopen(InFile, "rb");
+    if(hFile == NULL){
+        printf("%sThe specified input file does not exist or could not be opened for reading.", "iff2html: error: ");
         return -1;
     }
-    FileSize = GetFileSize(hFile, NULL);
+    fseek(hFile, 0, SEEK_END);
+    FileSize = ftell(hFile);
     if(FileSize < 64){
         printf("%sNot a valid IFF file.", "iff2html: error: ");
         return -1;
     }
-    IFFData = HeapAlloc(ProcessHeap, HEAP_NO_SERIALIZE, FileSize);
+    fseek(hFile, 0, SEEK_SET);
+
+    IFFData = malloc(FileSize);
     if(IFFData == NULL){
         printf("%sMemory for this file could not be allocated.", "iff2html: error: ");
         return -1;
     }
-    if(!ReadFile(hFile, IFFData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
+    if(!fread(IFFData, FileSize, 1, hFile)){
         printf("%sThe input file could not be read.", "iff2html: error: ");
         return -1;
     }
-    CloseHandle(hFile);
+    fclose(hFile);
 
     /****
     ** Load header information
@@ -103,7 +121,200 @@ int main(int argc, char *argv[]){
         return -1;
     }
 
-    chunkcount = IFFFileInfo->ChunkCount;
+    for(chunk = 1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, chunk++){
+        printf("Chunk %u:\n", chunk);
+        iff_parse_chunk(&ChunkNode->Chunk, ChunkNode->Chunk.Data);
+    }
 
+    /****
+    ** Open the output file and write the header
+    */
+    if(!overwrite){
+        hFile = fopen(OutFile, "rb");
+        if(hFile != NULL){
+            /* File exists */
+            char c;
+            fclose(hFile);
+            printf("File \"%s\" exists.\nContinue anyway? (y/n) ", OutFile);
+            c = getchar();
+            if(c != 'y' && c != 'Y'){
+                printf("\nAborted.");
+                return -1;
+            }
+        }
+    }
+    hFile = fopen(OutFile, "wb");
+    if(hFile == NULL){
+        printf("%sThe output file could not be opened for writing.", "iff2html: error: ");
+        return -1;
+    }
+
+    /****
+    ** We're splitting fprintf by line to guarantee compatibility;
+    ** even C99 compilers are only required to support 4096 byte strings in printf()-related functions
+    */
+    fprintf(hFile, "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n");
+    fprintf(hFile, "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\" dir=\"ltr\">\n");
+    fprintf(hFile, "<head>\n");
+    fprintf(hFile, "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n");
+    fprintf(hFile, "<meta http-equiv=\"Content-Style-Type\" content=\"text/css; charset=utf-8\" />\n");
+    fprintf(hFile, "<meta http-equiv=\"Content-Language\" content=\"en\" />\n");
+    fprintf(hFile, "<meta name=\"description\" content=\"%s (iff2html)\" />\n", InFile);
+    fprintf(hFile, "<meta name=\"generator\" content=\"iff2html\" />\n");
+    fprintf(hFile, "<title>%s (iff2html)</title>\n", InFile);
+    fprintf(hFile, "<style type=\"text/css\" media=\"all\">\n");
+    fprintf(hFile, "html, body {\n");
+    fprintf(hFile, "    background: #fff;\n");
+    fprintf(hFile, "    color: #000;\n");
+    fprintf(hFile, "    font-family: sans-serif;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "\n");
+    fprintf(hFile, "a:link, a:visited, a:hover, a:active { color: #00f; }\n");
+    fprintf(hFile, "a:link, a:visited { text-decoration: none; }\n");
+    fprintf(hFile, "a:hover, a:active { text-decoration: underline; }\n");
+    fprintf(hFile, "\n");
+    fprintf(hFile, "#attributes {\n");
+    fprintf(hFile, "    border-left: 2px solid #888; padding-left: 4px; margin-bottom: 1em;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "\n");
+    fprintf(hFile, "#toc {\n");
+    fprintf(hFile, "    display: table-cell;\n");
+    fprintf(hFile, "    margin-top: 1em;\n");
+    fprintf(hFile, "    background: #eee; border: 1px solid #bbb;\n");
+    fprintf(hFile, "    padding: .25em;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "#toc div {\n");
+    fprintf(hFile, "    border-bottom: 1px solid #aaa;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "#toc ul {\n");
+    fprintf(hFile, "    list-style-type: none;\n");
+    fprintf(hFile, "    padding: 0;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "ul ul {\n");
+    fprintf(hFile, "    padding: 2em;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "\n");
+    fprintf(hFile, "h2 {\n");
+    fprintf(hFile, "    border-bottom: 1px solid #888;\n");
+    fprintf(hFile, "    margin: 2em 0 0.25em 0;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "h2 a {\n");
+    fprintf(hFile, "    font-size: 9pt;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "\n");
+    fprintf(hFile, "table {\n");
+    fprintf(hFile, "    border: 1px #aaa solid;\n");
+    fprintf(hFile, "    border-collapse: collapse;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "th, td {\n");
+    fprintf(hFile, "    border: 1px #aaa solid;\n");
+    fprintf(hFile, "    padding: 0.2em;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "\n");
+    fprintf(hFile, ".center {\n");
+    fprintf(hFile, "    margin: auto auto;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "\n");
+    fprintf(hFile, "#footer {\n");
+    fprintf(hFile, "    margin-top: 2em;\n");
+    fprintf(hFile, "    padding-bottom: 0.5em;\n");
+    fprintf(hFile, "    text-align: center;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "</style>\n");
+    fprintf(hFile, "</head>\n");
+    fprintf(hFile, "<body>\n");
+    fprintf(hFile, "<h1>%s</h1>\n", InFile);
+    fprintf(hFile, "\n");
+    fprintf(hFile, "<div id=\"toc\"><div><b>Contents</b> &ndash; %u chunks</div>\n", IFFFileInfo->ChunkCount);
+    fprintf(hFile, "<ul>\n");
+    for(i=1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, i++)
+        fprintf(hFile, "<li><a href=\"#chunk%u_%.4x\">%u [%s] (%.4X)%s%s</a></li>\n",
+            i, ChunkNode->Chunk.ChunkID, i, ChunkNode->Chunk.Type, ChunkNode->Chunk.ChunkID,
+            (ChunkNode->Chunk.Label[0] != 0x00) ? " &ndash; " : "", ChunkNode->Chunk.Label);
+    fprintf(hFile, "</ul>\n");
+    fprintf(hFile, "</div>\n");
+    fprintf(hFile, "\n");
+
+    for(i=1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, i++){
+        IFF_STR * StringData = (IFF_STR*) ChunkNode->Chunk.FormattedData;
+        fprintf(hFile, "<h2 id=\"chunk%u_%.4x\">%u [%s] (%.4X)%s%s <a href=\"#chunk%u_%.4x\">(Jump)</a></h2>\n",
+            i, ChunkNode->Chunk.ChunkID, i, ChunkNode->Chunk.Type, ChunkNode->Chunk.ChunkID,
+            (ChunkNode->Chunk.Label[0] != 0x00) ? " &ndash; " : "", ChunkNode->Chunk.Label,
+            i, ChunkNode->Chunk.ChunkID);
+        fprintf(hFile, "<div>\n");
+
+        if(ChunkNode->Chunk.FormattedData == NULL){
+            fprintf(hFile, "The contents of this chunk could not be parsed.\n");
+        }else if(!strcmp(ChunkNode->Chunk.Type, "STR#")){
+            /****
+            ** STR# parsing
+            */
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Format:</td><td>");
+            switch(StringData->Format){
+                case 0:  fprintf(hFile, "<tt>00 00</tt> (0)"); break;
+                case -1: fprintf(hFile, "<tt>FF FF</tt> (&minus;1)"); break;
+                case -2: fprintf(hFile, "<tt>FE FF</tt> (&minus;2)"); break;
+                case -3: fprintf(hFile, "<tt>FD FF</tt> (&minus;3)"); break;
+                case -4: fprintf(hFile, "<tt>FC FF</tt> (&minus;4)"); break;
+                default: fprintf(hFile, "Unrecognized"); break;
+            }
+            fprintf(hFile, "</td></tr>\n");
+            fprintf(hFile, "</table>\n");
+            if(StringData->Format >= -4 && StringData->Format <= 0){
+                unsigned LanguageSet;
+                const char * LanguageStrings[] = {
+                    "English (US)",
+                    "English (International)",
+                    "French",
+                    "German",
+                    "Italian",
+                    "Spanish",
+                    "Dutch",
+                    "Danish",
+                    "Swedish",
+                    "Norwegian",
+                    "Finnish",
+                    "Hebrew",
+                    "Russian",
+                    "Portuguese",
+                    "Japanese",
+                    "Polish",
+                    "Simplified Chinese",
+                    "Traditional Chinese",
+                    "Thai",
+                    "Korean"
+                };
+                fprintf(hFile, "<br />\n");
+                fprintf(hFile, "<table class=\"center\">\n");
+                fprintf(hFile, "<tr><th>Language</th><th colspan=\"3\">String pairs</th></tr>\n");
+
+                for(LanguageSet=0; LanguageSet<20; LanguageSet++){
+                    IFFStringPairNode * PairNode;
+                    unsigned PairIndex;
+                    if(StringData->LanguageSets[LanguageSet].PairCount == 0)
+                        continue;
+
+                    fprintf(hFile, "<tr><td rowspan=\"%u\">%s</td>\n", StringData->LanguageSets[LanguageSet].PairCount,
+                        LanguageStrings[LanguageSet]);
+                    for(PairIndex=1, PairNode = StringData->LanguageSets[LanguageSet].FirstPair; PairNode;
+                        PairNode = PairNode->NextPair, PairIndex++)
+                        fprintf(hFile, "<td>%u</td><td>%s</td><td>%s</td></tr>\n", PairIndex,
+                            (PairNode->Pair.Key)   != NULL ? PairNode->Pair.Key   : "",
+                            (PairNode->Pair.Value) != NULL ? PairNode->Pair.Value : "");
+                }
+
+                fprintf(hFile, "</table>\n");
+            }
+        }
+
+        fprintf(hFile, "</div>\n\n");
+    }
+
+    fprintf(hFile, "<div id=\"footer\">This page was generated by the use of <a href=\"http://www.niotso.org/\">iff2html</a>.\n");
+    fprintf(hFile, "The content of this page may be subject to copyright by the author(s) of the original iff file.</div>\n");
+    fprintf(hFile, "</body>\n");
+    fprintf(hFile, "</html>");
+    fclose(hFile);
     return 0;
 }

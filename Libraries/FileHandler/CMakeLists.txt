@@ -17,6 +17,8 @@ set(FILEHANDLER_MINOR  0)
 set(FILEHANDLER_SOURCES
     File.cpp
     Image.cpp
+    iff/chunks.c
+    iff/iff.c
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)

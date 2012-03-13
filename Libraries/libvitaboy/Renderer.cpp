@@ -288,8 +288,7 @@ void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
 {
     float Duration = (float)Animation.Motions[0].FrameCount/30;
     AnimationTime += TimeDelta;
-    while(AnimationTime >= Duration) AnimationTime -= Duration;
-    if(AnimationTime<0) AnimationTime = 0; //Safe-guard against rounding error
+    AnimationTime = fmodf(AnimationTime, Duration); //Loop the animation
 
     for(unsigned i=0; i<Animation.MotionsCount; i++){
         unsigned BoneIndex = FindBone(Skeleton, Animation.Motions[i].BoneName, Skeleton.BoneCount);
