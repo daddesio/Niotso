@@ -49,7 +49,7 @@ uint8_t       UTKTable2[512];
 const uint8_t UTKTable3[29] = {8,7,8,7,2,2,2,3,3,4,4,3,3,5,5,4,4,6,6,5,5,7,7,6,6,8,8,7,7};
 float         UTKTable4[29];
 
-int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, unsigned FileSize)
+int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, size_t FileSize)
 {
     if(FileSize < 28) return 0;
     memcpy(&UTKHeader->sID, Buffer, 4);

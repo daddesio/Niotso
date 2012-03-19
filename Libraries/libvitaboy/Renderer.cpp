@@ -45,9 +45,9 @@
 */
 
 #include <math.h>
-#include <gl\gl.h>
-#include <gl\glu.h>
-#include <gl\glext.h>
+#include <gl/gl.h>
+#include <gl/glu.h>
+#include <gl/glext.h>
 #include <FileHandler.hpp>
 #include "libvitaboy.hpp"
 
@@ -538,7 +538,7 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
         return false;
     }
 
-    if(!SetPixelFormat(hDC,PixelFormat, &pfd)){
+    if(!SetPixelFormat(hDC, PixelFormat, &pfd)){
         KillGLWindow();
         MessageBox(NULL, "Can't set the PixelFormat.", NULL, MB_OK | MB_ICONERROR);
         return false;
@@ -553,11 +553,11 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
 
     if(!wglMakeCurrent(hDC, hRC)){
         KillGLWindow();
-        MessageBox(NULL, "Failed to activate an OpenGL device context.", NULL, MB_OK | MB_ICONERROR);
+        MessageBox(NULL, "Failed to activate the OpenGL device context.", NULL, MB_OK | MB_ICONERROR);
         return false;
     }
 
-    ShowWindow(hWnd,SW_SHOW);
+    ShowWindow(hWnd, SW_SHOW);
     SetForegroundWindow(hWnd);
     SetFocus(hWnd);
     ResizeScene(width, height);

@@ -15,102 +15,52 @@
 */
 
 #include <basetyps.h>
+#pragma pack(0)
 
-DECLARE_INTERFACE(IMMDeviceCollection);
-DECLARE_INTERFACE(IMMNotificationClient);
-DECLARE_INTERFACE(IPropertyStore);
-
-/*
-** IMMDevice
-*/
-
-DECLARE_INTERFACE_(IMMDevice, IUnknown)
+DECLARE_INTERFACE(UnknownObject1_t)
 {
-    STDMETHOD(Activate) (REFIID iid, DWORD dwClsCtx, PROPVARIANT *pActivationParams, void **ppInterface);
-    STDMETHOD(OpenPropertyStore) (DWORD stgmAccess, IPropertyStore **ppProperties);
-    STDMETHOD(GetId) (LPWSTR *ppstrId);
-    STDMETHOD(GetState) (DWORD *pdwState);
+    DWORD   Zero1;
+    DWORD   Zero2;
+    void *  vtable5;
+    char ** Strings1;
+    char ** Strings2;
+    char ** Strings3;
+    DWORD   Zero3;
+    DWORD   Zero4;
+    DWORD   Zero5;
+    void ** Pointer1; //12 bytes
+    void ** Pointer2; //4 bytes
+    void ** Pointer3;
+    DWORD   Flags;
+    DWORD * Pointer4; //4 bytes
+    void *  Pointer5;
+    void *  Pointer6;
+    DWORD   Unknown11;
+    DWORD   Unknown12;
 };
 
-/*
-** IMMDeviceEnumerator
-*/
-
-enum EDataFlow
+DECLARE_INTERFACE(GZCOMDirector)
 {
-    eRender,
-    eCapture,
-    eAll
-};
-
-enum ERole
-{
-    eConsole,
-    eMultimedia,
-    eCommunications
-};
-
-DECLARE_INTERFACE_(IMMDeviceEnumerator, IUnknown)
-{
-    STDMETHOD(EnumAudioEndpoints) (EDataFlow dataFlow, DWORD dwStateMask, IMMDeviceCollection **ppDevices);
-    STDMETHOD(GetDefaultAudioEndpoint) (EDataFlow dataFlow, ERole role, IMMDevice **ppEndpoint);
-    STDMETHOD(GetDevice) (LPCWSTR pwstrId, IMMDevice **ppDevice);
-    STDMETHOD(RegisterEndpointNotificationCallback) (IMMNotificationClient *pClient);
-    STDMETHOD(UnregisterEndpointNotificationCallback) (IMMNotificationClient *pClient);
-};
-
-/*
-** IAudioClient
-*/
-
-enum AUDCLNT_SHAREMODE
-{
-    AUDCLNT_SHAREMODE_SHARED,
-    AUDCLNT_SHAREMODE_EXCLUSIVE
-};
-
-enum AUDCLNT_STREAMFLAGS
-{
-    AUDCLNT_STREAMFLAGS_CROSSPROCESS             = 0x00010000,
-    AUDCLNT_STREAMFLAGS_LOOPBACK                 = 0x00020000,
-    AUDCLNT_STREAMFLAGS_EVENTCALLBACK            = 0x00040000,
-    AUDCLNT_STREAMFLAGS_NOPERSIST                = 0x00080000,
-    AUDCLNT_STREAMFLAGS_RATEADJUST               = 0x00100000,
-    AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED       = 0x10000000,
-    AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE            = 0x20000000,
-    AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED = 0x40000000
-};
-
-DECLARE_INTERFACE_(IAudioClient, IUnknown)
-{
-    STDMETHOD(Initialize) (AUDCLNT_SHAREMODE ShareMode, DWORD StreamFlags, LONGLONG hnsBufferDuration,
-        LONGLONG hnsPeriodicity, const WAVEFORMATEX *pFormat, LPCGUID AudioSessionGuid);
-    STDMETHOD(GetBufferSize) (UINT32 *pNumBufferFrames);
-    STDMETHOD(GetStreamLatency) (LONGLONG *phnsLatency);
-    STDMETHOD(GetCurrentPadding) (UINT32 *pNumPaddingFrames);
-    STDMETHOD(IsFormatSupported) (AUDCLNT_SHAREMODE ShareMode, const WAVEFORMATEX *pFormat, WAVEFORMATEX **ppClosestMatch);
-    STDMETHOD(GetMixFormat) (WAVEFORMATEX **ppDeviceFormat);
-    STDMETHOD(GetDevicePeriod) (LONGLONG *phnsDefaultDevicePeriod, LONGLONG *phnsMinimumDevicePeriod);
-    STDMETHOD(Start) (void);
-    STDMETHOD(Stop) (void);
-    STDMETHOD(Reset) (void);
-    STDMETHOD(SetEventHandle) (HANDLE eventHandle);
-    STDMETHOD(GetService) (REFIID riid, void **ppv);
-};
-
-/*
-** IAudioRenderClient
-*/
-
-enum AUDCLNT_BUFFERFLAGS
-{
-    AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY = 0x1,
-    AUDCLNT_BUFFERFLAGS_SILENT             = 0x2,
-    AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR    = 0x4
-};
-
-DECLARE_INTERFACE_(IAudioRenderClient, IUnknown)
-{
-    STDMETHOD(GetBuffer) (UINT32 NumFramesRequested, BYTE **ppData);
-    STDMETHOD(ReleaseBuffer) (UINT32 NumFramesWritten, DWORD dwFlags);
+    void * vtable2;
+    void * vtable1;
+    UnknownObject1_t Object1;
+    void * vtable4;
+    void * vtable3;
+    UnknownObject1_t Object2;
+    UnknownObject1_t Object3;
+    
+    DWORD Zero1;
+    DWORD Zero2;
+    DWORD Zero3;
+    DWORD Zero4;
+    DWORD Zero5;
+    DWORD Zero6;
+    DWORD Zero7;
+    DWORD Zero8;
+    DWORD Zero9;
+    DWORD Zero10;
+    DWORD Unknown1;
+    DWORD Pointer1;
+    DWORD Pointer2;
+    DWORD Zero11;
 };

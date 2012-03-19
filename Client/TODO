@@ -4,3 +4,15 @@ alpha to beta), this file contains only the things that are worked on currently 
 While anybody is free to work on _anything_ at any point during Niotso's time, this list shall ONLY contain those relevant
 to complete the criteria for the next development phase, which can be found here:
 <http://wiki.niotso.org/Niotso_Release_Schedule>
+
+//----------//
+
+Development Phase: Planning
+
+Technical Preview 1
+Schedule: (Not very subject to change)
+ 1. Implement cst and uis parsers [40%]
+ 2. Replicate functionality up until the login dialog
+ 3. Implement the OpenGL-based windowing system
+ 4. Replicate character selection and creation features and the city selection dialog
+ 5. Implement the code needed to allow the game to read all necessary files from the TSOClient folder

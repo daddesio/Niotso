@@ -16,7 +16,7 @@ wchar_t ArchiveOpenFilter[128] = L"", ArchiveAddFilter[128] = L"", ArchiveSaveFi
 
 HMENU hMenu, listmenu = 0;
 
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int){
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int){
 	hInst = hInstance;
 	
 	WNDCLASS wc = {

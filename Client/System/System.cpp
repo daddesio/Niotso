@@ -15,16 +15,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gl/gl.h>
-#include <gl/glext.h>
+#include "../EngineInterface.hpp"
 
-//Graphics/Startup.cpp
-namespace Graphics {
-    DWORD WINAPI ThreadProc(LPVOID lpParameter);
-    extern HANDLE Thread;
-    extern HDC hDC;
-    extern HGLRC hRC;
+namespace System {
+    HINSTANCE hInst = NULL;
+    HANDLE Terminate;
+    HANDLE Process;
+    HANDLE ProcessHeap;
+    LARGE_INTEGER ClockFrequency;
+    bool Keys[256];
     
-    int InitGL();
-    void ResizeViewport(unsigned width, unsigned height);
+    //Event objects
+    HANDLE Shutdown;
+    HANDLE Initialized[2], Terminated[2];
 }

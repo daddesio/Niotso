@@ -17,6 +17,7 @@ set(FILEHANDLER_MINOR  0)
 set(FILEHANDLER_SOURCES
     File.cpp
     Image.cpp
+    cst/cst.c
     iff/chunks.c
     iff/iff.c
 )

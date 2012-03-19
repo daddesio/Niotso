@@ -15,16 +15,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gl/gl.h>
-#include <gl/glext.h>
+#define WINVER 0x0502
+#define _WIN32_WINNT 0x0502
+#define NTDDI_VERSION 0x05010300
+#define _CRT_SECURE_NO_WARNINGS
 
-//Graphics/Startup.cpp
-namespace Graphics {
-    DWORD WINAPI ThreadProc(LPVOID lpParameter);
-    extern HANDLE Thread;
-    extern HDC hDC;
-    extern HGLRC hRC;
-    
-    int InitGL();
-    void ResizeViewport(unsigned width, unsigned height);
+#include <windows.h>
+#undef NULL
+#define NULL 0
+
+#include "version.h"
+#include "System/System.hpp"
+#include "Resources/Resource.h"
+#include "Graphics/Graphics.hpp"
+#include "Audio/Audio.hpp"
+
+//IsometricEngine.cpp
+namespace Window {
+    extern unsigned Width, Height;
+    extern bool Fullscreen;
+    extern HWND hWnd;
 }
+
+//MessageHandler.cpp
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

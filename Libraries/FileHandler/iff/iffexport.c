@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
     IFFChunkNode * ChunkNode;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
-        printf("Usage: iffexport [-f] infile OutDirectory\n"
+        printf("Usage: iffexport [-f] infile outdirectory\n"
         "Export the resources of an EA IFF file.\n"
         "Use -f to force overwriting without confirmation.\n"
         "\n"

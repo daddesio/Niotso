@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <windows.h>
+#include "TSOSimulatorClient.hpp"
 
 int main(){
     HMODULE dllmodule = LoadLibrary("TSOSimulatorClientD.dll");
@@ -24,15 +25,18 @@ int main(){
         return -1;
     }
     
-    void * (__stdcall *GZDllGetGZCOMDirector)(void) = (void * (__stdcall *)(void)) GetProcAddress(dllmodule, "GZDllGetGZCOMDirector");
+    GZCOMDirector * (__stdcall *GZDllGetGZCOMDirector)(void) =
+        (GZCOMDirector * (__stdcall *)(void)) GetProcAddress(dllmodule, "GZDllGetGZCOMDirector");
     if(GZDllGetGZCOMDirector == NULL){
         printf("TSOSimulatorClient: Error: Failed to find GZDllGetGZCOMDirector() in TSOSimulatorClientD.dll.");
         return -1;
     }
     
     printf("TSOSimulatorClient: Calling GZDllGetGZCOMDirector() ...\n");
-    void * value = GZDllGetGZCOMDirector();
-    printf("TSOSimulatorClient: Finished calling GZDllGetGZCOMDirector().\nThe value returned was: %p.\n", value);
+    GZCOMDirector * Simulator = GZDllGetGZCOMDirector();
+    printf("TSOSimulatorClient: Finished calling GZDllGetGZCOMDirector().\nThe value returned was: %p.\n", (void *) Simulator);
+    
+    printf("%s\n%s\n%s\n", Simulator->Object1.Strings1[0], Simulator->Object1.Strings2[0], Simulator->Object1.Strings3[0]);
     
     printf("TSOSimulatorClient: Exiting.\n");
     FreeLibrary(dllmodule);

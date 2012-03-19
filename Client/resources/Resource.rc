@@ -1,0 +1,32 @@
+#include <windows.h>
+#include "../version.h"
+#include "Resource.h"
+
+IDI_TSO				ICON		"TSO.ico"
+
+ID_VERSIONINFO		VERSIONINFO
+FILEVERSION			VERSION_A,VERSION_B,VERSION_C,VERSION_D
+PRODUCTVERSION		VERSION_A,VERSION_B,VERSION_C,VERSION_D
+FILEOS				0x00040000L //Windows 32-bit+
+FILETYPE			1	//1 is exe, 2 is dll, and so on.
+						//The list can be found at <http://msdn.microsoft.com/en-us/library/aa381058.aspx>
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904B0"
+		BEGIN
+			VALUE "CompanyName",		"Maxis™"
+			VALUE "FileDescription",	"The Sims Online"
+			VALUE "FileVersion",		VERSIONSTR
+			VALUE "InternalName",		"TSO_NIOTSO"
+			VALUE "LegalCopyright",		"Copyright © 2002-2005 Maxis™"
+			VALUE "OriginalFilename",	"TSO.exe"
+			VALUE "ProductName",		"The Sims Online"
+			VALUE "ProductVersion",		VERSIONSTR
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x0409, 0x04B0
+	END
+END
