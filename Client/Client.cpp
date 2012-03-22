@@ -44,41 +44,68 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         return ERROR_INIT_ANOTHERINSTRUNNING;
     }
     
-    System::Shutdown = CreateEvent(NULL, TRUE, FALSE, NULL);
-    for(int i=0; i<2; i++){
-        System::Initialized[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
-        System::Terminated[i] = CreateEvent(NULL, TRUE, TRUE, NULL);
-    }
-    
     result = CreateWindowInvisible(hInstance, 800, 600, false);
     if(result != 0){
         Shutdown();
         return ERROR_INIT | ERROR_INIT_WINDOW | result;
     }
-
-    Graphics::Thread = CreateThread(NULL, 0, Graphics::ThreadProc, NULL, 0, NULL);
-    if(Graphics::Thread == NULL){
-        Shutdown();
-        return ERROR_INIT | ERROR_INIT_GRAPHICS | ERROR_GRAPHICS_CREATE_THREAD;
-    }
-
-    Audio::Thread = CreateThread(NULL, 0, Audio::ThreadProc, NULL, 0, NULL);
-    if(Audio::Thread == NULL){
-        Shutdown();
-        return ERROR_INIT | ERROR_INIT_GRAPHICS | ERROR_GRAPHICS_CREATE_THREAD;
-    }
     
-    WaitForMultipleObjects(2, System::Initialized, TRUE, INFINITE);
-    for(int i=0; i<2; i++){
-        if(WaitForSingleObject(System::Terminated[i], 0) != WAIT_TIMEOUT){
-            /* If Terminated for this thread is signaled, an initialization error occurred */
-            Shutdown();
-            return ERROR_INIT;
-        }
+    result = System::Initialize();
+    if(result != 0){
+        Shutdown();
+        return ERROR_INIT | ERROR_INIT_SYSTEM | result;
+    }
+
+    result = Graphics::Initialize();
+    if(result != 0){
+        Shutdown();
+        return ERROR_INIT | ERROR_INIT_GRAPHICS | result;
+    }
+
+    result = Audio::Initialize();
+    if(result != 0){
+        Shutdown();
+        return ERROR_INIT | ERROR_INIT_AUDIO | result;
     }
     
     CurrentScene = new LoginScreen();
-    CurrentScene->Render();
+    if(CurrentScene == NULL){
+        Shutdown();
+        return ERROR_INIT | ERROR_INIT_LOGIC | ERROR_LOGIC_CREATE_SCENE;
+    }
+    
+    LARGE_INTEGER PreviousTime;
+    QueryPerformanceCounter(&PreviousTime);
+    
+    ShowWindow(Window::hWnd, SW_SHOW);
+    SetForegroundWindow(Window::hWnd);
+    SetFocus(Window::hWnd);
+    
+    while(true){
+        MSG msg;
+        while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)){
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        
+        LARGE_INTEGER CurrentTime;
+        QueryPerformanceCounter(&CurrentTime);
+        float TimeDelta = (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/System::ClockFreq.QuadPart;
+        
+        int result = CurrentScene->RunFor(TimeDelta);
+        if(result == System::SHUTDOWN)
+            break;
+        if(result > 0){
+            CurrentScene->Render();
+            SwapBuffers(Graphics::hDC);
+        }
+        
+        PreviousTime.QuadPart = CurrentTime.QuadPart;
+        QueryPerformanceCounter(&CurrentTime);
+        unsigned SleepDuration = (unsigned)
+            ((System::FramePeriod - (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/System::ClockFreq.QuadPart) * 1000);
+        if(SleepDuration > 1) Sleep(SleepDuration);
+    }
     
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0))
@@ -167,8 +194,6 @@ int CreateWindowInvisible(HINSTANCE hInst, unsigned Width, unsigned Height, bool
 
 void Shutdown()
 {
-    SetEvent(System::Shutdown);
-    WaitForMultipleObjects(2, System::Terminated, TRUE, INFINITE);
     if(Window::hWnd){
         DestroyWindow(Window::hWnd);
         Window::hWnd = NULL;

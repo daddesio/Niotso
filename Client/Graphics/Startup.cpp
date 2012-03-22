@@ -25,7 +25,7 @@ HGLRC hRC;
 
 void Shutdown();
 
-DWORD WINAPI ThreadProc(LPVOID){
+int Initialize(){
     hDC = GetDC(Window::hWnd);
     if(hDC == NULL){
         MessageBox(Window::hWnd, "Failed to obtain the device context.", NULL, MB_OK | MB_ICONERROR);
@@ -39,7 +39,7 @@ DWORD WINAPI ThreadProc(LPVOID){
         PFD_SUPPORT_OPENGL |
         PFD_DOUBLEBUFFER,
         PFD_TYPE_RGBA,                    //iPixelType
-        32,                               //cColorBits
+        24,                               //cColorBits
         0, 0, 0, 0, 0, 0, 0, 0,           //R,G,B,A bits
         0, 0, 0, 0, 0,                    //Accumulation buffer bits
         16,                               //cDepthBits
@@ -76,6 +76,11 @@ DWORD WINAPI ThreadProc(LPVOID){
         return ERROR_GRAPHICS_ACTIVATE_GLRC;
     }
     
+    BOOL (WINAPI *wglSwapIntervalEXT)(int) = (BOOL (WINAPI *)(int)) wglGetProcAddress("wglSwapIntervalEXT");
+    if(wglSwapIntervalEXT) wglSwapIntervalEXT(1);
+    int (WINAPI *wglGetSwapIntervalEXT)(void) = (int (WINAPI *)(void)) wglGetProcAddress("wglGetSwapIntervalEXT");
+    if(wglGetSwapIntervalEXT) wglGetSwapIntervalEXT(); //Seems necessary on some cards
+    
     int result = InitGL();
     if(result != 0){
         Shutdown();
@@ -83,16 +88,6 @@ DWORD WINAPI ThreadProc(LPVOID){
     }
     
     ResizeViewport(Window::Width, Window::Height);
-    
-    ResetEvent(System::Terminated[HANDLE_GRAPHICS]);
-    SetEvent(System::Initialized[HANDLE_GRAPHICS]);
-    ShowWindow(Window::hWnd, SW_SHOW);
-    SetForegroundWindow(Window::hWnd);
-    SetFocus(Window::hWnd);
-    
-    WaitForSingleObject(System::Shutdown, INFINITE);
-    
-    Shutdown();
     return 0;
 }
 
@@ -110,7 +105,6 @@ int InitGL(){
 }
 
 void Shutdown(){
-    ShowWindowAsync(Window::hWnd, SW_HIDE);
     if(Graphics::hRC){
         wglMakeCurrent(NULL, NULL);
         wglDeleteContext(Graphics::hRC);
@@ -120,8 +114,6 @@ void Shutdown(){
         ReleaseDC(Window::hWnd, Graphics::hDC);
         Graphics::hDC = NULL;
     }
-    
-    SetEvent(System::Terminated[HANDLE_GRAPHICS]);
 }
 
 }

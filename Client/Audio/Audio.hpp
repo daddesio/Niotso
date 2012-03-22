@@ -18,6 +18,5 @@
 #include "windows/xaudio2.hpp"
 
 namespace Audio {
-    DWORD WINAPI ThreadProc(LPVOID lpParameter);
-    extern HANDLE Thread;
+    int Initialize();
 }

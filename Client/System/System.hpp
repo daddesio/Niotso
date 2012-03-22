@@ -17,25 +17,27 @@
 
 //System/System.cpp
 namespace System {
+    int Initialize();
+    extern bool Shutdown;
     extern HINSTANCE hInst;
     extern HANDLE Process;
     extern HANDLE ProcessHeap;
-    extern LARGE_INTEGER ClockFrequency;
+    extern LARGE_INTEGER ClockFreq;
+    extern float FramePeriod;
     extern bool Keys[256];
     
-    //Event objects
-    extern HANDLE Shutdown;
-    extern HANDLE Initialized[2], Terminated[2];
+    struct UserInput_t {
+        bool Keys[256];
+        bool MouseDown;
+        bool CloseWindow;
+    };
+    extern UserInput_t UserInput;
     
+    //Constants
     enum {
-        SHUTDOWN
+        SHUTDOWN = 0
     };
 }
-
-enum {
-    HANDLE_GRAPHICS,
-    HANDLE_AUDIO
-};
 
 /****
 ** Program exit codes
@@ -52,20 +54,23 @@ enum {
         ERROR_REGISTER_CLASS = 1,
         ERROR_CREATE_WINDOW
     };
-#define ERROR_INIT_GRAPHICS 0x0200
+#define ERROR_INIT_SYSTEM 0x0200
+#define ERROR_INIT_GRAPHICS 0x0300
     enum {
-        ERROR_GRAPHICS_CREATE_THREAD = 1,
-        ERROR_GRAPHICS_OBTAIN_DC,
+        ERROR_GRAPHICS_OBTAIN_DC = 1,
         ERROR_GRAPHICS_FIND_PIXELFORMAT,
         ERROR_GRAPHICS_SET_PIXELFORMAT,
         ERROR_GRAPHICS_CREATE_GLRC,
         ERROR_GRAPHICS_ACTIVATE_GLRC,
         ERROR_GRAPHICS_INIT_GLSCENE
     };
-#define ERROR_INIT_AUDIO 0x0300
+#define ERROR_INIT_AUDIO 0x0400
     enum {
         ERROR_AUDIO_INIT_COM = 1,
         ERROR_AUDIO_INIT_XAUDIO2,
         ERROR_AUDIO_CREATE_VOICE
     };
-#define ERROR_INIT_LOGIC 0x0400
+#define ERROR_INIT_LOGIC 0x0500
+    enum {
+        ERROR_LOGIC_CREATE_SCENE = 1
+    };

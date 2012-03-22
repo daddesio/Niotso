@@ -26,8 +26,9 @@ IXAudio2MasteringVoice *MasterVoice = NULL;
 
 void Shutdown();
 
-DWORD WINAPI ThreadProc(LPVOID){
+int Initialize(){
     HRESULT result;
+    
     result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
     if(result != S_OK){
         MessageBox(Window::hWnd, "Failed to initialize Microsoft COM.", NULL, MB_OK | MB_ICONERROR);
@@ -49,12 +50,6 @@ DWORD WINAPI ThreadProc(LPVOID){
         Shutdown();
         return ERROR_AUDIO_CREATE_VOICE;
     }
-    
-    ResetEvent(System::Terminated[HANDLE_AUDIO]);
-    SetEvent(System::Initialized[HANDLE_AUDIO]);
-    WaitForSingleObject(System::Shutdown, INFINITE);
-    
-    Shutdown();
     return 0;
 }
 
@@ -67,8 +62,6 @@ void Shutdown(){
         pXAudio2->Release();
         pXAudio2 = NULL;
     }
-    
-    SetEvent(System::Terminated[HANDLE_AUDIO]);
 }
 
 }

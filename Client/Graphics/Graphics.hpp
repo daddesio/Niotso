@@ -20,8 +20,7 @@
 
 //Graphics/Startup.cpp
 namespace Graphics {
-    DWORD WINAPI ThreadProc(LPVOID lpParameter);
-    extern HANDLE Thread;
+    int Initialize();
     extern HDC hDC;
     extern HGLRC hRC;
     

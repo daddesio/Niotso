@@ -40,13 +40,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_KEYDOWN:
     case WM_KEYUP:
-        System::Keys[wParam] = (uMsg == WM_KEYDOWN);
+        System::UserInput.Keys[wParam] = (uMsg == WM_KEYDOWN);
         return 0;
     
     case WM_CLOSE:
         PostQuitMessage(0);
         return 0;
-    }
 
+    case WM_DEVMODECHANGE: {
+        DEVMODE dm;
+        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
+        System::FramePeriod = 1.0f/dm.dmDisplayFrequency;
+    } return 0;
+
+    }
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }

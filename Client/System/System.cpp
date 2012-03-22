@@ -18,14 +18,21 @@
 #include "../EngineInterface.hpp"
 
 namespace System {
+    bool Shutdown = false;
     HINSTANCE hInst = NULL;
-    HANDLE Terminate;
     HANDLE Process;
     HANDLE ProcessHeap;
-    LARGE_INTEGER ClockFrequency;
-    bool Keys[256];
+    LARGE_INTEGER ClockFreq;
+    float FramePeriod;
+    UserInput_t UserInput;
     
-    //Event objects
-    HANDLE Shutdown;
-    HANDLE Initialized[2], Terminated[2];
+    int Initialize(){
+        QueryPerformanceFrequency(&ClockFreq);
+        
+        DEVMODE dm;
+        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
+        System::FramePeriod = 1.0f/dm.dmDisplayFrequency;
+
+        return 0;
+    }
 }
