@@ -23,8 +23,6 @@ HANDLE Thread;
 HDC hDC;
 HGLRC hRC;
 
-void Shutdown();
-
 int Initialize(){
     hDC = GetDC(Window::hWnd);
     if(hDC == NULL){

@@ -27,6 +27,8 @@ namespace System {
     UserInput_t UserInput;
     
     int Initialize(){
+        memset(&UserInput, 0, sizeof(UserInput));
+        
         QueryPerformanceFrequency(&ClockFreq);
         
         DEVMODE dm;

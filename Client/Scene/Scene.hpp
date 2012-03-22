@@ -51,8 +51,9 @@ class LoginScreen : public Scene {
     int Run(float){
         if(System::UserInput.CloseWindow){
             System::Shutdown = true;
+            return 0;
         }
-        return 0;
+        return 1;
     }
 
   public:

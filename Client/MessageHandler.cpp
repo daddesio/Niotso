@@ -44,6 +44,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     
     case WM_CLOSE:
+        System::UserInput.CloseWindow = true;
         PostQuitMessage(0);
         return 0;
 

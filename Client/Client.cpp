@@ -74,12 +74,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         return ERROR_INIT | ERROR_INIT_LOGIC | ERROR_LOGIC_CREATE_SCENE;
     }
     
-    LARGE_INTEGER PreviousTime;
-    QueryPerformanceCounter(&PreviousTime);
-    
     ShowWindow(Window::hWnd, SW_SHOW);
     SetForegroundWindow(Window::hWnd);
     SetFocus(Window::hWnd);
+    
+    LARGE_INTEGER PreviousTime;
+    QueryPerformanceCounter(&PreviousTime);
     
     while(true){
         MSG msg;
@@ -102,18 +102,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         
         PreviousTime.QuadPart = CurrentTime.QuadPart;
         QueryPerformanceCounter(&CurrentTime);
-        unsigned SleepDuration = (unsigned)
-            ((System::FramePeriod - (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/System::ClockFreq.QuadPart) * 1000);
-        if(SleepDuration > 1) Sleep(SleepDuration);
-    }
-    
-    MSG msg;
-    while(GetMessage(&msg, NULL, 0, 0))
-    {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        float SleepDuration =
+            (System::FramePeriod - (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/System::ClockFreq.QuadPart) * 1000;
+        if(SleepDuration > 1) Sleep((unsigned) SleepDuration);
     }
 
+    ShowWindow(Window::hWnd, SW_HIDE);
+    Audio::Shutdown();
+    Graphics::Shutdown();
+    
     Shutdown();
     return 0;
 }

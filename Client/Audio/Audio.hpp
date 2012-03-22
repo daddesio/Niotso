@@ -19,4 +19,5 @@
 
 namespace Audio {
     int Initialize();
+    void Shutdown();
 }

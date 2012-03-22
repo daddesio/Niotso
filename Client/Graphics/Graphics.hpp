@@ -21,6 +21,7 @@
 //Graphics/Startup.cpp
 namespace Graphics {
     int Initialize();
+    void Shutdown();
     extern HDC hDC;
     extern HGLRC hRC;
     
