@@ -26,6 +26,10 @@ namespace System {
     //Event objects
     extern HANDLE Shutdown;
     extern HANDLE Initialized[2], Terminated[2];
+    
+    enum {
+        SHUTDOWN
+    };
 }
 
 enum {

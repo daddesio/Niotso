@@ -445,7 +445,6 @@ void KillGLWindow()
     hInstance = NULL;
 }
 
-typedef bool (APIENTRY *PFNWGLSWAPINTERVALFARPROC)(int);
 BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fullscreenflag)
 {
     fullscreen = fullscreenflag;
@@ -531,7 +530,7 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
         return false;
     }
 
-    unsigned PixelFormat = ChoosePixelFormat(hDC, &pfd);
+    int PixelFormat = ChoosePixelFormat(hDC, &pfd);
     if(!PixelFormat){
         KillGLWindow();
         MessageBox(NULL, "Can't find a suitable PixelFormat.", NULL, MB_OK | MB_ICONERROR);
@@ -568,9 +567,10 @@ BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fu
         return false;
     }
 
-    PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT = 0;
-    wglSwapIntervalEXT = (PFNWGLSWAPINTERVALFARPROC)wglGetProcAddress("wglSwapIntervalEXT");
+    BOOL (WINAPI *wglSwapIntervalEXT)(int) = (BOOL (WINAPI *)(int)) wglGetProcAddress("wglSwapIntervalEXT");
     if(wglSwapIntervalEXT) wglSwapIntervalEXT(1);
+    int (WINAPI *wglGetSwapIntervalEXT)(void) = (int (WINAPI *)(void)) wglGetProcAddress("wglGetSwapIntervalEXT");
+    if(wglGetSwapIntervalEXT) wglGetSwapIntervalEXT(); //Seems necessary on some cards
 
     QueryPerformanceFrequency(&ClockFreq);
     QueryPerformanceCounter(&PreviousTime);
@@ -587,7 +587,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }else if(wParam == VK_F11 && !keys[VK_F11]){
             KillGLWindow();
             fullscreen = !fullscreen;
-            if(!CreateGLWindow("libvitaboy - Renderer",640,480,16,fullscreen)){
+            if(!CreateGLWindow("libvitaboy - Renderer",640,480,24,fullscreen)){
                 PostQuitMessage(0);
             }
         }

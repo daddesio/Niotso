@@ -6,6 +6,7 @@ if(WIN32)
         Client.cpp
         MessageHandler.cpp
         Audio/Startup.cpp
+        Audio/windows/XAudio2.cpp
         Graphics/Startup.cpp
         Graphics/Viewport.cpp
         resources/Resource.rc

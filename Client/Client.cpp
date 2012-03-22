@@ -26,6 +26,8 @@ namespace Window {
 int CreateWindowInvisible(HINSTANCE hInst, unsigned Width, unsigned Height, bool Fullscreen);
 void Shutdown();
 
+Scene * CurrentScene;
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     int result;
@@ -74,6 +76,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             return ERROR_INIT;
         }
     }
+    
+    CurrentScene = new LoginScreen();
+    CurrentScene->Render();
     
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0))

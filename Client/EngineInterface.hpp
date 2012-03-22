@@ -27,8 +27,10 @@
 #include "version.h"
 #include "System/System.hpp"
 #include "Resources/Resource.h"
-#include "Graphics/Graphics.hpp"
+
 #include "Audio/Audio.hpp"
+#include "Graphics/Graphics.hpp"
+#include "Scene/Scene.hpp"
 
 //IsometricEngine.cpp
 namespace Window {
