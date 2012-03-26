@@ -91,6 +91,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         LARGE_INTEGER CurrentTime;
         QueryPerformanceCounter(&CurrentTime);
         float TimeDelta = (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/System::ClockFreq.QuadPart;
+        if(TimeDelta < 0 || TimeDelta >= 5) //Invalid TimeDelta
+            continue;
         
         int result = CurrentScene->RunFor(TimeDelta);
         if(result == System::SHUTDOWN)
@@ -104,7 +106,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         QueryPerformanceCounter(&CurrentTime);
         float SleepDuration =
             (System::FramePeriod - (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/System::ClockFreq.QuadPart) * 1000;
-        if(SleepDuration > 1) Sleep((unsigned) SleepDuration);
+        if(SleepDuration > 1 && SleepDuration < 100) Sleep((unsigned) SleepDuration);
     }
 
     ShowWindow(Window::hWnd, SW_HIDE);
