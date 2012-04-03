@@ -272,7 +272,7 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "\n");
 
     for(i=1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, i++){
-        IFF_STR * StringData = (IFF_STR*) ChunkNode->Chunk.FormattedData;
+        
         fprintf(hFile, "<h2 id=\"chunk%u_%.4x\">%u [%s] (%.4X)%s%s <a href=\"#chunk%u_%.4x\">(Jump)</a></h2>\n",
             i, ChunkNode->Chunk.ChunkID, i, ChunkNode->Chunk.Type, ChunkNode->Chunk.ChunkID,
             (ChunkNode->Chunk.Label[0] != 0x00) ? " &ndash; " : "", ChunkNode->Chunk.Label,
@@ -286,6 +286,8 @@ int main(int argc, char *argv[]){
             !strcmp(ChunkNode->Chunk.Type, "FAMs") ||
             !strcmp(ChunkNode->Chunk.Type, "TTAs") ){
 
+			IFF_STR * StringData = (IFF_STR*) ChunkNode->Chunk.FormattedData;
+			
             /****
             ** STR# parsing
             */
@@ -350,6 +352,72 @@ int main(int argc, char *argv[]){
                 fprintf(hFile, "</table>\n");
             }
         }
+		else if (!strcmp(ChunkNode->Chunk.Type, "BHAV") )
+		{
+			IFF_TREETABLE * TreeTableData = (IFF_TREETABLE*) ChunkNode->Chunk.FormattedData;
+		
+			fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Stream Version:</td><td>");
+            switch(TreeTableData->StreamVersion){
+                case 0x8000:  fprintf(hFile, "<tt>0x8000</tt> (0)"); break;
+                case 0x8001: fprintf(hFile, "<tt>0x8001</tt> (1)"); break;
+                case 0x8002: fprintf(hFile, "<tt>0x8002</tt> (2)"); break;
+                case 0x8003: fprintf(hFile, "<tt>0x8003</tt> (3)"); break;
+                default: fprintf(hFile, "Unrecognized"); break;
+            }
+            fprintf(hFile, "</td></tr>\n");
+			
+			fprintf(hFile, "<tr><td>Tree Version:</td><td>");
+            fprintf(hFile, "<tt>%-#10X</tt> (%u)", TreeTableData->TreeVersion, TreeTableData->TreeVersion);
+            fprintf(hFile, "</td></tr>\n");
+			
+			fprintf(hFile, "<tr><td>Tree Type:</td><td>");
+            fprintf(hFile, "<tt>%-#4X</tt> (%u)", TreeTableData->Type, TreeTableData->Type);
+            fprintf(hFile, "</td></tr>\n");
+			
+			fprintf(hFile, "<tr><td>Number of Parameters:</td><td>");
+            fprintf(hFile, "<tt>%u</tt>", TreeTableData->NumParams);
+            fprintf(hFile, "</td></tr>\n");
+			
+			fprintf(hFile, "<tr><td>Number of Local Variables:</td><td>");
+            fprintf(hFile, "<tt>%u</tt>", TreeTableData->NumLocals);
+            fprintf(hFile, "</td></tr>\n");
+			
+			fprintf(hFile, "<tr><td>Number of Tree Nodes:</td><td>");
+            fprintf(hFile, "<tt>%u</tt>", (TreeTableData->NodesEnd - TreeTableData->NodesBegin));
+            fprintf(hFile, "</td></tr>\n");
+			
+            fprintf(hFile, "</table>\n");
+            if(TreeTableData->StreamVersion >= 0x8000 && TreeTableData->StreamVersion <= 0x8003)
+			{
+                fprintf(hFile, "<br />\n");
+                fprintf(hFile, "<table class=\"center\">\n");
+                fprintf(hFile, "<tr><th>Node ID</th><th>Primitive #</th><th>Transition True</th><th>Transition False</th><th>Parameter 0</th><th>Parameter 1</th><th>Parameter 2</th><th>Parameter 3</th></tr>\n");
+
+				IFF_TREETABLENODE *currentNode;
+                for (currentNode = TreeTableData->NodesBegin; currentNode != TreeTableData->NodesEnd; currentNode++)
+				{
+					fprintf(hFile, "<tr><td>%d</td>\n", (currentNode-TreeTableData->NodesBegin));
+                    fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->PrimitiveNumber, currentNode->PrimitiveNumber);
+					if (currentNode->TransitionTrue < 253)
+						fprintf(hFile, "<td>%d (%-#4X)</td>\n", currentNode->TransitionTrue, currentNode->TransitionTrue);
+					else
+						fprintf(hFile, "<td>%s</td>\n", currentNode->TransitionTrue == 253 ? "error" : currentNode->TransitionTrue == 254 ? "true" : "false");
+						
+						
+					if (currentNode->TransitionFalse < 253)
+						fprintf(hFile, "<td>%d (%-#4X)</td>\n", currentNode->TransitionFalse, currentNode->TransitionFalse);
+					else
+						fprintf(hFile, "<td>%s</td>\n", currentNode->TransitionFalse == 253 ? "error" : currentNode->TransitionFalse == 254 ? "true" : "false");
+					fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param0, currentNode->Parameters.Param0);
+					fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param1, currentNode->Parameters.Param1);
+					fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param2, currentNode->Parameters.Param2);
+					fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param3, currentNode->Parameters.Param3);
+                }
+
+                fprintf(hFile, "</table>\n");
+            }
+		}
 
         fprintf(hFile, "</div>\n\n");
     }

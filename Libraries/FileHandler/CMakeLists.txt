@@ -19,6 +19,8 @@ set(FILEHANDLER_SOURCES
     File.cpp
     Image.cpp
     cst/cst.c
+	iff/stbl.c
+	iff/bhav.c
     iff/chunks.c
     iff/iff.c
 )
