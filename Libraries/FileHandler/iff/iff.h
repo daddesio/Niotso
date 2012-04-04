@@ -15,6 +15,7 @@
 */
 #include "stbl.h"
 #include "bhav.h"
+#include "sprite.h"
 
 #ifndef read_uint32be
  #define read_int32be(x)  (signed)(((x)[0]<<(8*3)) | ((x)[1]<<(8*2)) | ((x)[2]<<(8*1)) | ((x)[3]<<(8*0)))
@@ -60,6 +61,8 @@ typedef struct IFFChunkNode_struct
 typedef struct IFFFile_struct
 {
     uint8_t Header[64];
+    
+    char *FileName;
 
     uint32_t ChunkCount;
     IFFChunkNode * FirstChunk;
@@ -82,7 +85,7 @@ extern "C" {
 */
 
 IFFFile * iff_create();
-int iff_read_header(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned FileSize);
+int iff_read_header(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned FileSize, char *FileName);
 
 IFFChunkNode * iff_add_chunk(IFFFile * IFFFileInfo, int Position);
 int iff_read_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned MaxChunkSize);
@@ -96,10 +99,12 @@ void iff_delete(IFFFile * IFFFileInfo);
 ** IFF chunk functions
 */
 
+IFFChunk *iff_find_first_chunk(IFFFile *IFFFileInfo, const char *type, uint16_t id);
 int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize);
-int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer);
+int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *SourceFile);
 int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer);
 int iff_parse_bhav(IFFChunk * ChunkInfo, const uint8_t * Buffer);
+int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *SourceFile);
 
 #ifdef __cplusplus
 }

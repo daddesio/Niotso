@@ -13,6 +13,7 @@
     ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
+#define IFF2HTML
 
 #include <stdio.h>
 #include <stdint.h>
@@ -58,6 +59,9 @@ int main(int argc, char *argv[]){
     unsigned chunk = 0;
     IFFFile * IFFFileInfo;
     IFFChunkNode * ChunkNode;
+    IFF_TREETABLENODE *currentNode; /* for iterating through BHAVs */
+    char *dummyValue;
+    char *resourceDir;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
         printf("Usage: iff2html [-f] infile (outfile)\n"
@@ -94,7 +98,17 @@ int main(int argc, char *argv[]){
     /****
     ** Open the file and read in entire contents to memory
     */
-
+    
+    resourceDir = (char *)malloc(sizeof(char) * 255);
+    dummyValue = (char *)malloc(sizeof(char) * 255);
+    strcpy(resourceDir+2, InFile);
+    *strchr(resourceDir+2, (int)'.') = '\0';
+    resourceDir[0] = '.';
+    resourceDir[1] = '/';
+    CreateDirectory(resourceDir, NULL);
+    printf(resourceDir);
+    fflush(stdout);
+    
     hFile = CreateFile(InFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     hFile = fopen(InFile, "rb");
     if(hFile == NULL){
@@ -119,6 +133,9 @@ int main(int argc, char *argv[]){
         return -1;
     }
     fclose(hFile);
+    
+    
+    
 
     /****
     ** Load header information
@@ -129,7 +146,7 @@ int main(int argc, char *argv[]){
         printf("%sMemory for this file could not be allocated.", "iff2html: error: ");
         return -1;
     }
-    if(!iff_read_header(IFFFileInfo, IFFData, FileSize)){
+    if(!iff_read_header(IFFFileInfo, IFFData, FileSize, InFile)){
         printf("%sNot a valid IFF file.", "iff2html: error: ");
         return -1;
     }
@@ -150,7 +167,7 @@ int main(int argc, char *argv[]){
     free(IFFData);
 
     for(chunk = 1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, chunk++)
-        iff_parse_chunk(&ChunkNode->Chunk, ChunkNode->Chunk.Data);
+        iff_parse_chunk(&ChunkNode->Chunk, ChunkNode->Chunk.Data, IFFFileInfo);
     
 
     /****
@@ -286,8 +303,8 @@ int main(int argc, char *argv[]){
             !strcmp(ChunkNode->Chunk.Type, "FAMs") ||
             !strcmp(ChunkNode->Chunk.Type, "TTAs") ){
 
-			IFF_STR * StringData = (IFF_STR*) ChunkNode->Chunk.FormattedData;
-			
+            IFF_STR * StringData = (IFF_STR*) ChunkNode->Chunk.FormattedData;
+            
             /****
             ** STR# parsing
             */
@@ -352,11 +369,11 @@ int main(int argc, char *argv[]){
                 fprintf(hFile, "</table>\n");
             }
         }
-		else if (!strcmp(ChunkNode->Chunk.Type, "BHAV") )
-		{
-			IFF_TREETABLE * TreeTableData = (IFF_TREETABLE*) ChunkNode->Chunk.FormattedData;
-		
-			fprintf(hFile, "<table>\n");
+        else if (!strcmp(ChunkNode->Chunk.Type, "BHAV") )
+        {
+            IFF_TREETABLE * TreeTableData = (IFF_TREETABLE*) ChunkNode->Chunk.FormattedData;
+        
+            fprintf(hFile, "<table>\n");
             fprintf(hFile, "<tr><td>Stream Version:</td><td>");
             switch(TreeTableData->StreamVersion){
                 case 0x8000:  fprintf(hFile, "<tt>0x8000</tt> (0)"); break;
@@ -366,58 +383,100 @@ int main(int argc, char *argv[]){
                 default: fprintf(hFile, "Unrecognized"); break;
             }
             fprintf(hFile, "</td></tr>\n");
-			
-			fprintf(hFile, "<tr><td>Tree Version:</td><td>");
+            
+            fprintf(hFile, "<tr><td>Tree Version:</td><td>");
             fprintf(hFile, "<tt>%-#10X</tt> (%u)", TreeTableData->TreeVersion, TreeTableData->TreeVersion);
             fprintf(hFile, "</td></tr>\n");
-			
-			fprintf(hFile, "<tr><td>Tree Type:</td><td>");
+            
+            fprintf(hFile, "<tr><td>Tree Type:</td><td>");
             fprintf(hFile, "<tt>%-#4X</tt> (%u)", TreeTableData->Type, TreeTableData->Type);
             fprintf(hFile, "</td></tr>\n");
-			
-			fprintf(hFile, "<tr><td>Number of Parameters:</td><td>");
+            
+            fprintf(hFile, "<tr><td>Number of Parameters:</td><td>");
             fprintf(hFile, "<tt>%u</tt>", TreeTableData->NumParams);
             fprintf(hFile, "</td></tr>\n");
-			
-			fprintf(hFile, "<tr><td>Number of Local Variables:</td><td>");
+            
+            fprintf(hFile, "<tr><td>Number of Local Variables:</td><td>");
             fprintf(hFile, "<tt>%u</tt>", TreeTableData->NumLocals);
             fprintf(hFile, "</td></tr>\n");
-			
-			fprintf(hFile, "<tr><td>Number of Tree Nodes:</td><td>");
+            
+            fprintf(hFile, "<tr><td>Number of Tree Nodes:</td><td>");
             fprintf(hFile, "<tt>%u</tt>", (TreeTableData->NodesEnd - TreeTableData->NodesBegin));
             fprintf(hFile, "</td></tr>\n");
-			
+            
             fprintf(hFile, "</table>\n");
             if(TreeTableData->StreamVersion >= 0x8000 && TreeTableData->StreamVersion <= 0x8003)
-			{
+            {
                 fprintf(hFile, "<br />\n");
                 fprintf(hFile, "<table class=\"center\">\n");
                 fprintf(hFile, "<tr><th>Node ID</th><th>Primitive #</th><th>Transition True</th><th>Transition False</th><th>Parameter 0</th><th>Parameter 1</th><th>Parameter 2</th><th>Parameter 3</th></tr>\n");
 
-				IFF_TREETABLENODE *currentNode;
                 for (currentNode = TreeTableData->NodesBegin; currentNode != TreeTableData->NodesEnd; currentNode++)
-				{
-					fprintf(hFile, "<tr><td>%d</td>\n", (currentNode-TreeTableData->NodesBegin));
+                {
+                    fprintf(hFile, "<tr><td>%d</td>\n", (currentNode-TreeTableData->NodesBegin));
                     fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->PrimitiveNumber, currentNode->PrimitiveNumber);
-					if (currentNode->TransitionTrue < 253)
-						fprintf(hFile, "<td>%d (%-#4X)</td>\n", currentNode->TransitionTrue, currentNode->TransitionTrue);
-					else
-						fprintf(hFile, "<td>%s</td>\n", currentNode->TransitionTrue == 253 ? "error" : currentNode->TransitionTrue == 254 ? "true" : "false");
-						
-						
-					if (currentNode->TransitionFalse < 253)
-						fprintf(hFile, "<td>%d (%-#4X)</td>\n", currentNode->TransitionFalse, currentNode->TransitionFalse);
-					else
-						fprintf(hFile, "<td>%s</td>\n", currentNode->TransitionFalse == 253 ? "error" : currentNode->TransitionFalse == 254 ? "true" : "false");
-					fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param0, currentNode->Parameters.Param0);
-					fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param1, currentNode->Parameters.Param1);
-					fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param2, currentNode->Parameters.Param2);
-					fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param3, currentNode->Parameters.Param3);
+                    if (currentNode->TransitionTrue < 253)
+                        fprintf(hFile, "<td>%d (%-#4X)</td>\n", currentNode->TransitionTrue, currentNode->TransitionTrue);
+                    else
+                        fprintf(hFile, "<td>%s</td>\n", currentNode->TransitionTrue == 253 ? "error" : currentNode->TransitionTrue == 254 ? "true" : "false");
+                        
+                        
+                    if (currentNode->TransitionFalse < 253)
+                        fprintf(hFile, "<td>%d (%-#4X)</td>\n", currentNode->TransitionFalse, currentNode->TransitionFalse);
+                    else
+                        fprintf(hFile, "<td>%s</td>\n", currentNode->TransitionFalse == 253 ? "error" : currentNode->TransitionFalse == 254 ? "true" : "false");
+                    fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param0, currentNode->Parameters.Param0);
+                    fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param1, currentNode->Parameters.Param1);
+                    fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param2, currentNode->Parameters.Param2);
+                    fprintf(hFile, "<td>%d (%-#6X)</td>\n", currentNode->Parameters.Param3, currentNode->Parameters.Param3);
                 }
 
                 fprintf(hFile, "</table>\n");
             }
-		}
+        }
+         else if (!strcmp(ChunkNode->Chunk.Type, "SPR#") || !strcmp(ChunkNode->Chunk.Type, "SPR2"))
+        {
+            IFFSprite * Sprite = (IFFSprite*) ChunkNode->Chunk.FormattedData;
+        
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Sprite Version:</td><td>");
+            fprintf(hFile, "<tt>%-#6X</tt>", Sprite->Version);
+            fprintf(hFile, "</td></tr>\n");
+            
+            fprintf(hFile, "<tr><td>Sprite Type:</td><td>");
+            fprintf(hFile, "<tt>%s</tt>", ChunkNode->Chunk.Type);
+            fprintf(hFile, "</td></tr>\n");
+            
+            fprintf(hFile, "<tr><td>Number of Frames:</td><td>");
+            fprintf(hFile, "<tt>%u</tt>", Sprite->FrameCount);
+            fprintf(hFile, "</td></tr>\n");
+            
+            fprintf(hFile, "</table>\n");
+            if(Sprite->Version >= 500 && Sprite->Version <= 1001)
+            {
+                fprintf(hFile, "<br />\n");
+                fprintf(hFile, "<table class=\"center\">\n");
+                fprintf(hFile, "<tr><th>Image</th><th>X Location</th><th>Y Location</th><th>Width</th><th>Height</th><th>Flag</th><th>Palette ID</th><th>Transparent Pixel</th></tr>\n");
+
+                for (i = 0; i < Sprite->FrameCount; i++)
+                {
+                    fprintf(hFile, "<tr><td><img src=\"%s\" /></td>\n", Sprite->Frames[i]->filePath);
+                    fprintf(hFile, "<td>%d</td>\n", Sprite->Frames[i]->XLocation);
+                    fprintf(hFile, "<td>%d</td>\n", Sprite->Frames[i]->YLocation);
+                    fprintf(hFile, "<td>%d</td>\n", Sprite->Frames[i]->Width);
+                    fprintf(hFile, "<td>%d</td>\n", Sprite->Frames[i]->Height);
+                    fprintf(hFile, "<td>%d</td>\n", Sprite->Frames[i]->Flag);
+                    fprintf(hFile, "<td>%d</td>\n", Sprite->Frames[i]->PaletteID);
+                    fprintf(hFile, "<td style=\"background-color:rgb(%d, %d, %d);\"></td>\n", Sprite->Frames[i]->TransparentPixel.R, Sprite->Frames[i]->TransparentPixel.G, Sprite->Frames[i]->TransparentPixel.B);
+                }
+
+                fprintf(hFile, "</table>\n");
+            }
+        }
+        else
+        {
+            fprintf(hFile, "The contents of this chunk could not be parsed.\n");
+        }
 
         fprintf(hFile, "</div>\n\n");
     }

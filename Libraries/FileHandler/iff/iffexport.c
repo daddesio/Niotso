@@ -89,7 +89,7 @@ int main(int argc, char *argv[]){
         printf("%sMemory for this file could not be allocated.", "iffexport: error: ");
         return -1;
     }
-    if(!iff_read_header(IFFFileInfo, IFFData, FileSize)){
+    if(!iff_read_header(IFFFileInfo, IFFData, FileSize, InFile)){
         printf("%sNot a valid IFF file.", "iffexport: error: ");
         return -1;
     }

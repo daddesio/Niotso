@@ -19,16 +19,19 @@
 #include <stdint.h>
 #include "iff.h"
 
-int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
+int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *SourceFile){
     if( !strcmp(ChunkInfo->Type, "STR#")  ||
         !strcmp(ChunkInfo->Type, "CTSS") ||
         !strcmp(ChunkInfo->Type, "FAMs") ||
         !strcmp(ChunkInfo->Type, "TTAs") ) 
         return iff_parse_str(ChunkInfo, Buffer);
-	else if (!strcmp(ChunkInfo->Type, "BHAV"))
-		return iff_parse_bhav(ChunkInfo, (const char *)Buffer);
-	else
-		return 0;
+    else if (!strcmp(ChunkInfo->Type, "BHAV"))
+        return iff_parse_bhav(ChunkInfo, Buffer);
+    else if (!strcmp(ChunkInfo->Type, "SPR#") || !strcmp(ChunkInfo->Type, "SPR2"))
+        return iff_parse_sprite(ChunkInfo, Buffer, SourceFile);
+    else if (!strcmp(ChunkInfo->Type, "PALT"))
+        return iff_parse_pmap(ChunkInfo, Buffer);
+        return 0;
 }
 
 int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize){

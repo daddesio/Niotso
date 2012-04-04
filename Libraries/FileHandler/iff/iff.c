@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "iff.h"
 
 #ifndef __inline
@@ -36,9 +37,10 @@ IFFFile * iff_create()
     return ptr;
 }
 
-int iff_read_header(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned FileSize)
+int iff_read_header(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned FileSize, char *FileName)
 {
     unsigned offset;
+
 
     if(!FileSize) FileSize = ~0;
     else if(FileSize < 64)
@@ -47,6 +49,8 @@ int iff_read_header(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned File
     if(memcmp(Buffer, Header_IFF, 60))
         return 0;
     memcpy(IFFFileInfo->Header, Buffer, 60);
+    
+    IFFFileInfo->FileName = FileName;
 
     offset = read_uint32be(Buffer+60);
     if(offset > FileSize - 28)
@@ -101,7 +105,8 @@ IFFChunkNode * iff_add_chunk(IFFFile * IFFFileInfo, int Position)
             node->NextChunk = ptr;
         }
     }
-
+    
+    
     IFFFileInfo->ChunkCount++;
     return ptr;
 }
@@ -147,4 +152,20 @@ int iff_enumerate_chunks(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned
         BufferSize -= chunk->Chunk.Size;
     }
     return 1;
+}
+
+IFFChunk *iff_find_first_chunk(IFFFile *IFFFileInfo, const char *type, uint16_t id)
+{
+    IFFChunkNode *currentNode = IFFFileInfo->FirstChunk;
+    do
+    {
+        if (type == NULL || !memcmp(type, currentNode->Chunk.Type, 4) &&
+           (id   == 0    ||         id == currentNode->Chunk.ChunkID))
+           return &currentNode->Chunk;
+        
+        currentNode = currentNode->NextChunk;
+    }
+    while (currentNode != IFFFileInfo->LastChunk);
+    
+    return NULL;
 }

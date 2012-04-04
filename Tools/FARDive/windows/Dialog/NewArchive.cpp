@@ -16,7 +16,7 @@ void SetType(HWND hDlg, int type){
 }
 
 INT_PTR CALLBACK DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam){
-	switch (message){
+    switch (message){
     case WM_INITDIALOG: {
         CenterDialog(hDlg);
         
@@ -43,15 +43,15 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam){
         
         //Create the tooltips
         HWND FARInfo = CreateWindowEx(0, TOOLTIPS_CLASS, NULL,
-			WS_POPUP | TTS_NOPREFIX | TTS_BALLOON | TTS_ALWAYSTIP,
-			CW_USEDEFAULT, CW_USEDEFAULT,
-			CW_USEDEFAULT, CW_USEDEFAULT,
-			hDlg, NULL, hInst, NULL),
-		DBPFInfo = CreateWindowEx(0, TOOLTIPS_CLASS, NULL,
-			WS_POPUP | TTS_NOPREFIX | TTS_BALLOON | TTS_ALWAYSTIP,
-			CW_USEDEFAULT, CW_USEDEFAULT,
-			CW_USEDEFAULT, CW_USEDEFAULT,
-			hDlg, NULL, hInst, NULL);
+            WS_POPUP | TTS_NOPREFIX | 0x40 | TTS_ALWAYSTIP,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            hDlg, NULL, hInst, NULL),
+        DBPFInfo = CreateWindowEx(0, TOOLTIPS_CLASS, NULL,
+            WS_POPUP | TTS_NOPREFIX | 0x40 | TTS_ALWAYSTIP,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            hDlg, NULL, hInst, NULL);
         
         TOOLINFO tinfo = {
             sizeof(TOOLINFO),            //cbSize
@@ -67,9 +67,9 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam){
             L"FAR version 1a is found in The Sims 1.\r\n\r\n"
             L"Version 1b appears to be a mistake, in which it was intended to take on the version number 2.\r\n\r\n"
             L"1b and 3 are both found exclusively in The Sims Online.";
-        SendMessage(FARInfo, TTM_SETMAXTIPWIDTH, 2000, 200);
-		SendMessage(FARInfo, TTM_SETTITLE, TTI_INFO_LARGE, (LPARAM) L"FAR version");
-		SendMessage(FARInfo, TTM_ADDTOOL, 0, (LPARAM) &tinfo);
+        SendMessage(FARInfo, (WM_USER + 24), 2000, 200);
+        SendMessage(FARInfo, (WM_USER + 32), TTI_INFO_LARGE, (LPARAM) L"FAR version");
+        SendMessage(FARInfo, TTM_ADDTOOL, 0, (LPARAM) &tinfo);
         SendMessage(FARInfo, TTM_SETDELAYTIME, TTDT_AUTOPOP, 12000);
         tinfo.uId = (UINT_PTR) GetDlgItem(hDlg, IDC_NA_DBPFINFO);
         tinfo.lpszText = (wchar_t*)
@@ -78,21 +78,21 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam){
             L"DBPF 1.0;i7.0 is found in The Sims Online and SimCity 4.\r\n\r\n"
             L"1.0;i7.0 and 1.1;i7.1 are found in The Sims 2.\r\n\r\n"
             L"2.0;i3.0 is found in Spore.";
-        SendMessage(DBPFInfo, TTM_SETMAXTIPWIDTH, 2000, 200);
-		SendMessage(DBPFInfo, TTM_SETTITLE, TTI_INFO_LARGE, (LPARAM) L"DBPF version");
-		SendMessage(DBPFInfo, TTM_ADDTOOL, 0, (LPARAM) &tinfo);
+        SendMessage(DBPFInfo, (WM_USER + 24), 2000, 200);
+        SendMessage(DBPFInfo, (WM_USER + 32), TTI_INFO_LARGE, (LPARAM) L"DBPF version");
+        SendMessage(DBPFInfo, TTM_ADDTOOL, 0, (LPARAM) &tinfo);
         SendMessage(DBPFInfo, TTM_SETDELAYTIME, TTDT_AUTOPOP, 20000);
         
         SetType(hDlg, TYPE_FAR);
         } return TRUE;
     case WM_CTLCOLORSTATIC:
-		if((HWND) lParam == GetDlgItem(hDlg, IDC_NA_TYPETEXT)){
-			SetBkColor((HDC) wParam, GetSysColor(COLOR_WINDOW));
-			return (INT_PTR) GetSysColorBrush(COLOR_WINDOW);
-		}
-		break;
-	case WM_COMMAND:
-		switch(LOWORD(wParam)){
+        if((HWND) lParam == GetDlgItem(hDlg, IDC_NA_TYPETEXT)){
+            SetBkColor((HDC) wParam, GetSysColor(COLOR_WINDOW));
+            return (INT_PTR) GetSysColorBrush(COLOR_WINDOW);
+        }
+        break;
+    case WM_COMMAND:
+        switch(LOWORD(wParam)){
         case IDC_NA_TYPE:
             if(HIWORD(wParam) == CBN_SELCHANGE)
                 SetType(hDlg, SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0));
@@ -110,7 +110,7 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam){
             EndDialog(hDlg, 0);
         } break;
     case WM_CLOSE:
-		EndDialog(hDlg, 0);
+        EndDialog(hDlg, 0);
     }
     return 0;
 }
