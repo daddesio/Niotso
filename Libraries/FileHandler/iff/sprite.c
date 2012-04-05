@@ -12,10 +12,11 @@
 
 
 int sprite_frame_set_texel(IFFSpriteFrame *frame, uint32_t column, uint32_t row, IFFSpriteColor color);
+int sprite_frame_set_texel_alpha(IFFSpriteFrame *frame, uint32_t column, uint32_t row, IFFSpriteColor color, uint8_t alpha);
 int sprite_frame_export_as_targa(IFFSpriteFrame *frame, const char *filename);
 int sprite_frame_export_as_png(IFFSpriteFrame *frame, const char *filename);
 
-int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *SourceFile)
+int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * pBuffer, IFFFile *SourceFile)
 {
     uint32_t frameCount = 0;
     uint32_t paletteID = 0;
@@ -30,28 +31,23 @@ int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *Sour
     
     uint32_t i = 0;
     uint32_t l = 0;
+    uint32_t j = 0;
     
-    uint32_t row = 0;
-    uint32_t column = 0;
-    uint8_t quit = 0;
-    uint32_t numCodesTillNewline = 0;
+    uint32_t iRow = 0;
+    uint32_t cPixelsSet = 0;
+    uint8_t bQuit = 0;
     
-    uint16_t encrypted = 0;
-    uint16_t encryptedb = 0;
-    uint16_t decrypted1 = 0;
-    uint16_t decrypted2 = 0;
-    uint16_t decryptedb3 = 0;
-    uint16_t decryptedb4 = 0;
+    uint32_t cBytesReadInitial = 0;
     
-    uint32_t bytesRead = 0;
+    uint32_t cBytesRead = 0;
+    uint16_t mRowHeader = 0;
+    uint16_t mColumnHeader = 0;
+    uint16_t eRowControlCode = 0;
+    uint16_t eColumnControlCode = 0;
+    uint16_t cBytesInThisRow = 0;
+    uint16_t cPixelCount = 0;       /* Per-control-code pixel count*/
+    
     uint8_t Z;
-    IFFSpriteColor clr;
-    
-    uint32_t rowHeader[2];
-    uint32_t rowHeader2[2];
-    
-    uint8_t b;
-    uint8_t b1;
     
     
 #ifdef IFF2HTML
@@ -60,23 +56,24 @@ int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *Sour
     char *folderName;
 #endif
     
-    uint32_t version = read_uint32le(Buffer);
-	Buffer += 4;
+    uint32_t version = read_uint32le(pBuffer);
+	pBuffer += 4;
 
     if (version == 1001)
     {
-        paletteID = read_uint32le(Buffer);
-		Buffer += 4;
-        frameCount = read_uint32le(Buffer);
-		Buffer += 4;
+        paletteID = read_uint32le(pBuffer);
+		pBuffer += 4;
+        frameCount = read_uint32le(pBuffer);
+		pBuffer += 4;
     }
     else
     {
-        frameCount = read_uint32le(Buffer);
-		Buffer += 4;
-        paletteID = read_uint32le(Buffer);
-		Buffer += 4;
+        frameCount = read_uint32le(pBuffer);
+		pBuffer += 4;
+        paletteID = read_uint32le(pBuffer);
+		pBuffer += 4;
     }
+    
     
     /* Try to load the appropriate palette */
     PaletteMap = iff_find_first_chunk(SourceFile, "PALT", paletteID);
@@ -84,10 +81,21 @@ int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *Sour
     /* Some sprites in IFFs containing only one PALT don't bother to specify a correct PALT ID */
     if (PaletteMap == NULL)
     {
+        printf("ERR");
+        fflush(stdout);
+    
         PaletteMap = iff_find_first_chunk(SourceFile, "PALT", 0);
         /* If there is no existing palette data, there can be no coherent image. */
         if (PaletteMap == NULL)
+        {
             return 0;
+        }
+    }
+    if (PaletteMap->FormattedData == NULL)
+    {
+        printf("HERE");
+        fflush(stdout);
+        iff_parse_pmap(PaletteMap, PaletteMap->Data);
     }
     PMap = (IFFPMap *)PaletteMap->FormattedData;
 
@@ -98,8 +106,8 @@ int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *Sour
     {
         for (i = 0; i < frameCount; i++)
         {
-            offsets[i] = read_uint32le(Buffer);
-            Buffer += 4;
+            offsets[i] = read_uint32le(pBuffer);
+            pBuffer += 4;
         }
     }
     
@@ -117,248 +125,275 @@ int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *Sour
     
         /* Version 1000 specifies offsets for each frame of image data */
         if (version == 1000)
-            Buffer = ChunkInfo->Data + offsets[l];
+            pBuffer = ChunkInfo->Data + offsets[l];
 
         /* There are two "+=" statements here for clarity. That is optimized away by a decent compiler */
         if (version == 1001)
         {
-            Buffer += 4;                        /* Version */
-            Buffer += 4;                        /* Size    */
+            pBuffer += 4;                        /* Version */
+            pBuffer += 4;                        /* Size    */
         }
         if (version != 1000 && version != 1001) /* for SPR# resources */
         {
-            Frame->YLocation = read_uint16le(Buffer);
-            Buffer += 2;
-            Frame->YLocation = read_uint16le(Buffer);
-            Buffer += 2;
-            Frame->Height = read_uint16le(Buffer);
-            Buffer += 2;
-            Frame->Width = read_uint16le(Buffer);
-            Buffer += 2;
+            Frame->YLocation = read_uint16le(pBuffer);
+            pBuffer += 2;
+            Frame->YLocation = read_uint16le(pBuffer);
+            pBuffer += 2;
+            Frame->Height = read_uint16le(pBuffer);
+            pBuffer += 2;
+            Frame->Width = read_uint16le(pBuffer);
+            pBuffer += 2;
         }
         else
         {
-            Frame->Width = read_uint16le(Buffer);
-            Buffer += 2;
-            Frame->Height = read_uint16le(Buffer);
-            Buffer += 2;
+            Frame->Width = read_uint16le(pBuffer);
+            pBuffer += 2;
+            Frame->Height = read_uint16le(pBuffer);
+            pBuffer += 2;
         }
         
-        Frame->Flag = read_uint16le(Buffer);
-        Buffer += 2;
+        Frame->Flag = read_uint16le(pBuffer);
+        pBuffer += 2;
 
         if (version == 1000 || version == 1001)
         {
-            Buffer += 2;
-            Frame->PaletteID = read_uint16le(Buffer); /* This is unused or the same as the master PALT ID */
-            Buffer += 2;
-            Frame->TransparentPixel = PMap->Colors[read_uint16le(Buffer)];
-            Buffer += 2;
-            Frame->YLocation = read_uint16le(Buffer);
-            Buffer += 2;
-            Frame->XLocation = read_uint16le(Buffer);
-            Buffer += 2;
+            pBuffer += 2;
+            Frame->PaletteID = read_uint16le(pBuffer); /* This is unused or the same as the master PALT ID */
+            pBuffer += 2;
+            Frame->TransparentPixel = PMap->Colors[read_uint16le(pBuffer)];
+            pBuffer += 2;
+            Frame->YLocation = read_uint16le(pBuffer);
+            pBuffer += 2;
+            Frame->XLocation = read_uint16le(pBuffer);
+            pBuffer += 2;
+        }
+        
+        
+        if (Frame->PaletteID != 0xA3A3)
+        {
+            /* Try to load the appropriate palette */
+            PaletteMap = iff_find_first_chunk(SourceFile, "PALT", Frame->PaletteID);
+            /* If that didn't work, try loading any palette from the IFF file */
+            /* Some sprites in IFFs containing only one PALT don't bother to specify a correct PALT ID */
+            if (PaletteMap == NULL)
+            {
+                PaletteMap = iff_find_first_chunk(SourceFile, "PALT", 0);
+                /* If there is no existing palette data, there can be no coherent image. */
+                if (PaletteMap == NULL)
+                    return 0;
+            }
+            PMap = (IFFPMap *)PaletteMap->FormattedData;
         }
 
         /* Now that we know the frame size, allocate the buffer to hold its texels */
         Frame->Texels = (IFFSpriteColor *)malloc(sizeof(IFFSpriteColor) * Frame->Width * Frame->Height);
 
+        
+        iRow = 0;
+        cPixelsSet = 0;
+        bQuit = 0;
+        
+        cBytesReadInitial = 0;
+        
+        cBytesRead = 0;
+        mRowHeader = 0;
+        mColumnHeader = 0;
+        eRowControlCode = 0;
+        eColumnControlCode = 0;
+        cBytesInThisRow = 0;
+        cPixelCount = 0; 
         if (version == 1000 || version == 1001)
         {
-            while (quit == 0)
+            while (!bQuit)
             {
-                encrypted = read_uint16le(Buffer);
-                encryptedb = 0;
-                decrypted1 = encrypted>>13;
-                decrypted2 = encrypted&0x1FFF;
-                
-                
-                
-                decryptedb3 = 0;
-                decryptedb4 = 0;
-                Buffer += 2;
-                
-                
-
-                
-                switch (decrypted1)
+                mRowHeader = read_uint16le(pBuffer);
+                eRowControlCode = mRowHeader>>13;
+                cBytesInThisRow = mRowHeader&0x1FFF;
+                pBuffer += 2;
+                cBytesRead = 2;                                             /* We just read the row header, which is included in cBytesInThisRow */
+                cPixelsSet = 0;
+                switch (eRowControlCode)
                 {
                     case 0:
-                        column = 0;
-                        numCodesTillNewline = decrypted2;
-
-                        bytesRead = 0;
-                        for (bytesRead = 0; bytesRead < numCodesTillNewline - 2; bytesRead += 2)
+                        while (cBytesRead < cBytesInThisRow)
                         {
-                            encryptedb = read_uint16le(Buffer);
-                            Buffer += 2;
+                            mColumnHeader = read_uint16le(pBuffer);
+                            eColumnControlCode = mColumnHeader>>13;
+                            cPixelCount = mColumnHeader&0x1FFF;
+                            pBuffer += 2;
+                            cBytesRead += 2;
+
                             
-                            decryptedb3 = encryptedb>>13;
-                            decryptedb4 = encryptedb&0x1FFF;
-
-                            switch (decryptedb3)
+                            switch (eColumnControlCode)
                             {
-                                case 1:
+                                case 1:                                     /* Add cPixelCount ZRGB pixels */
                                     
-                                    for (i = 0; i < decryptedb4; i++)
+                                    for (i = 0; i < cPixelCount; i++)
                                     {
-                                        Z = *Buffer++;      /* TODO: Use the z-buffer */
-                                        b = *Buffer++;
-                                        sprite_frame_set_texel(Frame, column++, row, PMap->Colors[b]);
-                                        /*c = PMap->Colors[b];       This variable is not used */
-                                        bytesRead += 2;
+                                        Z = *pBuffer++;                     /* TODO: Use the z-buffer */
+                                        sprite_frame_set_texel(Frame, cPixelsSet++, iRow, PMap->Colors[*pBuffer++]);
+                                        cBytesRead += 2;
                                     }
                                     break;
-                                case 2:
+                                case 2:                                     /* Add cPixelCount ZRGBA pixels */
                                     i = 0;
-                                    for (i = 0; i < decryptedb4; i++)
+                                    for (i = 0; i < cPixelCount; i++)
                                     {
-                                        Z = *Buffer++;      /* TODO: Use the z-buffer */
-                                        b = *Buffer++;
-                                        
-                                        clr = PMap->Colors[b];
-                                        clr.A = *Buffer++;
-                                        sprite_frame_set_texel(Frame, column++, row, clr);
-                                        bytesRead += 3;
+                                        Z = *pBuffer++;                     /* TODO: Use the z-buffer */
+                                        sprite_frame_set_texel_alpha(Frame, cPixelsSet++, iRow, PMap->Colors[*pBuffer++], (uint8_t)*pBuffer++);/* Read and set the alpha channel's value */      
+                                        cBytesRead += 3;
                                     }
-                                    if ((Buffer - ChunkInfo->Data) % 2 == 1) 
+                                                                            /* Read EA's padding byte if the current position is not a multiple of 2 */
+                                    if ((pBuffer - ChunkInfo->Data) % 2 == 1) 
                                     { 
-                                        Buffer++;
-                                        bytesRead++;
+                                        pBuffer++;
+                                        cBytesRead++;
                                     }
                                     break;
-                                case 3:
-                                    column += decryptedb4;
+                                case 3:                                     /* Add cPixelCount transparent pixels */
+                                    for (i = 0; i < cPixelCount; i++)
+                                    {
+                                        sprite_frame_set_texel(Frame, cPixelsSet++, iRow, Frame->TransparentPixel);
+                                    }
                                     break;
-                                case 6:
+                                case 6:                                     /* Add cPixelCount RGB pixels */
                                     i = 0;
-                                    for (i = 0; i < decryptedb4; i++)
+                                    for (i = 0; i < cPixelCount; i++)
                                     {
-                                        b = *Buffer++;
-                                        sprite_frame_set_texel(Frame, column++, row, PMap->Colors[b]);
-                                        bytesRead++;
+                                        sprite_frame_set_texel(Frame, cPixelsSet++, iRow, PMap->Colors[*pBuffer++]);
+                                        cBytesRead++;
                                     }
-
-                                    if ((Buffer - ChunkInfo->Data) % 2 == 1) 
+                                                                            /* Read EA's padding byte if the current position is not a multiple of 2 */
+                                    if ((pBuffer - ChunkInfo->Data) % 2 == 1) 
                                     { 
-                                        Buffer++;
-                                        bytesRead++;
+                                        pBuffer++;
+                                        cBytesRead++;
                                     }
 
                                     break;
                                 default:
-                                    break;
+                                /* Error reading column code */
+                                    return 0;
                             }
                         }
-                        row++;
+                                                                            /* Set any extra (unread) texels in the current row to transparent */
+                        while (cPixelsSet < Frame->Width) { sprite_frame_set_texel(Frame, cPixelsSet++, iRow, Frame->TransparentPixel); }
+                        iRow++;
                         
                     break;
                     
                     case 4:
-                        i = 0;
-                        for (i = 0; i < decrypted2; i++)
+                        for (i = 0; i < cBytesInThisRow; i++)               /* cBytesInThisRow is used as the count of rows to fill with the transparent color in this case */
                         {
-                            row++;
-                            column = 0;
+                            for (cPixelsSet = 0; cPixelsSet < Frame->Width; cPixelsSet++)
+                            {
+                                sprite_frame_set_texel(Frame, cPixelsSet++, iRow, Frame->TransparentPixel);
+                            }
+                            iRow++;
                         }
                         break;
-                    case 5:
-                        quit = 1;
+                    case 5:                                                 /* This means to stop reading */
+                        bQuit = 1;
                         break;
                     default:
-                        /* Error reading code */
+                        /* Error reading row code */
                         return 0;
                 }
                 
-                if ((uint32_t)(Buffer - ChunkInfo->Data) == ChunkInfo->Size)
+                if ((uint32_t)(pBuffer - ChunkInfo->Data) == ChunkInfo->Size)
                     break;
             }
         }
         else
         {
-            while (quit == 0)
+            while (bQuit == 0)
             {
-                b = 0;
-                b1 = 0;
-                /*b2 = 0;     This variable is unused */
-                rowHeader[0] = *Buffer++;
-                rowHeader[1] = *Buffer++;
-                switch (rowHeader[0])
+                eRowControlCode = *pBuffer++;
+                cBytesInThisRow = *pBuffer++;
+                cBytesRead = 2;
+                cPixelsSet = 0;
+                switch (eRowControlCode)
                 {
                     case 4:
-                        column = 0;
-                        numCodesTillNewline = rowHeader[1];
-
-                        bytesRead = 0;
-                        for (bytesRead = 0; bytesRead < numCodesTillNewline - 2; bytesRead += 2)
+                        for (cBytesInThisRow = 0; cBytesInThisRow < cBytesInThisRow;)
                         {
-                            rowHeader2[0] = *Buffer++;
-                            rowHeader2[1] = *Buffer++;
+                            eColumnControlCode = *pBuffer++;
+                            cPixelCount = *pBuffer++;
+                            cBytesRead += 2;
 
-                            switch (rowHeader2[0])
+                            switch (eColumnControlCode)
                             {
                                 case 3:
-                                    i = 0;
-                                    for (i = 0; i < rowHeader2[1]; i++)
+                                    for (i = 0; i < cPixelCount; i++)
                                     {
-                                        b = *Buffer++;
-                                        sprite_frame_set_texel(Frame, column++, row, PMap->Colors[b]);
-                                        /*c = PMap->Colors[b];       This variable is not used */
-                                        bytesRead += 1;
+                                        sprite_frame_set_texel(Frame, cPixelsSet++, iRow, PMap->Colors[*pBuffer++]);
+                                        cBytesRead++;
                                     }
 
-                                    if ((Buffer - ChunkInfo->Data) % 2 == 1) 
+                                    if ((pBuffer - ChunkInfo->Data) % 2 == 1) 
                                     { 
-                                        Buffer++;
-                                        bytesRead++;
+                                        pBuffer++;
+                                        cBytesRead++;
                                     }
                                     break;
                                 case 2:
-                                    b1 = *Buffer++;
-                                    /*b2 = *Buffer++;    this variable is unused */
-                                    Buffer++;
-                                    
-                                    clr = PMap->Colors[b1];
-                                    i = 0;
-                                    for (i = 0; i < rowHeader2[1]; i++)
+                                    for (i = 0; i < cPixelCount; i++)
                                     {
-                                        sprite_frame_set_texel(Frame, column++, row, clr);
+                                        sprite_frame_set_texel(Frame, cPixelsSet++, iRow, PMap->Colors[*pBuffer++]);
+                                        pBuffer++;                                              /* Unused value */
+                                        cBytesRead += 2;
                                     }
-
-                                    bytesRead += 2;
                                     break;
                                 case 1:
-                                    column += rowHeader2[1];
+                                    for (i = 0; i < cPixelCount; i++)
+                                    {
+                                        sprite_frame_set_texel(Frame, cPixelsSet++, iRow, Frame->TransparentPixel);
+                                    }
                                     break;
                                 default:
-                                    /* Error */
+                                    /* Error reading column code */
                                     return 0;
                             }
                         }
-
-                        row++;
+                                                                            /* Set any extra (unread) texels in the current row to transparent */
+                        while (cPixelsSet < Frame->Width) { sprite_frame_set_texel(Frame, cPixelsSet++, iRow, Frame->TransparentPixel); }
+                        iRow++;
                         break;
                     case 9:
-                        i = 0;
-                        for (i = 0; i < rowHeader[1]; i++)
+                        for (i = 0; i < cBytesInThisRow; i++)               /* cBytesInThisRow is used as the count of rows to fill with the transparent color in this case */
                         {
-                            row++;
-                            column = 0;
+                            for (cPixelsSet = 0; cPixelsSet < Frame->Width; cPixelsSet++)
+                            {
+                                sprite_frame_set_texel(Frame, cPixelsSet++, iRow, Frame->TransparentPixel);
+                            }
+                            iRow++;
                         }
                         break;
                     case 5:
-                        quit = 1;
+                        bQuit = 1;
+                        printf("END");
+                        fflush(stdout);
                         break;
                     default:
-                        /* Error */
+                        /* Error reading row code */
                         return 0;
                 }
 
-                if ((uint32_t)(Buffer - ChunkInfo->Data) == ChunkInfo->Size)
-                    break;
+                /*if ((uint32_t)(pBuffer - ChunkInfo->Data) == ChunkInfo->Size)
+                    break; */
 
             }
         }
+        
+        for (i = 0; i < Frame->Height; i++)               /* cBytesInThisRow is used as the count of rows to fill with the transparent color in this case */
+        {
+            for (j = 0; j < Frame->Width; j++)
+            {
+                if (sprite_are_colors_equal_rgb(Frame->Texels[i*Frame->Width+j], Frame->TransparentPixel))
+                    Frame->Texels[i*Frame->Width+j].A = 0;
+            }
+        }
+        
 
 #ifdef IFF2HTML
         outputPath = (char *)malloc(sizeof(char) * 255);
@@ -383,28 +418,36 @@ int iff_parse_sprite(IFFChunk * ChunkInfo, const uint8_t * Buffer, IFFFile *Sour
 }
 
 /* This function never returns zero because it is capable of producing logical output independent of the input's validity. */
-int iff_parse_pmap(IFFChunk * ChunkInfo, uint8_t * Buffer)
+int sprite_are_colors_equal_rgb(IFFSpriteColor clr1, IFFSpriteColor clr2)
+{
+    return clr1.R == clr2.R && clr1.G == clr2.G && clr1.B == clr2.B;
+}
+
+/* This function never returns zero because it is capable of producing logical output independent of the input's validity. */
+int iff_parse_pmap(IFFChunk * ChunkInfo, uint8_t * pBuffer)
 {
     uint32_t i;
-            
+    uint32_t indicator;
+    
     IFFPMap *PMap = malloc(sizeof(IFFPMap));
-    Buffer = ChunkInfo->Data;
+    pBuffer = ChunkInfo->Data;
     
     PMap->Colors = (IFFSpriteColor *)malloc(sizeof(IFFSpriteColor) * 256);
 
-    Buffer += 16;
-    if (*Buffer == 0)
-        Buffer += 64;    /* TSO-only (this took a while to figure out) Why EA does this is beyond me... */
-
+    indicator = read_uint32le(pBuffer);
+    if (indicator != 1)
+        pBuffer += (indicator>>24) - 8;
+    else
+        pBuffer += 12;
 
     /* In every single one of EA's PALT resources, there have been 256 colors. */
     for (i = 0; i < 256; i++)
     {
-        if ((uint32_t)(Buffer - ChunkInfo->Data) < ChunkInfo->Size + 3)      /* Are there 3 more bytes left to read? */
+        if ((uint32_t)(pBuffer - ChunkInfo->Data) < ChunkInfo->Size + 3)      /* Are there 3 more bytes left to read? */
         {
-            PMap->Colors[i].R = *(Buffer++);
-            PMap->Colors[i].G = *(Buffer++);
-            PMap->Colors[i].B = *(Buffer++);
+            PMap->Colors[i].R = *(pBuffer++);
+            PMap->Colors[i].G = *(pBuffer++);
+            PMap->Colors[i].B = *(pBuffer++);
             PMap->Colors[i].A = 255;
         }
         else
@@ -426,6 +469,16 @@ int sprite_frame_set_texel(IFFSpriteFrame *frame, uint32_t column, uint32_t row,
     /*printf("Index: %d out of %d", frame->Width * row + column, frame->Width*frame->Height);*/
     
     memcpy(&frame->Texels[frame->Width * row + column], &color, sizeof(IFFSpriteColor));
+    
+    return 1;
+}
+
+int sprite_frame_set_texel_alpha(IFFSpriteFrame *frame, uint32_t column, uint32_t row, IFFSpriteColor color, uint8_t alpha)
+{
+    /*printf("Index: %d out of %d", frame->Width * row + column, frame->Width*frame->Height);*/
+    
+    memcpy(&frame->Texels[frame->Width * row + column], &color, sizeof(IFFSpriteColor));
+    frame->Texels[frame->Width * row + column].A = alpha;
     
     return 1;
 }
@@ -492,12 +545,12 @@ int sprite_frame_export_as_png(IFFSpriteFrame *frame, const char *filename)
     
    row_pointers = (png_bytepp) malloc (frame->Height * sizeof (png_bytep));
    for (h = 0; h < frame->Height; h++) {
-      row_pointers[frame->Height-h-1] = (png_bytep) malloc (frame->Width*4);
+      row_pointers[h] = (png_bytep) malloc (frame->Width*4);
       for (w = 0; w < frame->Width; w++) {
-        row_pointers[frame->Height-h-1][w*4] = frame->Texels[frame->Width*h + w].R;
-        row_pointers[frame->Height-h-1][w*4+1] = frame->Texels[frame->Width*h + w].G;
-        row_pointers[frame->Height-h-1][w*4+2] = frame->Texels[frame->Width*h + w].B;
-        row_pointers[frame->Height-h-1][w*4+3] = frame->Texels[frame->Width*h + w].A;
+        row_pointers[h][w*4] = frame->Texels[frame->Width*h + w].R;
+        row_pointers[h][w*4+1] = frame->Texels[frame->Width*h + w].G;
+        row_pointers[h][w*4+2] = frame->Texels[frame->Width*h + w].B;
+        row_pointers[h][w*4+3] = frame->Texels[frame->Width*h + w].A;
       }
    }
     

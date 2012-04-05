@@ -106,8 +106,6 @@ int main(int argc, char *argv[]){
     resourceDir[0] = '.';
     resourceDir[1] = '/';
     CreateDirectory(resourceDir, NULL);
-    printf(resourceDir);
-    fflush(stdout);
     
     hFile = CreateFile(InFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     hFile = fopen(InFile, "rb");

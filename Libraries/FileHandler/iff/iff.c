@@ -165,7 +165,7 @@ IFFChunk *iff_find_first_chunk(IFFFile *IFFFileInfo, const char *type, uint16_t 
         
         currentNode = currentNode->NextChunk;
     }
-    while (currentNode != IFFFileInfo->LastChunk);
+    while (currentNode != IFFFileInfo->LastChunk && currentNode != NULL);
     
     return NULL;
 }
