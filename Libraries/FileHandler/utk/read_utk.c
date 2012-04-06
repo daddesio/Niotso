@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <windows.h>
 #include "read_utk.h"
 
 #ifndef read_int32
@@ -43,6 +42,13 @@
 #ifndef __restrict
 #define __restrict
 #endif
+
+static uint8_t ReadBits(utkparams_t *p, uint8_t bits);
+static void SetUTKParameters(utkparams_t *p);
+static void DecompressBlock(utkparams_t *p);
+static void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval);
+static void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks);
+static void PredictionFilter(const float *__restrict ImpulseTrain, float *__restrict Residual);
 
 float         UTKTable1[64];
 uint8_t       UTKTable2[512];
@@ -126,9 +132,9 @@ void UTKGenerateTables(void){
         case 1: UTKTable2[i] = (i<256) ? 6 : (11 + (i%8 > 4)); break;
         case 2: UTKTable2[i] = (i<256) ? 5 : (7 + (i%8 > 4)); break;
         case 3: {
-            uint8_t l1[] = {9,15,13,19,10,16};
-            uint8_t l2[] = {17,21,18,25,17,22,18,00,17,21,18,26,17,22,18,02,
-                            23,27,24,01,23,28,24,03,23,27,24,01,23,28,24,03};
+            const uint8_t l1[] = {9,15,13,19,10,16},
+                  l2[] = {17,21,18,25,17,22,18,00,17,21,18,26,17,22,18,02,
+                          23,27,24,01,23,28,24,03,23,27,24,01,23,28,24,03};
             if(i%16 < 4)       UTKTable2[i] = l1[0 + (i>256)];
             else if(i%16 < 8)  UTKTable2[i] = l1[2 + (i>256)] + (i%32 > 16);
             else if(i%16 < 12) UTKTable2[i] = l1[4 + (i>256)];
@@ -147,7 +153,7 @@ void UTKGenerateTables(void){
     }
 }
 
-uint8_t ReadBits(utkparams_t *p, uint8_t bits){
+static uint8_t ReadBits(utkparams_t *p, uint8_t bits){
     unsigned value = p->UnreadBitsValue & (255>>(8-bits));
     p->UnreadBitsValue >>= bits;
     p->UnreadBitsCount -= bits;
@@ -159,7 +165,7 @@ uint8_t ReadBits(utkparams_t *p, uint8_t bits){
     return value;
 }
 
-void SetUTKParameters(utkparams_t *p){
+static void SetUTKParameters(utkparams_t *p){
     /* Call once per file */
     int i;
     float s;
@@ -178,7 +184,7 @@ void SetUTKParameters(utkparams_t *p){
     memset(p->Delay, 0, 324*sizeof(float));
 }
 
-void DecompressBlock(utkparams_t *p){
+static void DecompressBlock(utkparams_t *p){
     int i,j;
     float Window[118];
     float Matrix[12];
@@ -237,7 +243,7 @@ void DecompressBlock(utkparams_t *p){
     }
 }
 
-void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval){
+static void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval){
     if(Voiced){
         int t = 0;
         int i = 0;
@@ -295,7 +301,7 @@ void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval){
     }
 }
 
-void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks){
+static void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks){
     float Residual[12];
     unsigned Samples = Blocks*12;
     int offset = -1;
@@ -313,7 +319,7 @@ void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks){
     }
 }
 
-void PredictionFilter(const float *__restrict ImpulseTrain, float *__restrict Residual){
+static void PredictionFilter(const float *__restrict ImpulseTrain, float *__restrict Residual){
     int i,j;
     float ResidualGain[12];
     float ImpulseGain[12];

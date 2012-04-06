@@ -106,6 +106,7 @@ void DisplayFileError(const char * Filename){
         break;
     case FERR_BLANK:
     case FERR_UNRECOGNIZED:
+    case FERR_INVALIDDATA:
         Message = "%s is corrupt or invalid.";
         break;
     case FERR_MEMORY:
@@ -132,7 +133,7 @@ bool LoadTextures()
         }
 
         glBindTexture(GL_TEXTURE_2D, texture[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, Image->Width, Image->Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Image->Data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, Image->Width, Image->Height, 0, GL_BGR, GL_UNSIGNED_BYTE, Image->Data);
         free(Image->Data);
         free(Image);
 

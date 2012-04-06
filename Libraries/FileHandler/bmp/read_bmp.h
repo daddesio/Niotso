@@ -1,5 +1,5 @@
 /*
-    read_xa.h - Copyright (c) 2011 Fatbag <X-Fi6@phppoll.org>
+    read_bmp.h - Copyright (c) 2011-2012 Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -16,27 +16,35 @@
 
 typedef struct
 {
-    char     szID[4];
-    uint32_t dwOutSize;
-    /* WAVEFORMATEX */
-    uint16_t wFormatTag;
-    uint16_t nChannels;
-    uint32_t nSamplesPerSec;
-    uint32_t nAvgBytesPerSec;
-    uint16_t nBlockAlign;
-    uint16_t wBitsPerSample;
-
-    unsigned Frames;
-    unsigned XADataSize;
-} xaheader_t;
+    /* BITMAPFILEHEADER */
+    uint16_t bfType;
+    uint32_t bfSize;
+    uint16_t bfReserved1;
+    uint16_t bfReserved2;
+    uint32_t bfOffBits;
+    /* BITMAPINFOHEADER */
+    uint32_t biSize;
+    uint32_t biWidth;
+    uint32_t biHeight;
+    uint16_t biPlanes;
+    uint16_t biBitCount;
+    uint32_t biCompression;
+    uint32_t biSizeImage;
+    uint32_t biXPelsPerMeter;
+    uint32_t biYPelsPerMeter;
+    uint32_t biClrUsed;
+    uint32_t biClrImportant;
+    
+    size_t CompressedSize;
+    size_t DecompressedSize;
+} bmpheader_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-unsigned xa_compressed_size(unsigned Frames, unsigned Channels);
-int xa_read_header(xaheader_t * XAHeader, const uint8_t * Buffer, unsigned FileSize);
-int xa_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames, unsigned Channels);
+int bmp_read_header(bmpheader_t * BMPHeader, const uint8_t * Buffer, size_t FileSize);
+int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t * InData, uint8_t * OutData);
 
 #ifdef __cplusplus
 }

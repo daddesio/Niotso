@@ -18,7 +18,7 @@
 #include <string.h>
 #include "cst.h"
 
-unsigned cst_count_strings(const char * Buffer, size_t FileSize){
+static unsigned cst_count_strings(const char * Buffer, size_t FileSize){
     unsigned count = 0;
     int instring = 0;
     while(FileSize--){

@@ -30,8 +30,8 @@ bool Close(){
     
     Archive::IsOpen = false;
 
-    SetWindowText(hWnd, L"FARDive");
-    SendMessage(statusbar, SB_SETTEXT, 0, (LPARAM) L"");
+	SetWindowText(hWnd, L"FARDive");
+	SendMessage(statusbar, SB_SETTEXT, 0, (LPARAM) L"");
     
     MENUITEMINFO mii;
     mii.cbSize = sizeof(MENUITEMINFO);
@@ -86,7 +86,7 @@ bool PopulateEntries(){
     item.mask = LVIF_TEXT;
     item.iItem = 0;
     item.pszText = (LPTSTR) L"Test";
-    SendMessage(hList, LVM_SETITEMCOUNT, EntryCount, 0x00000002);
+    SendMessage(hList, LVM_SETITEMCOUNT, EntryCount, LVSICF_NOSCROLL);
     SendMessage(hList, LVM_INSERTITEM, 0, (LPARAM) &item);
     
     wchar_t buffer[17];
@@ -162,7 +162,7 @@ bool SetWorkspace(){
     
     RECT ClientRect;
     GetClientRect(hWnd, &ClientRect);
-    hList = CreateWindowEx(WS_EX_CLIENTEDGE | 0x00010000 | WS_EX_COMPOSITED, WC_LISTVIEW, NULL, LVS_LIST | LVS_SHOWSELALWAYS | WS_CHILD | WS_VISIBLE,
+    hList = CreateWindowEx(WS_EX_CLIENTEDGE | LVS_EX_DOUBLEBUFFER | WS_EX_COMPOSITED, WC_LISTVIEW, NULL, LVS_LIST | LVS_SHOWSELALWAYS | WS_CHILD | WS_VISIBLE,
         5, 5, 192, ClientRect.bottom-statusbarheight-10, hWnd, NULL, NULL, NULL);
     SetWindowTheme(hList, L"Explorer", NULL);
     

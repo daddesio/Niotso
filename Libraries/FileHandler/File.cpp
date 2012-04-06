@@ -21,13 +21,6 @@ namespace File {
 int Error = 0;
 unsigned FileSize = 0;
 
-const uint8_t Signature[][4] = {
-    {0xFF,0xD8,0xFF,0xE0} //JPEG
-};
-const uint8_t SignatureSize[] = {
-    4 //JPEG
-};
-
 uint8_t * ReadFile(const char * Filename){
     HANDLE hFile = CreateFile(Filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     if(hFile == INVALID_HANDLE_VALUE){

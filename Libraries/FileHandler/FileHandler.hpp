@@ -37,7 +37,8 @@ enum FErr {
     FERR_BLANK,
     FERR_MEMORY,
     FERR_READ,
-    FERR_UNRECOGNIZED
+    FERR_UNRECOGNIZED,
+    FERR_INVALIDDATA
 };
 
 enum ImageFormat_t {

@@ -16,17 +16,17 @@
 
 typedef struct
 {
-    char  sID[4];
-    DWORD dwOutSize;
-    DWORD dwWfxSize;
+    char     sID[4];
+    uint32_t dwOutSize;
+    uint32_t dwWfxSize;
     /* WAVEFORMATEX */
-    WORD  wFormatTag;
-    WORD  nChannels;
-    DWORD nSamplesPerSec;
-    DWORD nAvgBytesPerSec;
-    WORD  nBlockAlign;
-    WORD  wBitsPerSample;
-    DWORD cbSize;
+    uint16_t wFormatTag;
+    uint16_t nChannels;
+    uint32_t nSamplesPerSec;
+    uint32_t nAvgBytesPerSec;
+    uint16_t nBlockAlign;
+    uint16_t wBitsPerSample;
+    uint32_t cbSize;
 
     unsigned Frames;
     unsigned UTKDataSize;
@@ -51,12 +51,6 @@ extern "C" {
 int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, unsigned FileSize);
 int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames);
 void UTKGenerateTables(void);
-uint8_t ReadBits(utkparams_t *p, uint8_t bits);
-void SetUTKParameters(utkparams_t *p);
-void DecompressBlock(utkparams_t *p);
-void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval);
-void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks);
-void PredictionFilter(const float *__restrict ImpulseTrain, float *__restrict Residual);
 
 #ifdef __cplusplus
 }

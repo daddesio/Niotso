@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <windows.h>
 #include "read_xa.h"
 
 #define HINIBBLE(byte) ((byte) >> 4)
@@ -56,7 +55,7 @@ unsigned xa_compressed_size(unsigned Frames, unsigned Channels)
     return Channels*SingleChannelData;
 }
 
-int xa_read_header(xaheader_t * XAHeader, const uint8_t * Buffer, unsigned FileSize)
+int xa_read_header(xaheader_t * XAHeader, const uint8_t * Buffer, size_t FileSize)
 {
     if(FileSize < 24) return 0;
     memcpy(&XAHeader->szID, Buffer, 4);

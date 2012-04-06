@@ -18,17 +18,13 @@ set(FILEHANDLER_MINOR  0)
 set(FILEHANDLER_SOURCES
     File.cpp
     Image.cpp
+    bmp/read_bmp.c
     cst/cst.c
-    iff/stbl.c
-    iff/bhav.c
-    iff/sprite.c
     iff/chunks.c
     iff/iff.c
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
-
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler/libpng)
 
 add_library(FileHandler_static STATIC ${FILEHANDLER_SOURCES})
 set_target_properties(FileHandler_static PROPERTIES
@@ -44,4 +40,4 @@ set_target_properties(FileHandler_shared PROPERTIES
     PREFIX ""
     IMPORT_PREFIX ""
     CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(FileHandler_shared kernel32 jpegturbo_static zlib_shared libpng_static)
+target_link_libraries(FileHandler_shared kernel32 jpegturbo_static libpng_static zlib_static)

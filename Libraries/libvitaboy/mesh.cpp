@@ -54,7 +54,7 @@ void ReadMesh(Mesh_t& Mesh){
     TextureVertex_t * TextureVertexData = (TextureVertex_t*) malloc(Mesh.RealVertexCount * sizeof(TextureVertex_t));
     for(unsigned i=0; i<Mesh.RealVertexCount; i++){
         TextureVertexData[i].u = VBFile.readfloat();
-        TextureVertexData[i].v = VBFile.readfloat();
+        TextureVertexData[i].v = -VBFile.readfloat();
     }
 
     Mesh.BlendVertexCount = VBFile.readint32();
