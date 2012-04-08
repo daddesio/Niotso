@@ -19,8 +19,6 @@
 
 namespace Audio {
 
-HANDLE Thread;
-
 IXAudio2 *pXAudio2 = NULL;
 IXAudio2MasteringVoice *MasterVoice = NULL;
 

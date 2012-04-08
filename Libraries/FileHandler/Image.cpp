@@ -34,10 +34,10 @@ enum ImageType {
     FIMG_COUNT
 };
 
-uint8_t * ReadJPG(Image_t * Image, const uint8_t * InData, size_t FileSize);
-uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSize);
-uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize);
-uint8_t * ReadTGA(Image_t * Image, const uint8_t * InData, size_t FileSize);
+static uint8_t * ReadJPG(Image_t * Image, const uint8_t * InData, size_t FileSize);
+static uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSize);
+static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize);
+static uint8_t * ReadTGA(Image_t * Image, const uint8_t * InData, size_t FileSize);
 
 static const uint8_t Signature[] = {
     'B',  //BMP
@@ -87,7 +87,7 @@ Image_t * ReadImageFile(const char * Filename){
     return NULL;
 }
 
-uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSize){
+static uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSize){
     bmpheader_t BMPHeader;
     if(!bmp_read_header(&BMPHeader, InData, FileSize)){
         return NULL;
@@ -109,7 +109,7 @@ uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSize){
     return OutData;
 }
 
-uint8_t * ReadJPG(Image_t * Image, const uint8_t * InData, size_t FileSize){
+static uint8_t * ReadJPG(Image_t * Image, const uint8_t * InData, size_t FileSize){
     //Initialize
     jpeg_decompress_struct cinfo;
     jpeg_error_mgr jerr;
@@ -170,7 +170,7 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t lengt
 	pngdata->buffer += length;
     pngdata->size -= length;
 }
-uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize){
+static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize){
     pngdata_t pngdata;
     
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -203,7 +203,6 @@ uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize){
     }
     
     uint8_t **Scanlines = png_get_rows(png_ptr, info_ptr);
-    printf("png:Now. %ux%u\n", width, height);
     for(unsigned i=0; i<height; i++)
         memcpy(OutData + i*width*3, Scanlines[height-i-1], width*3);
     
@@ -215,7 +214,7 @@ uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize){
     return OutData;
 }
 
-uint8_t * ReadTGA(Image_t * Image, const uint8_t * InData, size_t FileSize){
+static uint8_t * ReadTGA(Image_t * Image, const uint8_t * InData, size_t FileSize){
     return NULL;
 }
 

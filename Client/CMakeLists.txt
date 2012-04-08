@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 project(NiotsoClient)
 
+include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
+
 if(WIN32)
     set(NIOTSOCLIENT_SOURCES
         Client.cpp
@@ -13,5 +15,5 @@ if(WIN32)
         System/System.cpp
     )
     add_executable(TSO WIN32 ${NIOTSOCLIENT_SOURCES})
-    target_link_libraries(TSO ole32 opengl32)
+    target_link_libraries(TSO FileHandler_shared ole32 opengl32)
 endif()

@@ -18,13 +18,11 @@
 //System/System.cpp
 namespace System {
     int Initialize();
-    extern bool Shutdown;
     extern HINSTANCE hInst;
     extern HANDLE Process;
     extern HANDLE ProcessHeap;
     extern LARGE_INTEGER ClockFreq;
     extern float FramePeriod;
-    extern bool Keys[256];
     
     struct UserInput_t {
         bool Keys[256];
@@ -32,6 +30,8 @@ namespace System {
         bool CloseWindow;
     };
     extern UserInput_t UserInput;
+    
+    extern bool SceneFailed;
     
     //Constants
     enum {

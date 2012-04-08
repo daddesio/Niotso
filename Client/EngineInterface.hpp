@@ -23,13 +23,7 @@
 #undef NULL
 #define NULL 0
 
-#include "version.h"
-#include "System/System.hpp"
-#include "Resources/Resource.h"
-
-#include "Audio/Audio.hpp"
-#include "Graphics/Graphics.hpp"
-#include "Scene/Scene.hpp"
+#include "FileHandler.hpp"
 
 //IsometricEngine.cpp
 namespace Window {
@@ -40,3 +34,11 @@ namespace Window {
 
 //MessageHandler.cpp
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+#include "version.h"
+#include "System/System.hpp"
+#include "Resources/Resource.h"
+
+#include "Audio/Audio.hpp"
+#include "Graphics/Graphics.hpp"
+#include "Scene/Scene.hpp"

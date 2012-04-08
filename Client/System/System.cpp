@@ -18,13 +18,13 @@
 #include "../EngineInterface.hpp"
 
 namespace System {
-    bool Shutdown = false;
     HINSTANCE hInst = NULL;
     HANDLE Process;
     HANDLE ProcessHeap;
     LARGE_INTEGER ClockFreq;
     float FramePeriod;
     UserInput_t UserInput;
+    bool SceneFailed = false;
     
     int Initialize(){
         memset(&UserInput, 0, sizeof(UserInput));

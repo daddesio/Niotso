@@ -285,10 +285,10 @@ int main(int argc, char *argv[]){
             !strcmp(ChunkNode->Chunk.Type, "CTSS") ||
             !strcmp(ChunkNode->Chunk.Type, "FAMs") ||
             !strcmp(ChunkNode->Chunk.Type, "TTAs") ){
-
             /****
             ** STR# parsing
             */
+
             fprintf(hFile, "<table>\n");
             fprintf(hFile, "<tr><td>Format:</td><td>");
             switch(StringData->Format){
@@ -347,6 +347,26 @@ int main(int argc, char *argv[]){
                     }
                 }
 
+                fprintf(hFile, "</table>\n");
+            }
+        }else if(!strcmp(ChunkNode->Chunk.Type, "BCON")){
+            /****
+            ** BCON parsing
+            */
+            
+            IFF_BCON * BCONData = (IFF_BCON*) ChunkNode->Chunk.FormattedData;
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Flags:</td><td><tt>%02X</tt> (%d)</td></tr>\n", BCONData->Flags, BCONData->Flags);
+            fprintf(hFile, "<tr><td>Number of Constants:</td><td>%u</td></tr>\n", BCONData->ConstantCount);
+            fprintf(hFile, "</table>\n");
+            if(BCONData->ConstantCount > 0){
+                unsigned ConstantIndex;
+
+                fprintf(hFile, "<br />\n");
+                fprintf(hFile, "<table class=\"center\">\n");
+                fprintf(hFile, "<tr><th colspan=\"2\">Constant Value</th></tr>\n");
+                for(ConstantIndex=0; ConstantIndex<BCONData->ConstantCount; ConstantIndex++)
+                    fprintf(hFile, "<tr><td>%u</td><td>%u</td></tr>\n", ConstantIndex+1, BCONData->Constants[ConstantIndex]);
                 fprintf(hFile, "</table>\n");
             }
         }

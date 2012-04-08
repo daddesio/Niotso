@@ -25,13 +25,54 @@ int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
         !strcmp(ChunkInfo->Type, "FAMs") ||
         !strcmp(ChunkInfo->Type, "TTAs") )
         return iff_parse_str(ChunkInfo, Buffer);
+    if( !strcmp(ChunkInfo->Type, "BCON") )
+        return iff_parse_bcon(ChunkInfo, Buffer);
+
     return 0;
+}
+
+int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize){
+    return 1;
+}
+
+int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
+    IFF_BCON *BCONData;
+    unsigned Size = ChunkInfo->Size - 76;
+    unsigned i;
+
+    if(Size < 2)
+        return 0;
+    ChunkInfo->FormattedData = malloc(sizeof(IFF_BCON));
+    if(ChunkInfo->FormattedData == NULL)
+        return 0;
+
+    BCONData = (IFF_BCON*) ChunkInfo->FormattedData;
+    BCONData->ConstantCount = read_uint8le(Buffer);
+    BCONData->Flags = read_uint8le(Buffer + 1);
+    if(BCONData->ConstantCount == 0)
+        return 1;
+    if(BCONData->ConstantCount * 2 > 255*2){
+        free(ChunkInfo->FormattedData);
+        return 0;
+    }
+    
+    BCONData->Constants = malloc(BCONData->ConstantCount * sizeof(uint16_t));
+    if(BCONData->Constants == NULL){
+        free(ChunkInfo->FormattedData);
+        return 0;
+    }
+
+    Buffer += 2;
+    for(i=0; i<BCONData->ConstantCount; i++, Buffer += 2)
+        BCONData->Constants[i] = read_uint16le(Buffer);
+ 	return 1;
 }
 
 int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     /* No bounds checking yet */
     IFF_STR * StringData;
     unsigned Size = ChunkInfo->Size - 76;
+
     if(Size < 2)
         return 0;
     ChunkInfo->FormattedData = malloc(sizeof(IFF_STR));
@@ -254,9 +295,7 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     } return 1;
     
     }
-    return 0;
-}
 
-int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize){
-    return 1;
+    free(ChunkInfo->FormattedData);
+    return 0;
 }

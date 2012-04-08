@@ -71,6 +71,15 @@ static const uint8_t Header_IFF[] = "IFF FILE 2.5:TYPE FOLLOWED BY SIZE\0 JAMIE 
 ** IFF chunk structs
 */
 
+/* BCON chunk */
+
+typedef struct IFF_BCON_struct
+{
+    uint8_t ConstantCount;
+    uint8_t Flags;
+    uint16_t * Constants;
+} IFF_BCON;
+
 /* STR# chunk */
 
 enum IFFLanguage {
@@ -147,8 +156,9 @@ void iff_delete(IFFFile * IFFFileInfo);
 ** IFF chunk functions
 */
 
-int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize);
 int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer);
+int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize);
+int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer);
 int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer);
 
 #ifdef __cplusplus

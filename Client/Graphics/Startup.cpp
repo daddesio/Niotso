@@ -19,7 +19,6 @@
 
 namespace Graphics {
 
-HANDLE Thread;
 HDC hDC;
 HGLRC hRC;
 

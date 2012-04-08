@@ -58,7 +58,6 @@ extern size_t FileSize;
 
 uint8_t * ReadFile(const char * Filename);
 Image_t * ReadImageFile(const char * Filename);
-uint8_t * ReadJPG(Image_t * Image, const uint8_t * InData, size_t FileSize);
 
 }
 

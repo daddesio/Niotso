@@ -69,7 +69,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     }
     
     CurrentScene = new LoginScreen();
-    if(CurrentScene == NULL){
+    if(System::SceneFailed || CurrentScene == NULL){
+        if(System::SceneFailed) delete CurrentScene;
         Shutdown();
         return ERROR_INIT | ERROR_INIT_LOGIC | ERROR_LOGIC_CREATE_SCENE;
     }
@@ -110,8 +111,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     }
 
     ShowWindow(Window::hWnd, SW_HIDE);
-    Audio::Shutdown();
-    Graphics::Shutdown();
+    delete CurrentScene;
     
     Shutdown();
     return 0;
@@ -193,10 +193,12 @@ int CreateWindowInvisible(HINSTANCE hInst, unsigned Width, unsigned Height, bool
 
 void Shutdown()
 {
+    Audio::Shutdown();
+    Graphics::Shutdown();
+
     if(Window::hWnd){
         DestroyWindow(Window::hWnd);
         Window::hWnd = NULL;
     }
-
     UnregisterClass("TSO_NIOTSO", System::hInst);
 }

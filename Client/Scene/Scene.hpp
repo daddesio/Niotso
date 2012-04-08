@@ -15,6 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define EXIT_SCENE() do { System::SceneFailed = true; delete this; return; } while(0)
+#define SCENE_EXIT        0
+#define SCENE_NEED_REDRAW 1
+#define SCENE_NO_REDRAW   -1
+
 class Scene {
     const float TickPeriod;
     float TimeDelta;
@@ -45,15 +50,43 @@ class Scene {
 };
 
 class LoginScreen : public Scene {
-  public: LoginScreen() : Scene(1.0f/15) {}
+  public:
+    LoginScreen() : Scene(1.0f/15){
+        Image_t * Image = File::ReadImageFile("eagames.bmp");
+        if(!Image){
+            const char * Message;
+            switch(File::Error){
+            case FERR_NOT_FOUND:
+                Message = "%s does not exist.";
+                break;
+            case FERR_OPEN:
+                Message = "%s could not be opened for reading.";
+                break;
+            case FERR_BLANK:
+            case FERR_UNRECOGNIZED:
+            case FERR_INVALIDDATA:
+                Message = "%s is corrupt or invalid.";
+                break;
+            case FERR_MEMORY:
+                Message = "Memory for %s could not be allocated.";
+                break;
+            default:
+                Message = "%s could not be read.";
+            }
+
+            char Buffer[1024];
+            sprintf(Buffer, Message, "eagames.bmp");
+            MessageBox(Window::hWnd, Buffer, NULL, MB_OK | MB_ICONERROR);
+            EXIT_SCENE();
+        }
+    }
 
   private:
     int Run(float){
         if(System::UserInput.CloseWindow){
-            System::Shutdown = true;
-            return 0;
+            return SCENE_EXIT;
         }
-        return 1;
+        return SCENE_NEED_REDRAW;
     }
 
   public:
