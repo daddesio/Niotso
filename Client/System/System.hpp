@@ -18,6 +18,7 @@
 //System/System.cpp
 namespace System {
     int Initialize();
+    void Shutdown();
     extern HINSTANCE hInst;
     extern HANDLE Process;
     extern HANDLE ProcessHeap;
@@ -55,6 +56,10 @@ namespace System {
         ERROR_CREATE_WINDOW
     };
 #define ERROR_INIT_SYSTEM 0x0200
+    enum {
+        ERROR_SYSTEM_INIT_FREETYPE = 1,
+        ERROR_SYSTEM_MISSING_FONT
+    };
 #define ERROR_INIT_GRAPHICS 0x0300
     enum {
         ERROR_GRAPHICS_OBTAIN_DC = 1,

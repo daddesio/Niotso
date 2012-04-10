@@ -24,6 +24,15 @@
 #define NULL 0
 
 #include "FileHandler.hpp"
+#include "ft2build.h"
+#include FT_FREETYPE_H
+
+#ifndef min
+ #define min(x,y) ((x)<(y)?(x):(y))
+#endif
+#ifndef max
+ #define max(x,y) ((x)>(y)?(x):(y))
+#endif
 
 //IsometricEngine.cpp
 namespace Window {

@@ -34,7 +34,32 @@ namespace System {
         DEVMODE dm;
         EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
         System::FramePeriod = 1.0f/dm.dmDisplayFrequency;
+        
+        if(FT_Init_FreeType(&Graphics::FreeTypeLibrary)){
+            MessageBox(Window::hWnd, "Failed to initialize FreeType.", NULL, MB_OK | MB_ICONERROR);
+            Graphics::FreeTypeLibrary = NULL;
+            Shutdown();
+            return ERROR_SYSTEM_INIT_FREETYPE;
+        };
+        if(FT_New_Face(Graphics::FreeTypeLibrary, "simdialogue-uni-game.ttf", 0, &Graphics::FontFace)){
+            MessageBox(Window::hWnd, "simdialogue-uni-game.ttf does not exist or is corrupt or invalid.",
+                NULL, MB_OK | MB_ICONERROR);
+            Graphics::FontFace = NULL;
+            Shutdown();
+            return ERROR_SYSTEM_MISSING_FONT;
+        }
 
         return 0;
+    }
+    
+    void Shutdown(){
+        if(Graphics::FontFace){
+            FT_Done_Face(Graphics::FontFace);
+            Graphics::FontFace = NULL;
+        }
+        if(Graphics::FreeTypeLibrary){
+            FT_Done_FreeType(Graphics::FreeTypeLibrary);
+            Graphics::FreeTypeLibrary = NULL;
+        }
     }
 }

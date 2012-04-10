@@ -27,4 +27,19 @@ namespace Graphics {
     
     int InitGL();
     void ResizeViewport(unsigned width, unsigned height);
+    
+    enum TextAlignment {
+        ALIGN_LEFT_TOP,
+        ALIGN_LEFT_CENTER,
+        ALIGN_CENTER_TOP,
+        ALIGN_CENTER_CENTER,
+        ALIGN_RIGHT_TOP,
+        ALIGN_RIGHT_CENTER
+    };
+    
+    //Font.cpp
+    extern FT_Library FreeTypeLibrary;
+    extern FT_Face    FontFace;
+    void DrawText(Image_t * Image, const wchar_t * String, int x, int y, unsigned width, unsigned height,
+        TextAlignment Alignment, int font, COLORREF Color);
 }

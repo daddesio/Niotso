@@ -69,8 +69,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     }
     
     CurrentScene = new LoginScreen();
-    if(System::SceneFailed || CurrentScene == NULL){
-        if(System::SceneFailed) delete CurrentScene;
+    if(CurrentScene == NULL || System::SceneFailed){
         Shutdown();
         return ERROR_INIT | ERROR_INIT_LOGIC | ERROR_LOGIC_CREATE_SCENE;
     }
@@ -99,6 +98,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         if(result == System::SHUTDOWN)
             break;
         if(result > 0){
+            glClear(GL_COLOR_BUFFER_BIT);
             CurrentScene->Render();
             SwapBuffers(Graphics::hDC);
         }
@@ -130,7 +130,7 @@ int CreateWindowInvisible(HINSTANCE hInst, unsigned Width, unsigned Height, bool
         NULL,           //hCursor
         NULL,           //hbrBackground
         NULL,           //lpszMenuName
-        "TSO_NIOTSO"   //lpszClassName
+        "TSO_NIOTSO"    //lpszClassName
     };
 
     if(!RegisterClass(&wc)){
@@ -195,6 +195,7 @@ void Shutdown()
 {
     Audio::Shutdown();
     Graphics::Shutdown();
+    System::Shutdown();
 
     if(Window::hWnd){
         DestroyWindow(Window::hWnd);
