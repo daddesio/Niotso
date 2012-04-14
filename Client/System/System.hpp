@@ -15,15 +15,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//System/System.cpp
 namespace System {
     int Initialize();
     void Shutdown();
+
     extern HINSTANCE hInst;
     extern HANDLE Process;
     extern HANDLE ProcessHeap;
     extern LARGE_INTEGER ClockFreq;
-    extern float FramePeriod;
+    extern volatile float FramePeriod;
     
     struct UserInput_t {
         bool Keys[256];
@@ -31,7 +31,8 @@ namespace System {
         bool CloseWindow;
     };
     extern UserInput_t UserInput;
-    
+    extern volatile UserInput_t UserInput_v;
+
     extern bool SceneFailed;
     
     //Constants
@@ -52,8 +53,12 @@ namespace System {
 //Use: return ERROR_INIT | result;
 #define ERROR_INIT_WINDOW 0x0100
     enum {
-        ERROR_REGISTER_CLASS = 1,
-        ERROR_CREATE_WINDOW
+        ERROR_WINDOW_SYNCOBJECT = 1,
+        ERROR_WINDOW_CREATE_THREAD,
+        ERROR_WINDOW_SYNCHRONIZE,
+        ERROR_WINDOW_REGISTER_CLASS,
+        ERROR_WINDOW_CREATE,
+        ERROR_WINDOW_HANDLE
     };
 #define ERROR_INIT_SYSTEM 0x0200
     enum {

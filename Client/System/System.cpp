@@ -18,48 +18,51 @@
 #include "../EngineInterface.hpp"
 
 namespace System {
-    HINSTANCE hInst = NULL;
-    HANDLE Process;
-    HANDLE ProcessHeap;
-    LARGE_INTEGER ClockFreq;
-    float FramePeriod;
-    UserInput_t UserInput;
-    bool SceneFailed = false;
-    
-    int Initialize(){
-        memset(&UserInput, 0, sizeof(UserInput));
-        
-        QueryPerformanceFrequency(&ClockFreq);
-        
-        DEVMODE dm;
-        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
-        System::FramePeriod = 1.0f/dm.dmDisplayFrequency;
-        
-        if(FT_Init_FreeType(&Graphics::FreeTypeLibrary)){
-            MessageBox(Window::hWnd, "Failed to initialize FreeType.", NULL, MB_OK | MB_ICONERROR);
-            Graphics::FreeTypeLibrary = NULL;
-            Shutdown();
-            return ERROR_SYSTEM_INIT_FREETYPE;
-        };
-        if(FT_New_Face(Graphics::FreeTypeLibrary, "simdialogue-uni-game.ttf", 0, &Graphics::FontFace)){
-            MessageBox(Window::hWnd, "simdialogue-uni-game.ttf does not exist or is corrupt or invalid.",
-                NULL, MB_OK | MB_ICONERROR);
-            Graphics::FontFace = NULL;
-            Shutdown();
-            return ERROR_SYSTEM_MISSING_FONT;
-        }
 
-        return 0;
-    }
+HINSTANCE hInst = NULL;
+HANDLE Process;
+HANDLE ProcessHeap;
+LARGE_INTEGER ClockFreq;
+volatile float FramePeriod;
+UserInput_t UserInput;
+volatile UserInput_t UserInput_v;
+bool SceneFailed = false;
+
+int Initialize(){
+    memset(&UserInput, 0, sizeof(UserInput));
     
-    void Shutdown(){
-        if(Graphics::FontFace){
-            FT_Done_Face(Graphics::FontFace);
-            Graphics::FontFace = NULL;
-        }
-        if(Graphics::FreeTypeLibrary){
-            FT_Done_FreeType(Graphics::FreeTypeLibrary);
-            Graphics::FreeTypeLibrary = NULL;
-        }
+    QueryPerformanceFrequency(&ClockFreq);
+    
+    DEVMODE dm;
+    EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
+    System::FramePeriod = 1.0f/dm.dmDisplayFrequency;
+    
+    if(FT_Init_FreeType(&Graphics::FreeTypeLibrary)){
+        MessageBox(Window::hWnd, "Failed to initialize FreeType.", NULL, MB_OK | MB_ICONERROR);
+        Graphics::FreeTypeLibrary = NULL;
+        Shutdown();
+        return ERROR_SYSTEM_INIT_FREETYPE;
+    };
+    if(FT_New_Face(Graphics::FreeTypeLibrary, "simdialogue-uni-game.ttf", 0, &Graphics::FontFace)){
+        MessageBox(Window::hWnd, "simdialogue-uni-game.ttf does not exist or is corrupt or invalid.",
+            NULL, MB_OK | MB_ICONERROR);
+        Graphics::FontFace = NULL;
+        Shutdown();
+        return ERROR_SYSTEM_MISSING_FONT;
     }
+
+    return 0;
+}
+
+void Shutdown(){
+    if(Graphics::FontFace){
+        FT_Done_Face(Graphics::FontFace);
+        Graphics::FontFace = NULL;
+    }
+    if(Graphics::FreeTypeLibrary){
+        FT_Done_FreeType(Graphics::FreeTypeLibrary);
+        Graphics::FreeTypeLibrary = NULL;
+    }
+}
+
 }

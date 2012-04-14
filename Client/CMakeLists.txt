@@ -7,7 +7,6 @@ include_directories(${CMAKE_SOURCE_DIR}/Libraries/freetype/include)
 if(WIN32)
     set(NIOTSOCLIENT_SOURCES
         Client.cpp
-        MessageHandler.cpp
         Audio/Startup.cpp
         Audio/windows/XAudio2.cpp
         Graphics/Font.cpp
@@ -15,7 +14,8 @@ if(WIN32)
         Graphics/Viewport.cpp
         resources/Resource.rc
         System/System.cpp
+        Window/Window.cpp
     )
-    add_executable(TSO WIN32 ${NIOTSOCLIENT_SOURCES})
+    add_executable(TSO ${NIOTSOCLIENT_SOURCES})
     target_link_libraries(TSO FileHandler_shared freetype_shared ole32 opengl32)
 endif()

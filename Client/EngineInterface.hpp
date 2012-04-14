@@ -15,18 +15,25 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//Compiler/platform constants
 #define WINVER 0x0502
 #define _WIN32_WINNT 0x0502
 #define _CRT_SECURE_NO_WARNINGS
 
+//Standard libraries
+#include <stdint.h>
+#include <stdio.h>
+#include <memory.h>
 #include <windows.h>
 #undef NULL
 #define NULL 0
 
+//Codebase libraries
 #include "FileHandler.hpp"
 #include "ft2build.h"
 #include FT_FREETYPE_H
 
+//Macro definitions
 #ifndef min
  #define min(x,y) ((x)<(y)?(x):(y))
 #endif
@@ -34,20 +41,14 @@
  #define max(x,y) ((x)>(y)?(x):(y))
 #endif
 
-//IsometricEngine.cpp
-namespace Window {
-    extern unsigned Width, Height;
-    extern bool Fullscreen;
-    extern HWND hWnd;
-}
-
-//MessageHandler.cpp
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
+//Codebase version, branding, linker resources
 #include "version.h"
-#include "System/System.hpp"
 #include "Resources/Resource.h"
 
+//Components
 #include "Audio/Audio.hpp"
 #include "Graphics/Graphics.hpp"
+#include "System/System.hpp"
+#include "Window/Window.hpp"
+
 #include "Scene/Scene.hpp"

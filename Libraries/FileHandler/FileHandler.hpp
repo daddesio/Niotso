@@ -51,6 +51,14 @@ struct Image_t {
     uint8_t * Data;
 };
 
+struct Audio_t {
+    unsigned Channels;
+    unsigned SamplingRate;
+    unsigned BitDepth;
+    unsigned Duration;
+    uint8_t * Data;
+};
+
 namespace File {
 
 extern int Error;
@@ -58,6 +66,7 @@ extern size_t FileSize;
 
 uint8_t * ReadFile(const char * Filename);
 Image_t * ReadImageFile(const char * Filename);
+Audio_t * ReadAudioFile(const char * Filename);
 
 }
 
