@@ -25,7 +25,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     int result;
     
     //Disallow multiple instances of the game from running
-    if(CreateMutex(NULL, TRUE, "TSO_NIOTSO_MUTEX") == NULL){
+    CreateMutex(NULL, TRUE, "Global\\TSO_NIOTSO_MUTEX");
+    if(GetLastError() == ERROR_ALREADY_EXISTS){
         HWND hWnd = FindWindow("TSO_NIOTSO", "The Sims Online");
         if(hWnd != NULL){
             ShowWindow(hWnd, SW_RESTORE);
