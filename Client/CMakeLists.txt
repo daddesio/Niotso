@@ -16,6 +16,6 @@ if(WIN32)
         System/System.cpp
         Window/Window.cpp
     )
-    add_executable(TSO ${NIOTSOCLIENT_SOURCES})
+    add_executable(TSO WIN32 ${NIOTSOCLIENT_SOURCES})
     target_link_libraries(TSO FileHandler_shared freetype_shared ole32 opengl32)
 endif()

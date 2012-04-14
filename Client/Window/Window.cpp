@@ -25,7 +25,8 @@ HWND hWnd;
 
 static HANDLE Response = NULL;
 static HANDLE Thread = NULL;
-static volatile int Result;
+static DWORD ThreadID = NULL;
+static volatile int Result = NULL;
 
 static DWORD WINAPI Procedure(LPVOID);
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -39,7 +40,7 @@ int Initialize(){
         return ERROR_WINDOW_SYNCOBJECT;
     }
     
-    Thread = CreateThread(NULL, 1024 /* very tiny stack size is needed */, Window::Procedure, NULL, 0, NULL);
+    Thread = CreateThread(NULL, 1024 /* very tiny stack size is needed */, Window::Procedure, NULL, 0, &ThreadID);
     if(Thread == NULL){
         MessageBox(NULL, "Failed to create the message loop thread.", NULL, MB_OK | MB_ICONERROR);
         Shutdown();
@@ -75,7 +76,7 @@ void Shutdown(){
     if(Thread){
         DWORD value;
         while(GetExitCodeThread(Thread, &value) && value){
-            //PostQuitMessage() doesn't reliably work from a separate thread
+            PostThreadMessage(ThreadID, WM_QUIT, 0, 0);
             Sleep(1);
         }
         Thread = NULL;
@@ -102,12 +103,6 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     
     case WM_CLOSE:
         System::UserInput_v.CloseWindow = true;
-        return 0;
-    
-    case WM_SHOWWINDOW:
-        //Once the window is hidden (we cannot safely destroy the window while we have the OpenGL context),
-        //WM_QUIT and WM_DESTROY won't show up when a separate thread calls DestroyWindow() or PostQuitMessage().
-        if(wParam == FALSE) PostQuitMessage(0);
         return 0;
 
     case WM_DEVMODECHANGE: {
