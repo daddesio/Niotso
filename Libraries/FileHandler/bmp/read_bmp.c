@@ -21,7 +21,7 @@
 #define BI_RGB  0
 #define BI_RLE8 1
 
-#ifndef read_int32
+#ifndef read_uint32
  #define read_uint32(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)) | ((x)[2]<<(8*2)) | ((x)[3]<<(8*3)))
  #define read_uint16(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)))
 #endif
@@ -110,7 +110,7 @@ int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t *__restrict InBuffer, u
                 
                 if(command == 0){
                     if(value == 0) continue; /* End of scanline reminder */
-                    if(value == 1) return 1; /* End of bitmap reminder */
+                    if(value == 1) return (InBuffer == srcend && OutBuffer == destend); /* End of bitmap reminder */
                     if(value == 2) return 0; /* Delta, used for ICO/CUR masks; wrong kind of bitmap */
                     
                     /* Absolute copy */

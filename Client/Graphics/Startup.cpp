@@ -96,8 +96,9 @@ int InitGL(){
     glEnable(GL_CULL_FACE);
     glEnable(GL_RESCALE_NORMAL);
     glEnable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
+    glEnable(GL_BLEND);
     glDepthFunc(GL_LEQUAL);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     return 0;
 }

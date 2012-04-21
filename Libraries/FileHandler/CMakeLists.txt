@@ -16,12 +16,14 @@ set(FILEHANDLER_MAJOR  0)
 set(FILEHANDLER_MINOR  0)
 
 set(FILEHANDLER_SOURCES
+    Audio.cpp
     File.cpp
     Image.cpp
     bmp/read_bmp.c
     cst/cst.c
     iff/chunks.c
     iff/iff.c
+    wav/read_wav.c
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)

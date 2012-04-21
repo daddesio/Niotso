@@ -16,8 +16,21 @@
 */
 
 #include "windows/xaudio2.hpp"
+#ifdef PlaySound //defined by the Windows API
+ #undef PlaySound
+#endif
+
+struct PlayableSound_t {
+    bool Playing;
+    uint8_t * Data;
+    IXAudio2SourceVoice* pSourceVoice;
+};
 
 namespace Audio {
     int Initialize();
+    PlayableSound_t * LoadSound(const Sound_t * Sound);
+    bool PlaySound(PlayableSound_t * Sound);
+    bool StopSound(PlayableSound_t * Sound);
+    void DeleteSound(PlayableSound_t * Sound);
     void Shutdown();
 }

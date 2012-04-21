@@ -69,10 +69,9 @@ Image_t * ReadImageFile(const char * Filename){
         return NULL;
     }
 
-    uint8_t * OutData = NULL;
     for(int i=0; i<FIMG_COUNT; i++){
         if(InData[0] == Signature[i]){
-            OutData = ImageFunction[i](Image, InData, File::FileSize);
+            uint8_t * OutData = ImageFunction[i](Image, InData, File::FileSize);
             free(InData);
             if(OutData == NULL){
                 File::Error = FERR_INVALIDDATA;

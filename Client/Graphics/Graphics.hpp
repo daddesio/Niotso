@@ -42,4 +42,5 @@ namespace Graphics {
     extern FT_Face    FontFace;
     void DrawText(Image_t * Image, const wchar_t * String, int x, int y, unsigned width, unsigned height,
         TextAlignment Alignment, int font, COLORREF Color);
+    Image_t * StringImage(const wchar_t * String, int font, COLORREF Color);
 }

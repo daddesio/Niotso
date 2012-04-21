@@ -49,6 +49,65 @@ int Initialize(){
     return 0;
 }
 
+PlayableSound_t * LoadSound(const Sound_t * Sound){
+    const WAVEFORMATEX wfx = {
+        WAVE_FORMAT_PCM,     //wFormatTag
+        Sound->Channels,     //nChannels
+        Sound->SamplingRate, //nSamplesPerSec
+        ((Sound->Channels * Sound->BitDepth) >> 3) * Sound->SamplingRate, //nAvgBytesPerSec
+        ((Sound->Channels * Sound->BitDepth) >> 3), //nBlockAlign
+        Sound->BitDepth,     //wBitsPerSample;
+        0                    //cbSize
+    };
+    
+    const XAUDIO2_BUFFER buffer = {
+        0, //Flags
+        Sound->Duration * wfx.nBlockAlign, //AudioBytes
+        Sound->Data, //pAudioData
+        0, //PlayBegin
+        0, //PlayLength
+        0, //LoopBegin
+        0, //LoopLength
+        XAUDIO2_LOOP_INFINITE, //LoopCount
+        NULL, //pContext
+    };
+    
+    IXAudio2SourceVoice* pSourceVoice;
+    if(FAILED(pXAudio2->CreateSourceVoice(&pSourceVoice, &wfx)))
+        return NULL;
+    if(FAILED(pSourceVoice->SubmitSourceBuffer(&buffer)))
+        return NULL;
+    
+    PlayableSound_t * PlayableSound = (PlayableSound_t*) malloc(sizeof(PlayableSound_t));
+    if(!PlayableSound)
+        return NULL;
+    PlayableSound->pSourceVoice = pSourceVoice;
+    PlayableSound->Playing = false;
+    PlayableSound->Data = Sound->Data;
+    return PlayableSound;
+}
+
+bool PlaySound(PlayableSound_t * Sound){
+    if(!Sound->Playing && !FAILED(Sound->pSourceVoice->Start(0))){
+        Sound->Playing = true;
+        return true;
+    }
+    return false;
+}
+
+bool StopSound(PlayableSound_t * Sound){
+    int success = false;
+    if(Sound->Playing && !FAILED(Sound->pSourceVoice->Stop(0)))
+        success = true;
+    Sound->Playing = false;
+    return success;
+}
+
+void DeleteSound(PlayableSound_t * Sound){
+    StopSound(Sound);
+    //Sound->pSourceVoice->Release();
+}
+
 void Shutdown(){
     if(MasterVoice){
         MasterVoice->DestroyVoice();

@@ -42,7 +42,8 @@ enum FErr {
 };
 
 enum ImageFormat_t {
-    FIMG_BGR24
+    FIMG_BGR24,
+    FIMG_BGRA32
 };
 
 struct Image_t {
@@ -51,7 +52,7 @@ struct Image_t {
     uint8_t * Data;
 };
 
-struct Audio_t {
+struct Sound_t {
     unsigned Channels;
     unsigned SamplingRate;
     unsigned BitDepth;
@@ -66,7 +67,7 @@ extern size_t FileSize;
 
 uint8_t * ReadFile(const char * Filename);
 Image_t * ReadImageFile(const char * Filename);
-Audio_t * ReadAudioFile(const char * Filename);
+Sound_t * ReadSoundFile(const char * Filename);
 
 }
 
