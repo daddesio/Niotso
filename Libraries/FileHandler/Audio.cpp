@@ -17,7 +17,10 @@
 #include <stdint.h>
 #include <memory.h>
 #include <stdio.h>
+#include "libmpg123/mpg123.h"
+#include "utk/read_utk.h"
 #include "wav/read_wav.h"
+#include "xa/read_xa.h"
 #include "FileHandler.hpp"
 
 namespace File {
@@ -103,8 +106,105 @@ static uint8_t * ReadWAV(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
 }
 
 
-static uint8_t * ReadXA(Sound_t * Sound, const uint8_t * InData, size_t FileSize){};
-static uint8_t * ReadUTK(Sound_t * Sound, const uint8_t * InData, size_t FileSize){};
-static uint8_t * ReadMP3(Sound_t * Sound, const uint8_t * InData, size_t FileSize){};
+static uint8_t * ReadXA(Sound_t * Sound, const uint8_t * InData, size_t FileSize){
+    xaheader_t XAHeader;
+    if(!xa_read_header(&XAHeader, InData, FileSize)){
+        return NULL;
+    }
+    
+    uint8_t * OutData = (uint8_t*) malloc(XAHeader.dwOutSize);
+    if(OutData == NULL){
+        return NULL;
+    }
+    if(!xa_decode(InData+24, OutData, XAHeader.Frames, XAHeader.nChannels)){
+        free(OutData);
+        return NULL;
+    }
+    
+    Sound->Channels = XAHeader.nChannels;
+    Sound->SamplingRate = XAHeader.nSamplesPerSec;
+    Sound->BitDepth = XAHeader.wBitsPerSample;
+    Sound->Duration = XAHeader.dwOutSize / XAHeader.nBlockAlign;
+    Sound->Data = OutData;
+    return OutData;
+}
+
+static uint8_t * ReadUTK(Sound_t * Sound, const uint8_t * InData, size_t FileSize){
+    utkheader_t UTKHeader;
+    if(!utk_read_header(&UTKHeader, InData, FileSize)){
+        return NULL;
+    }
+    
+    uint8_t * OutData = (uint8_t*) malloc(UTKHeader.dwOutSize);
+    if(OutData == NULL){
+        return NULL;
+    }
+    
+    static bool generated = false;
+    if(!generated){
+        UTKGenerateTables();
+        generated = true;
+    }
+
+    if(!utk_decode(InData+32, OutData, UTKHeader.Frames)){
+        free(OutData);
+        return NULL;
+    }
+    
+    Sound->Channels = 1;
+    Sound->SamplingRate = UTKHeader.nSamplesPerSec;
+    Sound->BitDepth = UTKHeader.wBitsPerSample;
+    Sound->Duration = UTKHeader.dwOutSize / UTKHeader.nBlockAlign;
+    Sound->Data = OutData;
+    return OutData;
+}
+
+static uint8_t * ReadMP3(Sound_t * Sound, const uint8_t * InData, size_t FileSize){
+    if(mpg123_init() != MPG123_OK){
+        mpg123_exit();
+        return NULL;
+    }
+    
+    long rate;
+    int channels, encoding;
+    unsigned samples;
+    size_t OutSize;
+    uint8_t * OutData;
+
+    mpg123_handle *mh = mpg123_new(NULL, NULL);
+    if(mh == NULL ||
+        mpg123_format_none(mh) != MPG123_OK ||
+        mpg123_format(mh, 44100, MPG123_MONO | MPG123_STEREO, MPG123_ENC_SIGNED_16) != MPG123_OK ||
+        mpg123_open_feed(mh) != MPG123_OK ||
+        mpg123_feed(mh, InData, FileSize) != MPG123_OK ||
+        mpg123_set_filesize(mh, FileSize) != MPG123_OK ||
+        mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK ||
+        (samples = mpg123_length(mh)) == 0 ||
+        (OutData = (uint8_t*) malloc(OutSize = samples * channels * 2)) == NULL
+    ){
+        mpg123_close(mh);
+        mpg123_delete(mh);
+        mpg123_exit();
+        return NULL;
+    }
+
+    size_t decoded;
+    mpg123_read(mh, OutData, OutSize, &decoded);
+    mpg123_close(mh);
+    mpg123_delete(mh);
+    mpg123_exit();
+    
+    if(decoded != OutSize){
+        free(OutData);
+        return NULL;
+    }
+    
+    Sound->Channels = channels;
+    Sound->SamplingRate = rate;
+    Sound->BitDepth = 16;
+    Sound->Duration = samples;
+    Sound->Data = OutData;
+    return OutData;
+}
 
 }

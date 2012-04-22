@@ -19,23 +19,37 @@
 #include <stdint.h>
 #include "iff.h"
 
-int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
-    if( !strcmp(ChunkInfo->Type, "STR#")  ||
-        !strcmp(ChunkInfo->Type, "CTSS") ||
-        !strcmp(ChunkInfo->Type, "FAMs") ||
-        !strcmp(ChunkInfo->Type, "TTAs") )
-        return iff_parse_str(ChunkInfo, Buffer);
-    if( !strcmp(ChunkInfo->Type, "BCON") )
-        return iff_parse_bcon(ChunkInfo, Buffer);
+/* All chunk-parsing functions */
+static int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize);
+static int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer);
+static int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer);
+static int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer);
 
+int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
+    unsigned i;
+    const char chunktypes[] =
+        "STR#" "CTSS" "FAMs" "TTAs"
+        "BCON"
+        "TRCN"
+    ;
+    int (* const iff_parse_function[])(IFFChunk*, const uint8_t*) = {
+        iff_parse_str, iff_parse_str, iff_parse_str, iff_parse_str,
+        iff_parse_bcon,
+        iff_parse_trcn
+    };
+    
+    for(i=0; chunktypes[i*4] != '\0'; i++){
+        if(!memcmp(ChunkInfo->Type, chunktypes+i*4, 4))
+            return iff_parse_function[i](ChunkInfo, Buffer);
+    }
     return 0;
 }
 
-int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize){
+static int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize){
     return 1;
 }
 
-int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
+static int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFF_BCON *BCONData;
     unsigned Size = ChunkInfo->Size - 76;
     unsigned i;
@@ -51,14 +65,14 @@ int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     BCONData->Flags = read_uint8le(Buffer + 1);
     if(BCONData->ConstantCount == 0)
         return 1;
-    if(BCONData->ConstantCount * 2 > 255*2){
-        free(ChunkInfo->FormattedData);
+    if(BCONData->ConstantCount * 2 > Size - 2){
+        free(BCONData);
         return 0;
     }
     
     BCONData->Constants = malloc(BCONData->ConstantCount * sizeof(uint16_t));
     if(BCONData->Constants == NULL){
-        free(ChunkInfo->FormattedData);
+        free(BCONData);
         return 0;
     }
 
@@ -68,7 +82,7 @@ int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
  	return 1;
 }
 
-int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
+static int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     /* No bounds checking yet */
     IFF_STR * StringData;
     unsigned Size = ChunkInfo->Size - 76;
@@ -78,8 +92,9 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     ChunkInfo->FormattedData = malloc(sizeof(IFF_STR));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
-    memset(ChunkInfo->FormattedData, 0, sizeof(IFF_STR));
+    
     StringData = (IFF_STR*) ChunkInfo->FormattedData;
+    memset(StringData, 0, sizeof(IFF_STR));
     StringData->Format = read_int16le(Buffer);
     Buffer += 2;
     if(Size-2 < 2) /* TSO allows this; as seen in the animations chunk in personglobals.iff */
@@ -298,4 +313,39 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 
     free(ChunkInfo->FormattedData);
     return 0;
+}
+
+static int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
+    IFF_TRCN * TRCNData;
+    unsigned Size = ChunkInfo->Size - 76;
+    unsigned i;
+    
+    if(Size < 16)
+        return 0;
+    ChunkInfo->FormattedData = malloc(sizeof(IFF_TRCN));
+    if(ChunkInfo->FormattedData == NULL)
+        return 0;
+    
+    TRCNData = (IFF_TRCN*) ChunkInfo->FormattedData;
+    TRCNData->Reserved = read_uint32le(Buffer+0);
+    TRCNData->Version = read_uint32le(Buffer+4);
+    memcpy(TRCNData->MagicNumber, Buffer+8, 4);
+    TRCNData->MagicNumber[4] = 0x00;
+    TRCNData->EntryCount = read_uint32le(Buffer+12);
+    
+    if(TRCNData->Reserved != 0 || TRCNData->Version > 2 || strcmp(TRCNData->MagicNumber, "NCRT")){
+        free(TRCNData);
+        return 0;
+    }
+    ChunkInfo->FormattedData = malloc(TRCNData->EntryCount * sizeof(IFFRangePair));
+    if(ChunkInfo->FormattedData == NULL){
+        free(TRCNData);
+        return 0;
+    }
+    
+    Buffer += 16;
+    for(i=0; i<TRCNData->EntryCount; i++){/*
+        IsUnused = read_uint32le(Buffer+0);
+        Unknown = read_uint32le(Buffer+4);*/
+    }
 }

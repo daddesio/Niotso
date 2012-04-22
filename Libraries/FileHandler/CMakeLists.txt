@@ -23,7 +23,9 @@ set(FILEHANDLER_SOURCES
     cst/cst.c
     iff/chunks.c
     iff/iff.c
+    utk/read_utk.c
     wav/read_wav.c
+    xa/read_xa.c
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
@@ -42,4 +44,4 @@ set_target_properties(FileHandler_shared PROPERTIES
     PREFIX ""
     IMPORT_PREFIX ""
     CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(FileHandler_shared kernel32 jpegturbo_static libpng_static zlib_static)
+target_link_libraries(FileHandler_shared kernel32 jpegturbo_static libmpg123_static libpng_static zlib_static)

@@ -133,6 +133,28 @@ typedef struct IFF_STR_struct
     IFFLanguageSet LanguageSets[20];
 } IFF_STR;
 
+/* TRCN chunk */
+
+typedef struct IFFRangePair_struct
+{
+    uint32_t IsUnused;
+    uint32_t Unknown;
+    char * Key;
+    char * Value;
+    uint8_t Enforced;
+    uint16_t RangeMin;
+    uint16_t RangeMax;
+} IFFRangePair;
+
+typedef struct IFF_TRCN_struct
+{
+    uint32_t Reserved;
+    uint32_t Version;
+    char MagicNumber[5];
+    uint32_t EntryCount;
+    IFFRangePair * Entries;
+} IFF_TRCN;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -157,9 +179,6 @@ void iff_delete(IFFFile * IFFFileInfo);
 */
 
 int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer);
-int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize);
-int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer);
-int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer);
 
 #ifdef __cplusplus
 }

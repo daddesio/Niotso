@@ -28,7 +28,7 @@
 #endif
 
 void printsize(FILE * hFile, size_t FileSize){
-    /* For our purposes, our units are best described in kB and MB */
+    /* For our purposes, our units are best described in kB and MB, if not bytes */
     size_t temp = FileSize;
     unsigned position = 1;
     if(FileSize >= 1048576)
@@ -357,7 +357,6 @@ int main(int argc, char *argv[]){
             IFF_BCON * BCONData = (IFF_BCON*) ChunkNode->Chunk.FormattedData;
             fprintf(hFile, "<table>\n");
             fprintf(hFile, "<tr><td>Flags:</td><td><tt>%02X</tt> (%d)</td></tr>\n", BCONData->Flags, BCONData->Flags);
-            fprintf(hFile, "<tr><td>Number of Constants:</td><td>%u</td></tr>\n", BCONData->ConstantCount);
             fprintf(hFile, "</table>\n");
             if(BCONData->ConstantCount > 0){
                 unsigned ConstantIndex;

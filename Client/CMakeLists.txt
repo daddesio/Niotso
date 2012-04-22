@@ -13,6 +13,7 @@ if(WIN32)
         Graphics/Startup.cpp
         Graphics/Viewport.cpp
         resources/Resource.rc
+        Scene/LoginScreen/LoginScreen.cpp
         System/System.cpp
         Window/Window.cpp
     )

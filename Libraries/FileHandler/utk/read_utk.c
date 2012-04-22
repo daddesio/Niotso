@@ -33,7 +33,7 @@
  #define round(x) ((x) >= 0 ? (x)+0.5 : (x)-0.5)
 #endif
 #ifndef min
- #define min(x, y) ((x) > (y) ? (x) : (y))
+ #define min(x, y) ((x) < (y) ? (x) : (y))
 #endif
 
 #ifndef __inline
@@ -57,7 +57,7 @@ float         UTKTable4[29];
 
 int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, size_t FileSize)
 {
-    if(FileSize < 28) return 0;
+    if(FileSize < 32) return 0;
     memcpy(&UTKHeader->sID, Buffer, 4);
     UTKHeader->dwOutSize = read_uint32(Buffer+4);
     UTKHeader->dwWfxSize = read_uint32(Buffer+8);
