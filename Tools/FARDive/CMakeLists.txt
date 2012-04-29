@@ -17,4 +17,4 @@ if(WIN32)
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler/libpng)
-target_link_libraries(FARDive ${FARDIVE_LINK} libpng_shared)
+target_link_libraries(FARDive ${FARDIVE_LINK} FileHandler_shared)

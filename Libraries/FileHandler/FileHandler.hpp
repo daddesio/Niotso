@@ -21,9 +21,13 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
+#include <memory.h>
 #ifndef NOWINDOWS
  #include <windows.h>
 #endif
+
+#define fhexport __declspec(dllexport)
 
 struct Asset_t {
     uint32_t Group;
@@ -62,12 +66,12 @@ struct Sound_t {
 
 namespace File {
 
-extern int Error;
-extern size_t FileSize;
+fhexport extern int Error;
+fhexport extern size_t FileSize;
 
-uint8_t * ReadFile(const char * Filename);
-Image_t * ReadImageFile(const char * Filename);
-Sound_t * ReadSoundFile(const char * Filename);
+fhexport uint8_t * ReadFile(const char * Filename);
+fhexport Image_t * ReadImageFile(const char * Filename);
+fhexport Sound_t * ReadSoundFile(const char * Filename);
 
 }
 

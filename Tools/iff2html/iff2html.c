@@ -16,7 +16,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <windows.h>
 #include <iff/iff.h>
 #include "md5.h"
 
@@ -57,7 +56,7 @@ int main(int argc, char *argv[]){
     uint8_t * IFFData;
     unsigned chunk = 0;
     IFFFile * IFFFileInfo;
-    IFFChunkNode * ChunkNode;
+    IFFChunk * ChunkData;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
         printf("Usage: iff2html [-f] infile (outfile)\n"
@@ -95,7 +94,6 @@ int main(int argc, char *argv[]){
     ** Open the file and read in entire contents to memory
     */
 
-    hFile = CreateFile(InFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
     hFile = fopen(InFile, "rb");
     if(hFile == NULL){
         printf("%sThe specified input file does not exist or could not be opened for reading.", "iff2html: error: ");
@@ -149,9 +147,8 @@ int main(int argc, char *argv[]){
     MD5Final(digest, &md5c);
     free(IFFData);
 
-    for(chunk = 1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, chunk++)
-        iff_parse_chunk(&ChunkNode->Chunk, ChunkNode->Chunk.Data);
-    
+    for(chunk = 0, ChunkData = IFFFileInfo->Chunks; chunk < IFFFileInfo->ChunkCount; chunk++, ChunkData++)
+        iff_parse_chunk(ChunkData, ChunkData->Data);
 
     /****
     ** Open the output file and write the header
@@ -263,28 +260,28 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "\n");
     fprintf(hFile, "<div id=\"toc\"><div><b>Contents</b> &ndash; %u chunks</div>\n", IFFFileInfo->ChunkCount);
     fprintf(hFile, "<ul>\n");
-    for(i=1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, i++)
+    for(i=1, ChunkData = IFFFileInfo->Chunks; i <= IFFFileInfo->ChunkCount; i++, ChunkData++)
         fprintf(hFile, "<li><a href=\"#chunk%u_%.4x\">%u [%s] (%.4X)%s%s</a></li>\n",
-            i, ChunkNode->Chunk.ChunkID, i, ChunkNode->Chunk.Type, ChunkNode->Chunk.ChunkID,
-            (ChunkNode->Chunk.Label[0] != 0x00) ? " &ndash; " : "", ChunkNode->Chunk.Label);
+            i, ChunkData->ChunkID, i, ChunkData->Type, ChunkData->ChunkID,
+            (ChunkData->Label[0] != 0x00) ? " &ndash; " : "", ChunkData->Label);
     fprintf(hFile, "</ul>\n");
     fprintf(hFile, "</div>\n");
     fprintf(hFile, "\n");
 
-    for(i=1, ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk, i++){
-        IFF_STR * StringData = (IFF_STR*) ChunkNode->Chunk.FormattedData;
+    for(i=1, ChunkData = IFFFileInfo->Chunks; i <= IFFFileInfo->ChunkCount; i++, ChunkData++){
+        IFF_STR * StringData = (IFF_STR*) ChunkData->FormattedData;
         fprintf(hFile, "<h2 id=\"chunk%u_%.4x\">%u [%s] (%.4X)%s%s <a href=\"#chunk%u_%.4x\">(Jump)</a></h2>\n",
-            i, ChunkNode->Chunk.ChunkID, i, ChunkNode->Chunk.Type, ChunkNode->Chunk.ChunkID,
-            (ChunkNode->Chunk.Label[0] != 0x00) ? " &ndash; " : "", ChunkNode->Chunk.Label,
-            i, ChunkNode->Chunk.ChunkID);
+            i, ChunkData->ChunkID, i, ChunkData->Type, ChunkData->ChunkID,
+            (ChunkData->Label[0] != 0x00) ? " &ndash; " : "", ChunkData->Label,
+            i, ChunkData->ChunkID);
         fprintf(hFile, "<div>\n");
 
-        if(ChunkNode->Chunk.FormattedData == NULL){
+        if(ChunkData->FormattedData == NULL){
             fprintf(hFile, "The contents of this chunk could not be parsed.\n");
-        }else if(!strcmp(ChunkNode->Chunk.Type, "STR#")  ||
-            !strcmp(ChunkNode->Chunk.Type, "CTSS") ||
-            !strcmp(ChunkNode->Chunk.Type, "FAMs") ||
-            !strcmp(ChunkNode->Chunk.Type, "TTAs") ){
+        }else if(!strcmp(ChunkData->Type, "STR#")  ||
+            !strcmp(ChunkData->Type, "CTSS") ||
+            !strcmp(ChunkData->Type, "FAMs") ||
+            !strcmp(ChunkData->Type, "TTAs") ){
             /****
             ** STR# parsing
             */
@@ -330,31 +327,31 @@ int main(int argc, char *argv[]){
                 fprintf(hFile, "<tr><th>Language</th><th colspan=\"3\">String pairs</th></tr>\n");
 
                 for(LanguageSet=0; LanguageSet<20; LanguageSet++){
-                    IFFStringPairNode * PairNode;
+                    IFFStringPair * Pair;
                     unsigned PairIndex;
                     if(StringData->LanguageSets[LanguageSet].PairCount == 0)
                         continue;
 
                     fprintf(hFile, "<tr><td rowspan=\"%u\">%s</td>\n", StringData->LanguageSets[LanguageSet].PairCount,
                         LanguageStrings[LanguageSet]);
-                    for(PairIndex=1, PairNode = StringData->LanguageSets[LanguageSet].FirstPair; PairNode;
-                        PairNode = PairNode->NextPair, PairIndex++){
+                    for(PairIndex=1, Pair = StringData->LanguageSets[LanguageSet].Pairs;
+                        PairIndex <= StringData->LanguageSets[LanguageSet].PairCount; PairIndex++, Pair++){
                         if(PairIndex != 1)
                             fprintf(hFile, "<tr>");
                         fprintf(hFile, "<td>%u</td><td>%s</td><td>%s</td></tr>\n", PairIndex,
-                            (PairNode->Pair.Key)   != NULL ? PairNode->Pair.Key   : "",
-                            (PairNode->Pair.Value) != NULL ? PairNode->Pair.Value : "");
+                            (Pair->Key)   != NULL ? Pair->Key   : "",
+                            (Pair->Value) != NULL ? Pair->Value : "");
                     }
                 }
 
                 fprintf(hFile, "</table>\n");
             }
-        }else if(!strcmp(ChunkNode->Chunk.Type, "BCON")){
+        }else if(!strcmp(ChunkData->Type, "BCON")){
             /****
             ** BCON parsing
             */
             
-            IFF_BCON * BCONData = (IFF_BCON*) ChunkNode->Chunk.FormattedData;
+            IFF_BCON * BCONData = (IFF_BCON*) ChunkData->FormattedData;
             fprintf(hFile, "<table>\n");
             fprintf(hFile, "<tr><td>Flags:</td><td><tt>%02X</tt> (%d)</td></tr>\n", BCONData->Flags, BCONData->Flags);
             fprintf(hFile, "</table>\n");
@@ -372,6 +369,7 @@ int main(int argc, char *argv[]){
 
         fprintf(hFile, "</div>\n\n");
     }
+    iff_delete(IFFFileInfo);
 
     fprintf(hFile,
         "<div id=\"footer\">This page was generated by the use of <a href=\"http://www.niotso.org/\">iff2html</a>.\n");
@@ -379,5 +377,7 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "</body>\n");
     fprintf(hFile, "</html>");
     fclose(hFile);
+    
+    printf("Wrote contents to '%s'.\n", OutFile);
     return 0;
 }

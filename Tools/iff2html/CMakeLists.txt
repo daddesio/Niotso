@@ -9,4 +9,4 @@ set(IFF2HTML_SOURCES
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
 
 add_executable(iff2html ${IFF2HTML_SOURCES})
-target_link_libraries(iff2html FileHandler_shared)
+target_link_libraries(iff2html iff_static)

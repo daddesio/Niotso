@@ -24,13 +24,11 @@ HANDLE Process;
 HANDLE ProcessHeap;
 LARGE_INTEGER ClockFreq;
 volatile float FramePeriod;
-UserInput_t UserInput;
+UserInput_t UserInput = {0};
 volatile UserInput_t UserInput_v;
 bool SceneFailed = false;
 
 int Initialize(){
-    memset(&UserInput, 0, sizeof(UserInput));
-    
     QueryPerformanceFrequency(&ClockFreq);
     
     DEVMODE dm;

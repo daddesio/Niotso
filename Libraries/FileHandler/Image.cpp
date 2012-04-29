@@ -14,15 +14,12 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include <stdint.h>
-#include <memory.h>
-#include <stdio.h>
+#define NOWINDOWS
+#include "FileHandler.hpp"
 #include <setjmp.h> //Used by libpng
 #include "bmp/read_bmp.h"
 #include "libjpeg-turbo/jpeglib.h"
 #include "libpng/png.h"
-#define NOWINDOWS
-#include "FileHandler.hpp"
 
 namespace File {
 
@@ -38,18 +35,29 @@ static uint8_t * ReadJPG(Image_t * Image, const uint8_t * InData, size_t FileSiz
 static uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSize);
 static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize);
 static uint8_t * ReadTGA(Image_t * Image, const uint8_t * InData, size_t FileSize);
+static uint8_t * ReadCUR(Image_t * Image, const uint8_t * InData, size_t FileSize);
+
+static uint8_t * ReadTGACUR(Image_t * Image, const uint8_t * InData, size_t FileSize){
+    //Microsoft and Truevision, y u no more creative with your file signatures?
+    //In many cases we're going to see these bytes, exactly, at the beginning in both formats:
+    //00 00 02 00 01 00
+    //So screw it. Try parsing the file first as a TGA, then as a CUR.
+    
+    uint8_t * Result = ReadTGA(Image, InData, FileSize);
+    return Result ? Result : ReadCUR(Image, InData, FileSize);
+}
 
 static const uint8_t Signature[] = {
     'B',  //BMP
     0xFF, //JPEG
     0x89, //PNG
-    0x00  //TGA
+    0x00  //TGA or CUR
 };
 static uint8_t* (* const ImageFunction[])(Image_t*, const uint8_t*, size_t) = {
     ReadBMP,
     ReadJPG,
     ReadPNG,
-    ReadTGA
+    ReadTGACUR
 };
 
 Image_t * ReadImageFile(const char * Filename){
@@ -214,6 +222,10 @@ static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSiz
 }
 
 static uint8_t * ReadTGA(Image_t * Image, const uint8_t * InData, size_t FileSize){
+    return NULL;
+}
+
+static uint8_t * ReadCUR(Image_t * Image, const uint8_t * InData, size_t FileSize){
     return NULL;
 }
 

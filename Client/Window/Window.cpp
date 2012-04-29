@@ -179,7 +179,7 @@ static int CreateWindowInvisible(HINSTANCE hInst, unsigned Width, unsigned Heigh
         
         //Use a style of WS_OVERLAPPEDWINDOW to allow resizing
         AdjustWindowRectEx(&WindowRect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE,
-            WS_EX_APPWINDOW);   //This finds the dimensions of a window with a client area of our specified dimensions
+            WS_EX_APPWINDOW); //This finds the dimensions of a window with a client area of our specified dimensions
 
         //Note: Windows can be positioned anywhere, even outside the visible workspace,
         //but their sizes are limited to the size of the workspace on the primary display.

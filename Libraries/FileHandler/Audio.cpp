@@ -14,14 +14,11 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include <stdint.h>
-#include <memory.h>
-#include <stdio.h>
+#include "FileHandler.hpp"
 #include "libmpg123/mpg123.h"
 #include "utk/read_utk.h"
 #include "wav/read_wav.h"
 #include "xa/read_xa.h"
-#include "FileHandler.hpp"
 
 namespace File {
 

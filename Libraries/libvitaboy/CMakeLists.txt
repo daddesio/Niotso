@@ -23,10 +23,11 @@ endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
 
-add_library(libvitaboy_static STATIC ${LIBVITABOY_SOURCES})
-set_target_properties(libvitaboy_static PROPERTIES
-    OUTPUT_NAME "vitaboy"
-    CLEAN_DIRECT_OUTPUT 1)
+#### Static library (uncomment to build)
+#add_library(libvitaboy_static STATIC ${LIBVITABOY_SOURCES})
+#set_target_properties(libvitaboy_static PROPERTIES
+#    OUTPUT_NAME "vitaboy"
+#    CLEAN_DIRECT_OUTPUT 1)
 
 add_library(libvitaboy_shared SHARED ${LIBVITABOY_SOURCES})
 set_target_properties(libvitaboy_shared PROPERTIES
@@ -39,7 +40,7 @@ set_target_properties(libvitaboy_shared PROPERTIES
     CLEAN_DIRECT_OUTPUT 1)
 
 add_executable(vbparse vbparse.cpp)
-target_link_libraries(vbparse libvitaboy_static FileHandler_shared)
+target_link_libraries(vbparse libvitaboy_shared FileHandler_shared)
 
 add_executable(Renderer Renderer.cpp)
 target_link_libraries(Renderer libvitaboy_shared FileHandler_shared opengl32 glu32 winmm)

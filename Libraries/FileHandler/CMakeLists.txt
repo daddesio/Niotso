@@ -21,8 +21,6 @@ set(FILEHANDLER_SOURCES
     Image.cpp
     bmp/read_bmp.c
     cst/cst.c
-    iff/chunks.c
-    iff/iff.c
     utk/read_utk.c
     wav/read_wav.c
     xa/read_xa.c
@@ -30,11 +28,12 @@ set(FILEHANDLER_SOURCES
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
 
-add_library(FileHandler_static STATIC ${FILEHANDLER_SOURCES})
-set_target_properties(FileHandler_static PROPERTIES
-    OUTPUT_NAME "FileHandler${FILEHANDLER_SERIES}"
-    PREFIX ""
-    CLEAN_DIRECT_OUTPUT 1)
+#### Static library (uncomment to build)
+#add_library(FileHandler_static STATIC ${FILEHANDLER_SOURCES})
+#set_target_properties(FileHandler_static PROPERTIES
+#    OUTPUT_NAME "FileHandler${FILEHANDLER_SERIES}"
+#    PREFIX ""
+#    CLEAN_DIRECT_OUTPUT 1)
 
 add_library(FileHandler_shared SHARED ${FILEHANDLER_SOURCES})
 set_target_properties(FileHandler_shared PROPERTIES
@@ -44,4 +43,4 @@ set_target_properties(FileHandler_shared PROPERTIES
     PREFIX ""
     IMPORT_PREFIX ""
     CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(FileHandler_shared kernel32 jpegturbo_static libmpg123_static libpng_static zlib_static)
+target_link_libraries(FileHandler_shared kernel32 iff_static jpegturbo_static libmpg123_static libpng_static zlib_static)

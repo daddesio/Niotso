@@ -14,6 +14,10 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
 #ifndef read_uint32be
  #define read_int32be(x)  (signed)(((x)[0]<<(8*3)) | ((x)[1]<<(8*2)) | ((x)[2]<<(8*1)) | ((x)[3]<<(8*0)))
  #define read_int24be(x)  (signed)(((x)[0]<<(8*2)) | ((x)[1]<<(8*1)) | ((x)[2]<<(8*0)))
@@ -37,7 +41,7 @@
 ** IFF file headers
 */
 
-typedef struct IFFChunk_struct
+typedef struct IFFChunk_s
 {
     char      Type[5];
     uint32_t  Size;
@@ -48,21 +52,14 @@ typedef struct IFFChunk_struct
     void *    FormattedData;
 } IFFChunk;
 
-typedef struct IFFChunkNode_struct
-{
-    IFFChunk Chunk;
-    struct IFFChunkNode_struct * PrevChunk;
-    struct IFFChunkNode_struct * NextChunk;
-} IFFChunkNode;
-
-typedef struct IFFFile_struct
+typedef struct IFFFile_s
 {
     uint8_t Header[64];
 
     uint32_t ChunkCount;
-    IFFChunkNode * FirstChunk;
-    IFFChunkNode * LastChunk;
-    IFFChunkNode * ResourceMap;
+    size_t SizeAllocated;
+    IFFChunk * Chunks;
+    IFFChunk * ResourceMap;
 } IFFFile;
 
 static const uint8_t Header_IFF[] = "IFF FILE 2.5:TYPE FOLLOWED BY SIZE\0 JAMIE DOORNBOS & MAXIS 1";
@@ -73,7 +70,7 @@ static const uint8_t Header_IFF[] = "IFF FILE 2.5:TYPE FOLLOWED BY SIZE\0 JAMIE 
 
 /* BCON chunk */
 
-typedef struct IFF_BCON_struct
+typedef struct IFF_BCON_s
 {
     uint8_t ConstantCount;
     uint8_t Flags;
@@ -106,28 +103,20 @@ enum IFFLanguage {
     IFFLANG_KOREAN              = 20
 };
 
-typedef struct IFFStringPair_struct
+typedef struct IFFStringPair_s
 {
     uint8_t LanguageSet;
     char * Key;
     char * Value;
 } IFFStringPair;
 
-typedef struct IFFStringPairNode_struct
-{
-    IFFStringPair Pair;
-    struct IFFStringPairNode_struct * PrevPair;
-    struct IFFStringPairNode_struct * NextPair;
-} IFFStringPairNode;
-
-typedef struct IFFLanguageSet_struct
+typedef struct IFFLanguageSet_s
 {
     uint16_t PairCount;
-    IFFStringPairNode * FirstPair;
-    IFFStringPairNode * LastPair;
+    IFFStringPair * Pairs;
 } IFFLanguageSet;
 
-typedef struct IFF_STR_struct
+typedef struct IFF_STR_s
 {
     int16_t Format;
     IFFLanguageSet LanguageSets[20];
@@ -135,7 +124,7 @@ typedef struct IFF_STR_struct
 
 /* TRCN chunk */
 
-typedef struct IFFRangePair_struct
+typedef struct IFFRangePair_s
 {
     uint32_t IsUnused;
     uint32_t Unknown;
@@ -146,7 +135,7 @@ typedef struct IFFRangePair_struct
     uint16_t RangeMax;
 } IFFRangePair;
 
-typedef struct IFF_TRCN_struct
+typedef struct IFF_TRCN_s
 {
     uint32_t Reserved;
     uint32_t Version;
@@ -166,19 +155,14 @@ extern "C" {
 IFFFile * iff_create();
 int iff_read_header(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned FileSize);
 
-IFFChunkNode * iff_add_chunk(IFFFile * IFFFileInfo, int Position);
+IFFChunk * iff_add_chunk(IFFFile * IFFFileInfo);
 int iff_read_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned MaxChunkSize);
+int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer);
 int iff_enumerate_chunks(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned BufferSize);
 
+void iff_free_chunk(IFFChunk * ChunkInfo);
 void iff_delete_chunk(IFFFile * IFFFileInfo, int Position);
 void iff_delete(IFFFile * IFFFileInfo);
-
-
-/*
-** IFF chunk functions
-*/
-
-int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer);
 
 #ifdef __cplusplus
 }

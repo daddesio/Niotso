@@ -19,6 +19,14 @@
 #include <windows.h>
 #include "iff.h"
 
+int charmatches(char c, const char * filter){
+    while(*filter){
+        if(c == *filter) return 1;
+        filter++;
+    }
+    return 0;
+}
+
 int main(int argc, char *argv[]){
     HANDLE hFile;
     int overwrite = 0;
@@ -27,9 +35,9 @@ int main(int argc, char *argv[]){
     DWORD FileSize;
     DWORD bytestransferred = 0;
     uint8_t * IFFData;
-    unsigned chunkcount, chunk = 0;
+    unsigned chunkcount, chunk;
     IFFFile * IFFFileInfo;
-    IFFChunkNode * ChunkNode;
+    IFFChunk * ChunkData;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
         printf("Usage: iffexport [-f] infile outdirectory\n"
@@ -109,19 +117,23 @@ int main(int argc, char *argv[]){
     /****
     ** Extract each entry
     */
-    for(ChunkNode = IFFFileInfo->FirstChunk; ChunkNode; ChunkNode = ChunkNode->NextChunk){
+    for(chunk = 1, ChunkData = IFFFileInfo->Chunks; chunk <= chunkcount; chunk++, ChunkData++){
         char name[256], destination[256];
         char filter[] = "\\/:*?\"<>|";
         int i;
 
-        chunk++;
-        sprintf(name, "%03u-%s-%04X-%s", chunk, ChunkNode->Chunk.Type, ChunkNode->Chunk.ChunkID, ChunkNode->Chunk.Label);
+        sprintf(name, "%03u-%s-%04X-%s", chunk, ChunkData->Type, ChunkData->ChunkID, ChunkData->Label);
+        for(i=0; name[i] != 0x00; i++){
+            if(name[i] == '\t') name[i] = ' ';
+            else if(name[i] < ' ' || name[i] > '~') name[i] = '.';
+            else if(charmatches(name[i], "\\/:*?\"<>|")) name[i] = '.';
+        }
         for(i=0; i<9; i++){
             char * c = name;
             while((c = strchr(c, filter[i])) != NULL)
                 *c = '.';
         }
-        sprintf(destination, "%s/%s.%s", OutDirectory, name, (!memcmp(ChunkNode->Chunk.Type, "BMP_", 4)) ? "bmp" : "dat");
+        sprintf(destination, "%s/%s.%s", OutDirectory, name, (!memcmp(ChunkData->Type, "BMP_", 4)) ? "bmp" : "dat");
 
         hFile = CreateFile(destination, GENERIC_WRITE, 0, NULL, CREATE_NEW+overwrite,
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
@@ -132,9 +144,9 @@ int main(int argc, char *argv[]){
             continue;
         }
 
-        printf(" (%u/%u) %s (%u bytes)\n", chunk, chunkcount, name, ChunkNode->Chunk.Size-76);
+        printf(" (%u/%u) %s (%u bytes)\n", chunk, chunkcount, name, ChunkData->Size-76);
 
-        WriteFile(hFile, ChunkNode->Chunk.Data, ChunkNode->Chunk.Size-76, &bytestransferred, NULL);
+        WriteFile(hFile, ChunkData->Data, ChunkData->Size-76, &bytestransferred, NULL);
         CloseHandle(hFile);
     }
 

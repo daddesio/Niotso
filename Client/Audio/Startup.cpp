@@ -56,7 +56,7 @@ PlayableSound_t * LoadSound(const Sound_t * Sound){
         Sound->SamplingRate, //nSamplesPerSec
         ((Sound->Channels * Sound->BitDepth) >> 3) * Sound->SamplingRate, //nAvgBytesPerSec
         ((Sound->Channels * Sound->BitDepth) >> 3), //nBlockAlign
-        Sound->BitDepth,     //wBitsPerSample;
+        Sound->BitDepth,     //wBitsPerSample
         0                    //cbSize
     };
     

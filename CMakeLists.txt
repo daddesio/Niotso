@@ -18,8 +18,8 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     # Base options
-    set(CFLAGS  "-Wall -Wextra -Wabi -pedantic -m32 -mmmx -msse -msse2 -msse3 -mfpmath=both -msahf")
-    set(LDFLAGS "-m32")
+    set(CFLAGS  "-Wall -Wextra -Wabi -pedantic -m32 -mmmx -msse -msse2 -msse3 -mfpmath=both -msahf -fvisibility=internal")
+    set(LDFLAGS "-m32 -fvisibility=hidden -fvisibility-inlines-hidden")
     set(RCFLAGS "-F pe-i386")
     set(ASMFLAGS "-O3 -F win32")
 
@@ -64,7 +64,7 @@ endif()
 
 enable_language(ASM)
 set(CMAKE_ASM_COMPILER "gcc")
-set(CMAKE_ASM_FLAGS "-fno-strict-aliasing ${CFLAGS}")
+set(CMAKE_ASM_FLAGS "${CFLAGS}")
 
 if(WIN32)
     set(DIST_NAME "windows" CACHE STRING "Output folder name for the _dist folder (no start or end slash)")
