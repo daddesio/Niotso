@@ -2,10 +2,12 @@ cmake_minimum_required(VERSION 2.6)
 project(iff)
 
 set(IFF_SOURCES
+    cats.c
     iff.c
     bcon.c
     rsmp.c
     str.c
+    string.c
     trcn.c
 )
 
@@ -17,7 +19,7 @@ set_target_properties(iff_static PROPERTIES
 
 #### Shared library (uncomment to build)
 #add_library(iff_shared SHARED ${IFF_SOURCES})
-#set_target_properties(libiff_shared PROPERTIES
+#set_target_properties(iff_shared PROPERTIES
 #    OUTPUT_NAME "iff"
 #    PREFIX ""
 #    CLEAN_DIRECT_OUTPUT 1)

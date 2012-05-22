@@ -1,5 +1,8 @@
 /*
-    Niotso - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso - The New Implementation of The Sims Online
+    Graphics/Font.cpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,25 +28,25 @@ FT_Face    FontFace;
 static void FindStringSize(const wchar_t * String, unsigned * width, unsigned * height, int * xoffset, int * yoffset, int font){
     int x = 0, y = 0;
     int lowestx = 0, lowesty = 0, highestx = 0, highesty = 0;
-    
+
     for(wchar_t letter=*String; letter!='\0'; letter=*(++String)){
         int error = FT_Load_Char(FontFace, letter, FT_LOAD_RENDER);
         if(error) continue;
-        
+
         int bottomx = x + FontFace->glyph->bitmap_left;
         int bottomy = y + FontFace->glyph->bitmap_top - FontFace->glyph->bitmap.rows;
         if(bottomx < lowestx) lowestx = bottomx;
         if(bottomy < lowesty) lowesty = bottomy;
-        
+
         int topx = x + FontFace->glyph->bitmap_left + FontFace->glyph->bitmap.width;
         int topy = y + FontFace->glyph->bitmap_top;
         if(topx > highestx) highestx = topx;
         if(topy > highesty) highesty = topy;
-        
+
         x += FontFace->glyph->advance.x >> 6;
         y += FontFace->glyph->advance.y >> 6;
     }
-    
+
     *width = highestx-lowestx, *height = highesty-lowesty;
     *xoffset = -lowestx, *yoffset = -lowesty;
 }
@@ -53,14 +56,14 @@ void DrawText(Image_t * Image, const wchar_t * String, int x, int y, unsigned wi
     //x, y, width, height form the bounding rectangle into which the text should be drawn.
     //(x,y) defines the offset to the top-left of the rectangle from the top left of the background.
     //The destination image must be stored in bottom-up order.
-    
+
     if(x >= (signed)Image->Width || y >= (signed)Image->Height) return;
 
     //(stringx,stringy) will refer to the top-left of the string in bottom-up coordinates
     int stringx, stringy;
     unsigned StringWidth, StringHeight;
     FindStringSize(String, &StringWidth, &StringHeight, &stringx, &stringy, font);
-    
+
     //Horizontal alignment
     if(Alignment < 2)      stringx = x;                           //Left
     else if(Alignment < 4) stringx = x+(width-StringWidth+1)/2;   //Middle
@@ -69,17 +72,17 @@ void DrawText(Image_t * Image, const wchar_t * String, int x, int y, unsigned wi
     if(!(Alignment&1))     stringy = y;                           //Top
     else                   stringy = y+(height-StringHeight+1)/2; //Middle
     stringy = Image->Height-stringy-StringHeight;
-    
+
     //Now that we've done the alignment, we can crop the bounding box within the limits of the background image
     if(x < 0){ Image->Width += x; x = 0; }
     if(y < 0){ Image->Height += y; y = 0; }
     if(width > Image->Width) width = Image->Width;
     if(height > Image->Height) height = Image->Height;
-    
+
     for(wchar_t letter=*String; letter!='\0'; letter=*(++String)){
         int error = FT_Load_Char(FontFace, letter, FT_LOAD_RENDER);
         if(error) continue;
-        
+
         int cWidth = FontFace->glyph->bitmap.width, cHeight = FontFace->glyph->bitmap.rows;
         if(cWidth && cHeight){
             uint8_t * cRender; /* Convert to Bottom-up */
@@ -108,7 +111,7 @@ void DrawText(Image_t * Image, const wchar_t * String, int x, int y, unsigned wi
             }
             stringx -= FontFace->glyph->bitmap_left;
             stringy -= FontFace->glyph->bitmap_top-cHeight;
-            
+
             if(FontFace->glyph->bitmap.pitch > 0) free(cRender);
         }
         stringx += FontFace->glyph->advance.x >> 6;
@@ -123,7 +126,7 @@ Image_t * StringImage(const wchar_t * String, int font, COLORREF Color){
     unsigned StringWidth, StringHeight;
     int stringx, stringy;
     FindStringSize(String, &StringWidth, &StringHeight, &stringx, &stringy, font);
-    
+
     Image->Data = (uint8_t*) malloc(4 * StringWidth * StringHeight);
     if(Image->Data == NULL){
         free(Image);
@@ -135,11 +138,11 @@ Image_t * StringImage(const wchar_t * String, int font, COLORREF Color){
         Image->Data[i++] = GetRValue(Color);
         Image->Data[i++] = 0;
     }
-    
+
     for(wchar_t letter=*String; letter!='\0'; letter=*(++String)){
         int error = FT_Load_Char(FontFace, letter, FT_LOAD_RENDER);
         if(error) continue;
-        
+
         int cWidth = FontFace->glyph->bitmap.width, cHeight = FontFace->glyph->bitmap.rows;
         if(cWidth && cHeight){
             uint8_t * cRender; /* Convert to Bottom-up */
@@ -160,13 +163,13 @@ Image_t * StringImage(const wchar_t * String, int font, COLORREF Color){
             }
             stringx -= FontFace->glyph->bitmap_left;
             stringy -= FontFace->glyph->bitmap_top-cHeight;
-            
+
             if(FontFace->glyph->bitmap.pitch > 0) free(cRender);
         }
         stringx += FontFace->glyph->advance.x >> 6;
         stringy += FontFace->glyph->advance.y >> 6;
     }
-    
+
     Image->Width = StringWidth;
     Image->Height = StringHeight;
     Image->Format = FIMG_BGRA32;

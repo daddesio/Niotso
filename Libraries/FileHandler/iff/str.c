@@ -1,5 +1,8 @@
 /*
-    str.c - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    str.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
+               Ahmed El-Mahdawy <aa.mahdawy.10@gmail.com>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -17,23 +20,23 @@
 #include "iff.h"
 
 int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
-    IFF_STR * StringData;
+    IFFString * StringData;
     unsigned Size = ChunkInfo->Size - 76;
 
     if(Size < 2)
         return 0;
-    ChunkInfo->FormattedData = calloc(1, sizeof(IFF_STR));
+    ChunkInfo->FormattedData = calloc(1, sizeof(IFFString));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
-    
-    StringData = (IFF_STR*) ChunkInfo->FormattedData;
+
+    StringData = (IFFString*) ChunkInfo->FormattedData;
     StringData->Format = read_int16le(Buffer);
     if((Size-=2) < 2) /* TSO allows this; as seen in the animations chunk in personglobals.iff */
         return 1;
     Buffer += 2;
-    
+
     switch(StringData->Format){
-    
+
     case 0: { /* 00 00 */
         unsigned i;
         IFFLanguageSet * LanguageSet = &StringData->LanguageSets[0];
@@ -69,23 +72,22 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     case -1: { /* FF FF */
         unsigned i;
         IFFLanguageSet * LanguageSet = &StringData->LanguageSets[0];
-        
+
         LanguageSet->PairCount = read_uint16le(Buffer);
         Buffer += 2; Size -= 2;
         if(LanguageSet->PairCount == 0)
             return 1;
-        
+
         LanguageSet->Pairs = calloc(LanguageSet->PairCount, sizeof(IFFStringPair));
         if(LanguageSet->Pairs == NULL)
             return 0;
-        
+
         for(i=0; i<LanguageSet->PairCount; i++){
             unsigned length;
 
-            if(Size == 0) return 0;
-            for(length=0; Size-length && Buffer[length]; length++);
-            if(Buffer[length] != 0x00) return 0;
-            
+            for(length=0; length != Size && Buffer[length]; length++);
+            if(length == Size) return 0;
+
             if(length != 0){
                 LanguageSet->Pairs[i].Key = malloc(length+1);
                 if(LanguageSet->Pairs[i].Key == NULL) return 0;
@@ -101,25 +103,24 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     case -2: { /* FE FF */
         unsigned i;
         IFFLanguageSet * LanguageSet = &StringData->LanguageSets[0];
-        
+
         LanguageSet->PairCount = read_uint16le(Buffer);
         Buffer += 2; Size -= 2;
         if(LanguageSet->PairCount == 0)
             return 1;
-        
+
         LanguageSet->Pairs = calloc(LanguageSet->PairCount, sizeof(IFFStringPair));
         if(LanguageSet->Pairs == NULL)
             return 0;
-        
+
         for(i=0; i<LanguageSet->PairCount; i++){
             int s;
 
             for(s=0; s<2; s++){
                 unsigned length;
-                if(Size == 0) return 0;
-                for(length=0; Size-length && Buffer[length]; length++);
-                if(Buffer[length] != 0x00) return 0;
-                
+                for(length=0; length != Size && Buffer[length]; length++);
+                if(length == Size) return 0;
+
                 if(length != 0){
                     char ** string = (s==0) ? &LanguageSet->Pairs[i].Key : &LanguageSet->Pairs[i].Value;
                     *string = malloc(length+1);
@@ -144,7 +145,7 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 
         if(TotalPairCount == 0)
             return 1;
-        
+
         /*
         ** Scan through the chunk to count up the number of strings in each LanguageSet,
         ** and then allocate exactly that much and fill in the data on the second pass
@@ -158,30 +159,29 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
             if(lang >= 20) return 0;
             LanguageSet[lang].PairCount++;
             Buffer++; Size--;
-            
+
             for(s=0; s<2; s++){
                 /* Includes the string length check too */
                 unsigned length;
-                if(Size == 0) return 0;
-                for(length=0; Size-length && Buffer[length]; length++);
-                if(Buffer[length] != 0x00) return 0;
+                for(length=0; length != Size && Buffer[length]; length++);
+                if(length == Size) return 0;
                 Buffer += length+1;
                 Size   -= length+1;
             }
         }
-        
+
         for(i=0; i<20; i++){
             LanguageSet[i].Pairs = calloc(LanguageSet[i].PairCount, sizeof(IFFStringPair));
             if(LanguageSet[i].Pairs == NULL) return 0;
         }
-        
+
         /* 2nd pass */
         Buffer = Start;
         for(i=0; i<TotalPairCount; i++){
             unsigned lang = read_uint8le(Buffer) - 1, s;
             IFFStringPair * Pair = &LanguageSet[lang].Pairs[Index[lang]++];
             Buffer++;
-            
+
             for(s=0; s<2; s++){
                 unsigned length = strlen((char*) Buffer);
                 if(length != 0){
@@ -202,11 +202,11 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
         unsigned LanguageSetCount = read_uint8le(Buffer);
         Buffer++; Size--;
         if(LanguageSetCount > 20) return 0;
-        
+
         for(lang=0; lang<LanguageSetCount; lang++){
             unsigned i;
             IFFLanguageSet * LanguageSet = &StringData->LanguageSets[lang];
-            
+
             if(Size < 2) return 0;
             LanguageSet->PairCount = read_uint16le(Buffer);
             Buffer += 2; Size -= 2;
@@ -216,12 +216,12 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
             LanguageSet->Pairs = calloc(LanguageSet->PairCount, sizeof(IFFStringPair));
             if(LanguageSet->Pairs == NULL)
                 return 0;
-            
+
             for(i=0; i<LanguageSet->PairCount; i++){
                 unsigned s;
                 if(Size == 0) return 0;
                 Buffer++; Size--; /* Skip over the "Language set index" */
-                
+
                 for(s=0; s<2; s++){
                     unsigned length;
                     if(Size == 0) return 0;
@@ -248,7 +248,7 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
             }
         }
     } return 1;
-    
+
     }
 
     return 0;
@@ -261,9 +261,9 @@ void iff_free_str(void * FormattedData){
     ** - If the Pairs pointer is nonzero, there must be PairCount initialized pairs in Pairs
     */
 
-    IFF_STR * StringData = (IFF_STR*) FormattedData;
+    IFFString * StringData = (IFFString*) FormattedData;
     unsigned ls;
-    
+
     for(ls=0; ls<20; ls++){
         IFFLanguageSet * LanguageSet = &StringData->LanguageSets[ls];
         unsigned p;

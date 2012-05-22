@@ -1,5 +1,7 @@
 /*
-    read_xa.c - Copyright (c) 2011 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    read_xa.c - Copyright (c) 2011 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -49,8 +51,8 @@ unsigned xa_compressed_size(unsigned Frames, unsigned Channels)
 
     unsigned SingleChannelData = (((Frames+1)>>1) + (Frames+27)/28);
 
-    if(Frames > 0xFFFFFFFFu-27) return 0;
-    if(0xFFFFFFFFu/SingleChannelData < Channels) return 0;
+    if(Frames > UINT_MAX-27) return 0;
+    if(UINT_MAX/SingleChannelData < Channels) return 0;
 
     return Channels*SingleChannelData;
 }
@@ -86,7 +88,7 @@ int xa_read_header(xaheader_t * XAHeader, const uint8_t * Buffer, size_t FileSiz
     return 1;
 }
 
-__inline int16_t Clip16(int sample)
+static __inline int16_t Clip16(int sample)
 {
     if(sample>=32767) return 32767;
     else if(sample<=-32768) return -32768;
@@ -99,7 +101,7 @@ typedef struct {
     int c1, c2;  /* predictor coefficients */
 } channel_t;
 
-const int XATable[] =
+static const int16_t XATable[] =
 {
     0, 240,  460,  392,
     0,   0, -208, -220,
@@ -110,11 +112,11 @@ const int XATable[] =
 
 int xa_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames, unsigned Channels)
 {
-    channel_t * Channel = malloc(Channels * sizeof(channel_t));
-    if(!Channel) return 0;
-    memset(Channel, 0x00, Channels * sizeof(channel_t));
+    channel_t Channel[8];
+    memset(Channel, 0x00, sizeof(Channel));
+    if(Frames == 0) return 1;
 
-    while(Frames){
+    while(1){
         unsigned i;
 
         for(i=0; i<Channels; i++){
@@ -129,26 +131,23 @@ int xa_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer,
             for(j=0; j<Channels; j++){
                 unsigned byte = *(InBuffer++);
                 int n;
-                for(n=0; n<2; n++){
-                    int NewValue = (n == 0) ? HINIBBLE(byte) : LONIBBLE(byte);
+                for(n=4; n>=0; n-=4){
+                    int NewValue = byte >> n;
                     NewValue = (NewValue << 28) >> Channel[j].divisor;
                     NewValue = (NewValue + Channel[j].CurSample*Channel[j].c1 + Channel[j].PrevSample*Channel[j].c2 + 128) >> 8;
                     Channel[j].PrevSample = Channel[j].CurSample;
                     Channel[j].CurSample  = Clip16(NewValue);
                 }
-                *(OutBuffer++) = (Channel[j].PrevSample&0x00FFu)>>(8*0);
-                *(OutBuffer++) = (Channel[j].PrevSample&0xFF00u)>>(8*1);
+                *(OutBuffer++) = Channel[j].PrevSample>>(8*0);
+                *(OutBuffer++) = Channel[j].PrevSample>>(8*1);
             }
-            if(!--Frames) break;
+            if(!--Frames) return 1;
 
             for(j=0; j<Channels; j++){
-                *(OutBuffer++) = (Channel[j].CurSample&0x00FFu)>>(8*0);
-                *(OutBuffer++) = (Channel[j].CurSample&0xFF00u)>>(8*1);
+                *(OutBuffer++) = Channel[j].CurSample>>(8*0);
+                *(OutBuffer++) = Channel[j].CurSample>>(8*1);
             }
-            if(!--Frames) break;
+            if(!--Frames) return 1;
         }
     }
-
-    free(Channel);
-    return 1;
 }

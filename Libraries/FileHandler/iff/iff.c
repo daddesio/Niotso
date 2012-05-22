@@ -1,5 +1,8 @@
 /*
-    iff.c - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    iff.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
+               Ahmed El-Mahdawy <aa.mahdawy.10@gmail.com>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -26,24 +29,31 @@
 
 int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize);
 int iff_free_rsmp(void * FormattedData);
-
-/* The order of these chunks must remain the same throughout this block: */
 iff_register(bcon);
 iff_register(str);
+iff_register(cats);
+iff_register(c_string);
 iff_register(trcn);
 
+/* The ordering of these chunk types must match throughout this block: */
 const char chunktypes[] =
-    "STR#" "CTSS" "FAMs" "TTAs"
+    "STR#" "CTSS" "FAMs" "TTAs" "CST\0"
+    "CATS"
+    "FWAV"
     "BCON"
     "TRCN"
 ;
 int (* const iff_parse_function[])(IFFChunk*, const uint8_t*) = {
-    iff_parse_str, iff_parse_str, iff_parse_str, iff_parse_str,
+    iff_parse_str, iff_parse_str, iff_parse_str, iff_parse_str, iff_parse_str,
+    iff_parse_cats,
+    iff_parse_c_string,
     iff_parse_bcon,
     iff_parse_trcn
 };
 void (* const iff_free_function[])(void*) = {
-    iff_free_str, iff_free_str, iff_free_str, iff_free_str,
+    iff_free_str, iff_free_str, iff_free_str, iff_free_str, iff_free_str,
+    iff_free_cats,
+    NULL,
     iff_free_bcon,
     iff_free_trcn
 };
@@ -58,7 +68,7 @@ IFFFile * iff_create()
 {
     IFFFile *ptr = calloc(1, sizeof(IFFFile));
     if(ptr == NULL) return NULL;
-    
+
     ptr->Chunks = malloc(sizeof(IFFChunk));
     if(ptr->Chunks == NULL){
         free(ptr);
@@ -94,13 +104,12 @@ IFFChunk * iff_add_chunk(IFFFile * IFFFileInfo)
         if(IFFFileInfo->SizeAllocated > SIZE_MAX/2) return NULL;
         ptr = realloc(IFFFileInfo->Chunks, IFFFileInfo->SizeAllocated<<1);
         if(ptr == NULL) return NULL;
-        
+
         IFFFileInfo->Chunks = ptr;
         IFFFileInfo->SizeAllocated<<=1;
     }
 
-    IFFFileInfo->ChunkCount++;
-    return IFFFileInfo->Chunks + IFFFileInfo->ChunkCount-1;
+    return &IFFFileInfo->Chunks[IFFFileInfo->ChunkCount++];
 }
 
 int iff_read_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned MaxChunkSize)
@@ -126,6 +135,7 @@ int iff_read_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned MaxChu
             return 0;
         memcpy(ChunkInfo->Data, Buffer+76, ChunkInfo->Size - 76);
     }
+    ChunkInfo->FormattedData = NULL;
 
     return 1;
 }
@@ -150,7 +160,7 @@ int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     for(i=0; chunktypes[i*4] != '\0'; i++){
         if(!memcmp(ChunkInfo->Type, chunktypes+i*4, 4)){
             if(iff_parse_function[i](ChunkInfo, Buffer)) return 1;
-            iff_free_chunk(ChunkInfo->FormattedData);
+            iff_free_chunk(ChunkInfo);
             return 0;
         }
     }
@@ -159,13 +169,14 @@ int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 
 void iff_free_chunk(IFFChunk * ChunkInfo){
     unsigned i;
-    if(ChunkInfo == NULL || ChunkInfo->FormattedData) return;
+    if(ChunkInfo == NULL || ChunkInfo->FormattedData == NULL) return;
 
     for(i=0; chunktypes[i*4] != '\0'; i++){
         if(!memcmp(ChunkInfo->Type, chunktypes+i*4, 4)){
             if(iff_free_function[i])
                 iff_free_function[i](ChunkInfo->FormattedData);
             free(ChunkInfo->FormattedData);
+            ChunkInfo->FormattedData = NULL;
             return;
         }
     }

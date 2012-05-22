@@ -1,5 +1,8 @@
 /*
-    Niotso - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso - The New Implementation of The Sims Online
+    Client.cpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,7 +26,7 @@ Scene * CurrentScene;
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     int result;
-    
+
     //Disallow multiple instances of the game from running
     CreateMutex(NULL, TRUE, "Global\\TSO_NIOTSO_MUTEX");
     if(GetLastError() == ERROR_ALREADY_EXISTS){
@@ -40,13 +43,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     Window::Height = 600;
     Window::Fullscreen = false;
     System::hInst = hInstance;
-    
+
     result = Window::Initialize();
     if(result != 0){
         Shutdown();
         return ERROR_INIT | ERROR_INIT_WINDOW | result;
     }
-    
+
     result = System::Initialize();
     if(result != 0){
         Shutdown();
@@ -64,20 +67,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         Shutdown();
         return ERROR_INIT | ERROR_INIT_AUDIO | result;
     }
-    
+
     CurrentScene = new LoginScreen();
     if(CurrentScene == NULL || System::SceneFailed){
         Shutdown();
         return ERROR_INIT | ERROR_INIT_LOGIC | ERROR_LOGIC_CREATE_SCENE;
     }
-    
+
     ShowWindow(Window::hWnd, SW_SHOW);
     SetForegroundWindow(Window::hWnd);
     SetFocus(Window::hWnd);
-    
+
     LARGE_INTEGER PreviousTime;
     QueryPerformanceCounter(&PreviousTime);
-    
+
     while(true){
         LARGE_INTEGER CurrentTime;
         QueryPerformanceCounter(&CurrentTime);
@@ -86,9 +89,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             PreviousTime.QuadPart = CurrentTime.QuadPart;
             continue;
         }
-        
+
         memcpy(&System::UserInput, (const void*) &System::UserInput_v, sizeof(System::UserInput_t));
-        
+
         int result = CurrentScene->RunFor(TimeDelta);
         if(result == System::SHUTDOWN)
             break;
@@ -97,7 +100,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             CurrentScene->Render();
             SwapBuffers(Graphics::hDC);
         }
-        
+
         PreviousTime.QuadPart = CurrentTime.QuadPart;
         QueryPerformanceCounter(&CurrentTime);
         float SleepDuration =
@@ -107,7 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 
     ShowWindow(Window::hWnd, SW_HIDE);
     delete CurrentScene;
-    
+
     Shutdown();
     return 0;
 }

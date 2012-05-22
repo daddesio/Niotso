@@ -1,5 +1,7 @@
 /*
-    libvitaboy - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    libvitaboy - Open source OpenGL TSO character animation library
+    mesh.cpp - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -87,7 +89,7 @@ void ReadMesh(Mesh_t& Mesh){
             Mesh.TransformedVertexData[i].BlendData.OtherVertex = BlendData[i-Mesh.RealVertexCount].OtherVertex;
         }
     }
-    
+
     free(TextureVertexData);
     free(BlendData);
 }

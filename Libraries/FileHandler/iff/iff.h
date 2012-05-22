@@ -1,5 +1,8 @@
 /*
-    iff.h - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    iff.h - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
+               Ahmed El-Mahdawy <aa.mahdawy.10@gmail.com>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -120,29 +123,29 @@ typedef struct IFF_STR_s
 {
     int16_t Format;
     IFFLanguageSet LanguageSets[20];
-} IFF_STR;
+} IFFString;
 
 /* TRCN chunk */
 
-typedef struct IFFRangePair_s
+typedef struct IFFRangeEntry_s
 {
     uint32_t IsUnused;
-    uint32_t Unknown;
-    char * Key;
-    char * Value;
+    uint32_t DefaultValue;
+    char * Name;
+    char * Comment;
     uint8_t Enforced;
     uint16_t RangeMin;
     uint16_t RangeMax;
-} IFFRangePair;
+} IFFRangeEntry;
 
-typedef struct IFF_TRCN_s
+typedef struct IFFRangeSet_s
 {
     uint32_t Reserved;
     uint32_t Version;
     char MagicNumber[5];
-    uint32_t EntryCount;
-    IFFRangePair * Entries;
-} IFF_TRCN;
+    uint32_t RangeCount;
+    IFFRangeEntry * Ranges;
+} IFFRangeSet;
 
 #ifdef __cplusplus
 extern "C" {

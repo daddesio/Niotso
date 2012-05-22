@@ -1,5 +1,7 @@
 /*
-    libvitaboy - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    libvitaboy - Open source OpenGL TSO character animation library
+    libvitaboy.hpp - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -21,7 +23,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include <memory.h>
 #include <FileHandler.hpp>
 
 class VBFile_t {
@@ -84,7 +85,7 @@ class VBFile_t {
     inline char* readstring(){
         //Read a Pascal string with 1 length byte
         unsigned length = readint8();
-        char *string = (char*) malloc((length+1) * sizeof(char));
+        char *string = (char*) malloc(length+1);
         readbytes(string, length);
         string[length] = '\0';
         return string;
@@ -93,7 +94,7 @@ class VBFile_t {
     inline char* readstring2(){
         //Read a Pascal string with 2 length bytes
         unsigned length = readint16();
-        char *string = (char*) malloc((length+1) * sizeof(char));
+        char *string = (char*) malloc(length+1);
         readbytes(string, length);
         string[length] = '\0';
         return string;
@@ -288,7 +289,7 @@ struct Vertex_t {
     Coord_t Coord;
     TextureCoord_t TextureCoord;
     NormalCoord_t NormalCoord;
-    
+
     unsigned BoneIndex;
     BlendData_t BlendData;
 };

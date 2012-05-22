@@ -1,5 +1,8 @@
 /*
-    Niotso - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso - The New Implementation of The Sims Online
+    System/System.cpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,17 +27,17 @@ HANDLE Process;
 HANDLE ProcessHeap;
 LARGE_INTEGER ClockFreq;
 volatile float FramePeriod;
-UserInput_t UserInput = {0};
+UserInput_t UserInput = UserInput_t();
 volatile UserInput_t UserInput_v;
 bool SceneFailed = false;
 
 int Initialize(){
     QueryPerformanceFrequency(&ClockFreq);
-    
+
     DEVMODE dm;
     EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
     System::FramePeriod = 1.0f/dm.dmDisplayFrequency;
-    
+
     if(FT_Init_FreeType(&Graphics::FreeTypeLibrary)){
         MessageBox(Window::hWnd, "Failed to initialize FreeType.", NULL, MB_OK | MB_ICONERROR);
         Graphics::FreeTypeLibrary = NULL;

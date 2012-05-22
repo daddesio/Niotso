@@ -1,5 +1,8 @@
 /*
-    Niotso - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso - The New Implementation of The Sims Online
+    Scene/LoginScreen/LoginScreen.cpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -43,9 +46,9 @@ LoginScreen::LoginScreen() : Scene(0){
 
     glMatrixMode(GL_TEXTURE);
     glGenTextures(TEX_COUNT, texture);
-    
+
     FT_Set_Char_Size(Graphics::FontFace, 0, 22*64, 0, 0);
-    
+
     for(int i=TEX_EAGAMES; i<=TEX_SETUP; i++){
         Image_t * Image = File::ReadImageFile(images[i]);
         if(!Image){
@@ -74,12 +77,12 @@ LoginScreen::LoginScreen() : Scene(0){
             MessageBox(Window::hWnd, Buffer, NULL, MB_OK | MB_ICONERROR);
             EXIT_SCENE();
         }
-        
+
         if(i == TEX_MAXIS){
             Graphics::DrawText(Image, L"Maxis\x2122 is an Electronic Arts\x2122 brand.", 0, 600-146, 800, 146,
                 Graphics::ALIGN_CENTER_CENTER, 0, RGB(0xef, 0xe3, 0x8c));
         }
-        
+
         glBindTexture(GL_TEXTURE_2D, texture[i]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -89,7 +92,7 @@ LoginScreen::LoginScreen() : Scene(0){
         free(Image->Data);
         free(Image);
     }
-    
+
     image[IMG_COPYRIGHT] = Graphics::StringImage(L"(c) 2002, 2003 Electronic Arts Inc. All rights reserved.",
         0, RGB(0xef, 0xe3, 0x8c));
     if(image[IMG_COPYRIGHT] == NULL){
@@ -118,7 +121,7 @@ LoginScreen::LoginScreen() : Scene(0){
             GL_UNSIGNED_BYTE, image[IMG_STATUS+i]->Data);
         free(image[IMG_STATUS+i]->Data);
     }
-    
+
     for(int i=0; i<SND_COUNT; i++){
         Sound_t * Sound = File::ReadSoundFile(sounds[i]);
         if(!Sound){
@@ -147,7 +150,7 @@ LoginScreen::LoginScreen() : Scene(0){
             MessageBox(Window::hWnd, Buffer, NULL, MB_OK | MB_ICONERROR);
             EXIT_SCENE();
         }
-        
+
         sound[i] = Audio::LoadSound(Sound);
         free(Sound);
         if(!sound){
@@ -157,11 +160,11 @@ LoginScreen::LoginScreen() : Scene(0){
         Audio::PlaySound(sound[i]);
     }
 }
-    
+
 LoginScreen::~LoginScreen(){
     for(int i=0; i<IMG_COUNT; i++){ if(image[i]) free(image[i]); }
     glDeleteTextures(TEX_COUNT, texture);
-    
+
     for(int i=0; i<SND_COUNT; i++){
         if(sound[i]){
             Audio::DeleteSound(sound[i]);

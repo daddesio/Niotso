@@ -1,5 +1,8 @@
 /*
-    Niotso - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso - The New Implementation of The Sims Online
+    Graphics/Startup.cpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -29,7 +32,7 @@ int Initialize(){
         Shutdown();
         return ERROR_GRAPHICS_OBTAIN_DC;
     }
-    
+
     const PIXELFORMATDESCRIPTOR pfd = {
         sizeof(PIXELFORMATDESCRIPTOR), 1, //Size and version
         PFD_DRAW_TO_WINDOW |              //dwFlags
@@ -46,7 +49,7 @@ int Initialize(){
         0,                                //Reserved
         0, 0, 0                           //Masks
     };
-    
+
     unsigned PixelFormat = ChoosePixelFormat(hDC, &pfd);
     if(!PixelFormat){
         MessageBox(Window::hWnd, "Failed to find a suitable pixel format for the device context.", NULL, MB_OK | MB_ICONERROR);
@@ -59,31 +62,31 @@ int Initialize(){
         Shutdown();
         return ERROR_GRAPHICS_SET_PIXELFORMAT;
     }
-    
+
     hRC = wglCreateContext(hDC);
     if(!hRC){
         MessageBox(Window::hWnd, "Failed to create an OpenGL rendering context.", NULL, MB_OK | MB_ICONERROR);
         Shutdown();
         return ERROR_GRAPHICS_CREATE_GLRC;
     }
-    
+
     if(!wglMakeCurrent(hDC, hRC)){
         MessageBox(Window::hWnd, "Failed to activate the OpenGL device context.", NULL, MB_OK | MB_ICONERROR);
         Shutdown();
         return ERROR_GRAPHICS_ACTIVATE_GLRC;
     }
-    
+
     BOOL (WINAPI *wglSwapIntervalEXT)(int) = (BOOL (WINAPI *)(int)) wglGetProcAddress("wglSwapIntervalEXT");
     if(wglSwapIntervalEXT) wglSwapIntervalEXT(1);
     int (WINAPI *wglGetSwapIntervalEXT)(void) = (int (WINAPI *)(void)) wglGetProcAddress("wglGetSwapIntervalEXT");
     if(wglGetSwapIntervalEXT) wglGetSwapIntervalEXT(); //Seems necessary on some cards
-    
+
     int result = InitGL();
     if(result != 0){
         Shutdown();
         return ERROR_GRAPHICS_INIT_GLSCENE | result;
     }
-    
+
     ResizeViewport(Window::Width, Window::Height);
     return 0;
 }

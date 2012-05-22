@@ -1,5 +1,8 @@
 /*
-    Niotso - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso - The New Implementation of The Sims Online
+    System/System.hpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,7 +27,7 @@ namespace System {
     extern HANDLE ProcessHeap;
     extern LARGE_INTEGER ClockFreq;
     extern volatile float FramePeriod;
-    
+
     struct UserInput_t {
         bool Keys[256];
         bool MouseDown;
@@ -34,7 +37,7 @@ namespace System {
     extern volatile UserInput_t UserInput_v;
 
     extern bool SceneFailed;
-    
+
     //Constants
     enum {
         SHUTDOWN = 0

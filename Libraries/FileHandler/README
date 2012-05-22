@@ -1,0 +1,32 @@
+***************************************************************************
+* ** FileHandler - General-purpose file handling library for Niotso    ** *
+* ** Copyright (c) 2011-2012 Niotso Project <http://niotso.org/        ** *
+*                                                                         *
+* Use and distribution of all files in the "include" and "lib" folders    *
+* are governed under the ISC License, included with this source code in   *
+* "COPYING".                                                              *
+*                                                                         *
+* All other files included but not aforementioned are not copyrighted,    *
+* and are distributed into the public domain.                             *
+***************************************************************************
+
+
+FileHandler is a generic C++ library written specifically for Niotso and used to read, and sometimes modify and write,
+the various types of files used in The Sims Online.
+
+FileHandler outsources most of its work to de-facto third-party libraries written in C89 (zlib, libpng, libjpeg-turbo,
+libmpg123, ...), while other libraries, also written in C89, are provided inside FileHandler, without a flashy name (bmp, cst,
+iff, far, ...).
+
+FileHandler wraps around these libraries and provides a convenient C++ API to interact with these files to just the degree
+needed by Niotso. The function of FileHandler is analogous to the gimex library used in The Sims Online.
+
+Supported formats:
+  Image:
+    (*) bmp, png, jpg, cur, tga
+  Audio:
+    (*) wav, mp3, xa, utk
+  Archive:
+    (*) far, iff
+  Plain-text:
+    (*) ini, xml, cst, uis

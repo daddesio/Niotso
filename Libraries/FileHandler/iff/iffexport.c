@@ -1,5 +1,7 @@
 /*
-    iffexport.c - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    iffexport.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -133,7 +135,8 @@ int main(int argc, char *argv[]){
             while((c = strchr(c, filter[i])) != NULL)
                 *c = '.';
         }
-        sprintf(destination, "%s/%s.%s", OutDirectory, name, (!memcmp(ChunkData->Type, "BMP_", 4)) ? "bmp" : "dat");
+        sprintf(destination, "%s/%s.%s", OutDirectory, name,
+            (!memcmp(ChunkData->Type, "BMP_", 4) || !memcmp(ChunkData->Type, "FBMP", 4)) ? "bmp" : "dat");
 
         hFile = CreateFile(destination, GENERIC_WRITE, 0, NULL, CREATE_NEW+overwrite,
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);

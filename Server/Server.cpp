@@ -1,5 +1,8 @@
 /*
-    Niotso Server - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso Server - Niotso daemon based on PostgreSQL
+    Server.cpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

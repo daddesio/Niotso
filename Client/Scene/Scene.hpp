@@ -1,5 +1,8 @@
 /*
-    Niotso - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso - The New Implementation of The Sims Online
+    Scene/Scene.hpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,7 +37,7 @@ class Scene {
         if(TickPeriod == 0){
             return Run(TimeDelta);
         }
-        
+
         bool Redraw = false;
         RealTimeDelta += TimeDelta;
         while(RealTimeDelta >= 0){
@@ -46,7 +49,7 @@ class Scene {
         }
         return (Redraw) ? 1 : -1;
     }
-    
+
     virtual void Render() = 0;
     virtual ~Scene() {};
 };

@@ -6,3 +6,6 @@ Add these files:
 * tower_large_ne_a.png
 * tower_large_ne_p.png
 * tower_large_ne_z.png
+
+Then open index.html in a web browser which supports the HTML5 canvas,
+and use the arrow keys.

@@ -1,5 +1,8 @@
 /*
-    Niotso - Copyright (C) 2012 Fatbag <X-Fi6@phppoll.org>
+    Niotso - The New Implementation of The Sims Online
+    Graphics/Graphics.hpp
+    Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,10 +27,10 @@ namespace Graphics {
     void Shutdown();
     extern HDC hDC;
     extern HGLRC hRC;
-    
+
     int InitGL();
     void ResizeViewport(unsigned width, unsigned height);
-    
+
     enum TextAlignment {
         ALIGN_LEFT_TOP,
         ALIGN_LEFT_CENTER,
@@ -36,7 +39,7 @@ namespace Graphics {
         ALIGN_RIGHT_TOP,
         ALIGN_RIGHT_CENTER
     };
-    
+
     //Font.cpp
     extern FT_Library FreeTypeLibrary;
     extern FT_Face    FontFace;

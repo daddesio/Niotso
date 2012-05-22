@@ -5,5 +5,5 @@ set(UTK_SOURCES
     read_utk.c
     utkdecode.c
 )
-    
+
 add_executable(utkdecode ${UTK_SOURCES})

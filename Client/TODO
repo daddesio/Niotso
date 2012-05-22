@@ -12,7 +12,7 @@ Development Phase: Planning
 Technical Preview 1
 Schedule: (Not very subject to change)
  1. Implement cst and uis parsers [40%]
- 2. Replicate functionality up until the login dialog [0%]
+ 2. Replicate functionality up until the login dialog [90%]
  3. Implement the OpenGL-based windowing system
  4. Replicate character selection and creation features and the city selection dialog
  5. Implement the code needed to allow the game to read all necessary files from the TSOClient folder

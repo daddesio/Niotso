@@ -1,5 +1,7 @@
 /*
-    read_bmp.c - Copyright (c) 2011-2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    read_bmp.c - Copyright (c) 2011-2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -49,7 +51,7 @@ int bmp_read_header(bmpheader_t * BMPHeader, const uint8_t * Buffer, size_t File
     BMPHeader->biYPelsPerMeter = read_uint32(Buffer+42);
     BMPHeader->biClrUsed = read_uint32(Buffer+46);
     BMPHeader->biClrImportant = read_uint32(Buffer+50);
-    
+
     BMPHeader->CompressedSize = FileSize - BMPHeader->bfOffBits;
     BMPHeader->DecompressedSize = BMPHeader->biWidth * BMPHeader->biHeight * 3;
 
@@ -70,7 +72,7 @@ int bmp_read_header(bmpheader_t * BMPHeader, const uint8_t * Buffer, size_t File
             (BMPHeader->biBitCount == 8 && BMPHeader->CompressedSize < BMPHeader->DecompressedSize/3 +
                 BMPHeader->biHeight*(BMPHeader->biWidth%4) /* Account for padding in 8-bit BMPs */)))
     )   return 0;
-    
+
     return 1;
 }
 
@@ -79,7 +81,7 @@ int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t *__restrict InBuffer, u
         memcpy(OutBuffer, InBuffer+BMPHeader->bfOffBits, BMPHeader->DecompressedSize);
         return 1;
     }
-    
+
     if(BMPHeader->biBitCount == 8){
         const uint8_t *__restrict Palette = InBuffer + 54;
         InBuffer += BMPHeader->bfOffBits;
@@ -98,7 +100,7 @@ int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t *__restrict InBuffer, u
             }
             return 1;
         }
-        
+
         if(BMPHeader->biCompression == BI_RLE8){
             const uint8_t *__restrict const srcend = InBuffer+BMPHeader->CompressedSize;
             uint8_t *__restrict const destend = OutBuffer+BMPHeader->DecompressedSize;
@@ -107,12 +109,12 @@ int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t *__restrict InBuffer, u
                 unsigned i;
                 const unsigned command = *InBuffer++;
                 const unsigned value = *InBuffer++;
-                
+
                 if(command == 0){
                     if(value == 0) continue; /* End of scanline reminder */
                     if(value == 1) return (InBuffer == srcend && OutBuffer == destend); /* End of bitmap reminder */
                     if(value == 2) return 0; /* Delta, used for ICO/CUR masks; wrong kind of bitmap */
-                    
+
                     /* Absolute copy */
                     if(value > (unsigned)(srcend-InBuffer) || value*3 > (unsigned)(destend-OutBuffer)) break;
                     for(i=0; i<value; i++){
@@ -133,9 +135,7 @@ int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t *__restrict InBuffer, u
                     }
                 }
             }
-            return 0;
         }
-        return 0;
     }
     return 0;
 }

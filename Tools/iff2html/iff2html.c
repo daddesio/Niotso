@@ -1,5 +1,8 @@
 /*
-    iff2html.c - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    iff2html - iff web page description generator
+    iff2html.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
+               Ahmed El-Mahdawy <aa.mahdawy.10@gmail.com>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -140,7 +143,7 @@ int main(int argc, char *argv[]){
         printf("%sChunk data is corrupt.", "iff2html: error: ");
         return -1;
     }
-    
+
     /* Calculate the MD5, and then we can free the IFF data because we're done with it */
     MD5Init(&md5c);
     MD5Update(&md5c, IFFData, FileSize);
@@ -269,7 +272,6 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "\n");
 
     for(i=1, ChunkData = IFFFileInfo->Chunks; i <= IFFFileInfo->ChunkCount; i++, ChunkData++){
-        IFF_STR * StringData = (IFF_STR*) ChunkData->FormattedData;
         fprintf(hFile, "<h2 id=\"chunk%u_%.4x\">%u [%s] (%.4X)%s%s <a href=\"#chunk%u_%.4x\">(Jump)</a></h2>\n",
             i, ChunkData->ChunkID, i, ChunkData->Type, ChunkData->ChunkID,
             (ChunkData->Label[0] != 0x00) ? " &ndash; " : "", ChunkData->Label,
@@ -281,11 +283,13 @@ int main(int argc, char *argv[]){
         }else if(!strcmp(ChunkData->Type, "STR#")  ||
             !strcmp(ChunkData->Type, "CTSS") ||
             !strcmp(ChunkData->Type, "FAMs") ||
-            !strcmp(ChunkData->Type, "TTAs") ){
+            !strcmp(ChunkData->Type, "TTAs") ||
+            !strcmp(ChunkData->Type, "CST")  ){
             /****
             ** STR# parsing
             */
 
+            IFFString * StringData = ChunkData->FormattedData;
             fprintf(hFile, "<table>\n");
             fprintf(hFile, "<tr><td>Format:</td><td>");
             switch(StringData->Format){
@@ -346,23 +350,71 @@ int main(int argc, char *argv[]){
 
                 fprintf(hFile, "</table>\n");
             }
+        }else if(!strcmp(ChunkData->Type, "CATS")){
+            /****
+            ** CATS parsing
+            */
+
+            IFFStringPair * Pair = ChunkData->FormattedData;
+
+            fprintf(hFile, "<table class=\"center\">\n");
+            fprintf(hFile, "<tr><th>Key</th><th>Value</th></tr>\n");
+            fprintf(hFile, "<tr><td>%s</td><td>%s</td></tr>\n",
+                (Pair->Key)   != NULL ? Pair->Key   : "",
+                (Pair->Value) != NULL ? Pair->Value : "");
+            fprintf(hFile, "</table>\n");
+        }else if(!strcmp(ChunkData->Type, "FWAV")){
+            /****
+            ** Regular string
+            */
+
+            fprintf(hFile, "<table class=\"center\">\n");
+            fprintf(hFile, "<tr><th>String</th></tr>\n");
+            fprintf(hFile, "<tr><td>%s</td></tr>\n", ChunkData->FormattedData ? (char*) ChunkData->FormattedData : "");
+            fprintf(hFile, "</table>\n");
         }else if(!strcmp(ChunkData->Type, "BCON")){
             /****
             ** BCON parsing
             */
-            
-            IFF_BCON * BCONData = (IFF_BCON*) ChunkData->FormattedData;
+
+            IFF_BCON * BCONData = ChunkData->FormattedData;
             fprintf(hFile, "<table>\n");
             fprintf(hFile, "<tr><td>Flags:</td><td><tt>%02X</tt> (%d)</td></tr>\n", BCONData->Flags, BCONData->Flags);
             fprintf(hFile, "</table>\n");
             if(BCONData->ConstantCount > 0){
-                unsigned ConstantIndex;
+                unsigned i;
 
                 fprintf(hFile, "<br />\n");
                 fprintf(hFile, "<table class=\"center\">\n");
                 fprintf(hFile, "<tr><th colspan=\"2\">Constant Value</th></tr>\n");
-                for(ConstantIndex=0; ConstantIndex<BCONData->ConstantCount; ConstantIndex++)
-                    fprintf(hFile, "<tr><td>%u</td><td>%u</td></tr>\n", ConstantIndex+1, BCONData->Constants[ConstantIndex]);
+                for(i=0; i<BCONData->ConstantCount; i++)
+                    fprintf(hFile, "<tr><td>%u</td><td>%u</td></tr>\n", i+1, BCONData->Constants[i]);
+                fprintf(hFile, "</table>\n");
+            }
+        }else if(!strcmp(ChunkData->Type, "TRCN")){
+            /****
+            ** TRCN parsing
+            */
+
+            IFFRangeSet * RangeSet = ChunkData->FormattedData;
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Version:</td><td>%u</td></tr>\n", RangeSet->Version);
+            fprintf(hFile, "</table>\n");
+            if(RangeSet->RangeCount > 0){
+                unsigned i;
+                IFFRangeEntry * Range;
+
+                fprintf(hFile, "<br />\n");
+                fprintf(hFile, "<table class=\"center\">\n");
+                fprintf(hFile, "<tr><th>Used yet</th><th>Default value</th><th>Name</th>"
+                    "<th>Comment</th><th>Range is enforced</th><th>Minimum</th><th>Maximum</th></tr>\n");
+                for(i=0, Range=RangeSet->Ranges; i<RangeSet->RangeCount; i++, Range++)
+                    fprintf(hFile, "<tr><td>%s</td><td>%u</td><td>%s</td><td>%s</td><td>%s</td><td>%u</td><td>%u</td></tr>\n",
+                        Range->IsUnused ? "No" : "Yes", Range->DefaultValue,
+                        Range->Name ? Range->Name : "",
+                        Range->Comment ? Range->Comment : "",
+                        Range->Enforced ? "Yes" : "No",
+                        Range->RangeMin, Range->RangeMax);
                 fprintf(hFile, "</table>\n");
             }
         }
@@ -377,7 +429,7 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "</body>\n");
     fprintf(hFile, "</html>");
     fclose(hFile);
-    
+
     printf("Wrote contents to '%s'.\n", OutFile);
     return 0;
 }

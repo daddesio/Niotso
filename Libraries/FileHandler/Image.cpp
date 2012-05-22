@@ -1,5 +1,7 @@
 /*
-    FileHandler - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    Image.cpp - Copyright (c) 2011-2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -42,7 +44,7 @@ static uint8_t * ReadTGACUR(Image_t * Image, const uint8_t * InData, size_t File
     //In many cases we're going to see these bytes, exactly, at the beginning in both formats:
     //00 00 02 00 01 00
     //So screw it. Try parsing the file first as a TGA, then as a CUR.
-    
+
     uint8_t * Result = ReadTGA(Image, InData, FileSize);
     return Result ? Result : ReadCUR(Image, InData, FileSize);
 }
@@ -63,7 +65,7 @@ static uint8_t* (* const ImageFunction[])(Image_t*, const uint8_t*, size_t) = {
 Image_t * ReadImageFile(const char * Filename){
     uint8_t * InData = File::ReadFile(Filename);
     if(InData == NULL) return NULL;
-    
+
     if(File::FileSize < 4){
         free(InData);
         File::Error = FERR_INVALIDDATA;
@@ -99,7 +101,7 @@ static uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSiz
     if(!bmp_read_header(&BMPHeader, InData, FileSize)){
         return NULL;
     }
-    
+
     uint8_t * OutData = (uint8_t*) malloc(BMPHeader.DecompressedSize);
     if(OutData == NULL){
         return NULL;
@@ -108,7 +110,7 @@ static uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSiz
         free(OutData);
         return NULL;
     }
-    
+
     Image->Width = BMPHeader.biWidth;
     Image->Height = BMPHeader.biHeight;
     Image->Format = FIMG_BGR24;
@@ -179,7 +181,7 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t lengt
 }
 static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize){
     pngdata_t pngdata;
-    
+
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     if(png_ptr == NULL) return 0;
     png_infop info_ptr = png_create_info_struct(png_ptr);
@@ -191,7 +193,7 @@ static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSiz
         png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
         return NULL;
     }
-    
+
     pngdata.buffer = InData;
     pngdata.size = FileSize;
     png_set_read_fn(png_ptr, &pngdata, user_read_data);
@@ -199,7 +201,7 @@ static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSiz
     png_read_png(png_ptr, info_ptr,
         PNG_TRANSFORM_STRIP_16 | PNG_TRANSFORM_STRIP_ALPHA |
         PNG_TRANSFORM_PACKING | PNG_TRANSFORM_GRAY_TO_RGB | PNG_TRANSFORM_BGR, NULL);
-    
+
     //png_get_IHDR does not work in high-level mode.
     unsigned width = png_get_image_width(png_ptr, info_ptr);
     unsigned height = png_get_image_height(png_ptr, info_ptr);
@@ -208,11 +210,11 @@ static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSiz
         png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
         return NULL;
     }
-    
+
     uint8_t **Scanlines = png_get_rows(png_ptr, info_ptr);
     for(unsigned i=0; i<height; i++)
         memcpy(OutData + i*width*3, Scanlines[height-i-1], width*3);
-    
+
     png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
     Image->Width = width;
     Image->Height = height;

@@ -1,5 +1,7 @@
 /*
-    FileHandler - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    Audio.cpp - Copyright (c) 2011-2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -51,7 +53,7 @@ static uint8_t* (* const SoundFunction[])(Sound_t*, const uint8_t*, size_t) = {
 Sound_t * ReadSoundFile(const char * Filename){
     uint8_t * InData = File::ReadFile(Filename);
     if(InData == NULL) return NULL;
-    
+
     if(File::FileSize < 4){
         free(InData);
         File::Error = FERR_INVALIDDATA;
@@ -87,13 +89,13 @@ static uint8_t * ReadWAV(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
     if(!wav_read_header(&WAVHeader, InData, FileSize)){
         return NULL;
     }
-    
+
     uint8_t * OutData = (uint8_t*) malloc(WAVHeader.DataSize);
     if(OutData == NULL){
         return NULL;
     }
     memcpy(OutData, InData+44, WAVHeader.DataSize);
-    
+
     Sound->Channels = WAVHeader.nChannels;
     Sound->SamplingRate = WAVHeader.nSamplesPerSec;
     Sound->BitDepth = WAVHeader.wBitsPerSample;
@@ -108,7 +110,7 @@ static uint8_t * ReadXA(Sound_t * Sound, const uint8_t * InData, size_t FileSize
     if(!xa_read_header(&XAHeader, InData, FileSize)){
         return NULL;
     }
-    
+
     uint8_t * OutData = (uint8_t*) malloc(XAHeader.dwOutSize);
     if(OutData == NULL){
         return NULL;
@@ -117,7 +119,7 @@ static uint8_t * ReadXA(Sound_t * Sound, const uint8_t * InData, size_t FileSize
         free(OutData);
         return NULL;
     }
-    
+
     Sound->Channels = XAHeader.nChannels;
     Sound->SamplingRate = XAHeader.nSamplesPerSec;
     Sound->BitDepth = XAHeader.wBitsPerSample;
@@ -131,12 +133,12 @@ static uint8_t * ReadUTK(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
     if(!utk_read_header(&UTKHeader, InData, FileSize)){
         return NULL;
     }
-    
+
     uint8_t * OutData = (uint8_t*) malloc(UTKHeader.dwOutSize);
     if(OutData == NULL){
         return NULL;
     }
-    
+
     static bool generated = false;
     if(!generated){
         UTKGenerateTables();
@@ -147,7 +149,7 @@ static uint8_t * ReadUTK(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
         free(OutData);
         return NULL;
     }
-    
+
     Sound->Channels = 1;
     Sound->SamplingRate = UTKHeader.nSamplesPerSec;
     Sound->BitDepth = UTKHeader.wBitsPerSample;
@@ -161,7 +163,7 @@ static uint8_t * ReadMP3(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
         mpg123_exit();
         return NULL;
     }
-    
+
     long rate;
     int channels, encoding;
     unsigned samples;
@@ -190,12 +192,12 @@ static uint8_t * ReadMP3(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
     mpg123_close(mh);
     mpg123_delete(mh);
     mpg123_exit();
-    
+
     if(decoded != OutSize){
         free(OutData);
         return NULL;
     }
-    
+
     Sound->Channels = channels;
     Sound->SamplingRate = rate;
     Sound->BitDepth = 16;

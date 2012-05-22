@@ -1,5 +1,8 @@
 /*
-    bcon.c - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    bcon.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Ahmed El-Mahdawy <aa.mahdawy.10@gmail.com>
+               Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -33,14 +36,12 @@ int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     BCONData->Flags = read_uint8le(Buffer + 1);
     if(BCONData->ConstantCount == 0)
         return 1;
-    if(BCONData->ConstantCount * 2 /* bytes */ > Size - 2){
+    if(BCONData->ConstantCount * 2 /* bytes */ > Size - 2)
         return 0;
-    }
-    
+
     BCONData->Constants = malloc(BCONData->ConstantCount * sizeof(uint16_t));
-    if(BCONData->Constants == NULL){
+    if(BCONData->Constants == NULL)
         return 0;
-    }
 
     Buffer += 2;
     for(i=0; i<BCONData->ConstantCount; i++, Buffer += 2)

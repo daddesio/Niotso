@@ -1,5 +1,7 @@
 /*
-    read_wav.c - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    FileHandler - General-purpose file handling library for Niotso
+    read_wav.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
     purpose with or without fee is hereby granted, provided that the above
@@ -44,16 +46,16 @@ int wav_read_header(wavheader_t * WAVHeader, const uint8_t * Buffer, size_t File
     WAVHeader->wBitsPerSample = read_uint16(Buffer+34);
     WAVHeader->DataID = read_uint32(Buffer+36);
     WAVHeader->DataSize = read_uint32(Buffer+40);
-    
+
     if(WAVHeader->sID != 0x46464952 || WAVHeader->Size != FileSize-8 || WAVHeader->DataType != 0x45564157 ||
         WAVHeader->FmtID != 0x20746D66 || WAVHeader->FmtSize != 16 || WAVHeader->wFormatTag != WAVE_FORMAT_PCM ||
-        WAVHeader->nChannels < 1 || WAVHeader->nChannels > 2 || WAVHeader->nSamplesPerSec == 0 || 
+        WAVHeader->nChannels < 1 || WAVHeader->nChannels > 2 || WAVHeader->nSamplesPerSec == 0 ||
         (WAVHeader->nSamplesPerSec%8000 != 0 && WAVHeader->nSamplesPerSec%11025 != 0) || WAVHeader->nSamplesPerSec > 48000 ||
         WAVHeader->nAvgBytesPerSec != WAVHeader->nSamplesPerSec * WAVHeader->nBlockAlign ||
         WAVHeader->nBlockAlign != WAVHeader->nChannels * WAVHeader->wBitsPerSample >> 3 ||
         (WAVHeader->wBitsPerSample != 8 && WAVHeader->wBitsPerSample != 16) || WAVHeader->DataID != 0x61746164 ||
         WAVHeader->DataSize != FileSize - 44 || WAVHeader->DataSize % WAVHeader->nBlockAlign != 0
     )   return 0;
-    
+
     return 1;
 }
