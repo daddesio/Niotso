@@ -27,35 +27,49 @@
     int iff_parse_##x(IFFChunk *, const uint8_t *); \
     void iff_free_##x(void *)
 
-int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned IFFSize);
-int iff_free_rsmp(void * FormattedData);
 iff_register(bcon);
 iff_register(str);
 iff_register(cats);
 iff_register(c_string);
+iff_register(glob);
+iff_register(fcns);
+iff_register(tmpl);
 iff_register(trcn);
+iff_register(rsmp);
 
 /* The ordering of these chunk types must match throughout this block: */
 const char chunktypes[] =
     "STR#" "CTSS" "FAMs" "TTAs" "CST\0"
     "CATS"
     "FWAV"
+    "GLOB"
     "BCON"
+    "FCNS"
+    "TMPL"
     "TRCN"
+    "rsmp"
 ;
 int (* const iff_parse_function[])(IFFChunk*, const uint8_t*) = {
     iff_parse_str, iff_parse_str, iff_parse_str, iff_parse_str, iff_parse_str,
     iff_parse_cats,
     iff_parse_c_string,
+    iff_parse_glob,
     iff_parse_bcon,
-    iff_parse_trcn
+    iff_parse_fcns,
+    iff_parse_tmpl,
+    iff_parse_trcn,
+    iff_parse_rsmp
 };
 void (* const iff_free_function[])(void*) = {
     iff_free_str, iff_free_str, iff_free_str, iff_free_str, iff_free_str,
     iff_free_cats,
     NULL,
+    NULL,
     iff_free_bcon,
-    iff_free_trcn
+    iff_free_fcns,
+    iff_free_tmpl,
+    iff_free_trcn,
+    iff_free_rsmp
 };
 /* End */
 

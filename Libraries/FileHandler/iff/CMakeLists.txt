@@ -5,9 +5,12 @@ set(IFF_SOURCES
     cats.c
     iff.c
     bcon.c
+    fcns.c
+    glob.c
     rsmp.c
     str.c
     string.c
+    tmpl.c
     trcn.c
 )
 

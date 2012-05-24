@@ -29,7 +29,7 @@
  #define max(x,y) ((x) > (y) ? (x) : (y))
 #endif
 
-void printsize(FILE * hFile, size_t FileSize){
+static void printsize(FILE * hFile, size_t FileSize){
     /* For our purposes, our units are best described in kB and MB, if not bytes */
     size_t temp = FileSize;
     unsigned position = 1;
@@ -237,6 +237,7 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "th, td {\n");
     fprintf(hFile, "    border: 1px #aaa solid;\n");
     fprintf(hFile, "    padding: 0.2em;\n");
+    fprintf(hFile, "    white-space: pre-wrap;\n");
     fprintf(hFile, "}\n");
     fprintf(hFile, "\n");
     fprintf(hFile, ".center {\n");
@@ -352,7 +353,7 @@ int main(int argc, char *argv[]){
             }
         }else if(!strcmp(ChunkData->Type, "CATS")){
             /****
-            ** CATS parsing
+            ** Regular string pair
             */
 
             IFFStringPair * Pair = ChunkData->FormattedData;
@@ -363,7 +364,7 @@ int main(int argc, char *argv[]){
                 (Pair->Key)   != NULL ? Pair->Key   : "",
                 (Pair->Value) != NULL ? Pair->Value : "");
             fprintf(hFile, "</table>\n");
-        }else if(!strcmp(ChunkData->Type, "FWAV")){
+        }else if(!strcmp(ChunkData->Type, "FWAV") || !strcmp(ChunkData->Type, "GLOB")){
             /****
             ** Regular string
             */
@@ -379,7 +380,7 @@ int main(int argc, char *argv[]){
 
             IFF_BCON * BCONData = ChunkData->FormattedData;
             fprintf(hFile, "<table>\n");
-            fprintf(hFile, "<tr><td>Flags:</td><td><tt>%02X</tt> (%d)</td></tr>\n", BCONData->Flags, BCONData->Flags);
+            fprintf(hFile, "<tr><td>Flags:</td><td><tt>%02X</tt> (%u)</td></tr>\n", BCONData->Flags, BCONData->Flags);
             fprintf(hFile, "</table>\n");
             if(BCONData->ConstantCount > 0){
                 unsigned i;
@@ -391,6 +392,46 @@ int main(int argc, char *argv[]){
                     fprintf(hFile, "<tr><td>%u</td><td>%u</td></tr>\n", i+1, BCONData->Constants[i]);
                 fprintf(hFile, "</table>\n");
             }
+        }else if(!strcmp(ChunkData->Type, "FCNS")){
+            /****
+            ** FCNS parsing
+            */
+
+            IFFConstantList * List = ChunkData->FormattedData;
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Version:</td><td>%u</td></tr>\n", List->Version);
+            fprintf(hFile, "</table>\n");
+            if(List->ConstantCount > 0){
+                IFFConstant * Constant;
+                unsigned i;
+
+                fprintf(hFile, "<br />\n");
+                fprintf(hFile, "<table class=\"center\">\n");
+                fprintf(hFile, "<tr><th colspan=\"2\">Name</th><th>Value</th><th>Description</th></tr>\n");
+                for(i=0, Constant=List->Constants; i<List->ConstantCount; i++, Constant++)
+                    fprintf(hFile, "<tr><td>%u</td><td>%s</td><td>%g</td><td>%s</td></tr>\n",
+                        i+1,
+                        Constant->Name ? Constant->Name : "",
+                        Constant->Value,
+                        Constant->Description ? Constant->Description : "");
+                fprintf(hFile, "</table>\n");
+            }
+        }else if(!strcmp(ChunkData->Type, "TMPL")){
+            /****
+            ** TMPL parsing
+            */
+
+            IFFTemplate * Template = ChunkData->FormattedData;
+            IFFTemplateField * Field;
+            unsigned i;
+            fprintf(hFile, "<table class=\"center\">\n");
+            fprintf(hFile, "<tr><th colspan=\"2\">Name</th><th>Type</th>\n");
+            for(i=0, Field=Template->Fields; i<Template->FieldCount; i++, Field++)
+                fprintf(hFile, "<tr><td>%u</td><td>%s</td><td>%s</td></tr>\n",
+                    i+1,
+                    Field->Name ? Field->Name : "",
+                    Field->Type ? Field->Type : "");
+            fprintf(hFile, "</table>\n");
         }else if(!strcmp(ChunkData->Type, "TRCN")){
             /****
             ** TRCN parsing
@@ -406,10 +447,11 @@ int main(int argc, char *argv[]){
 
                 fprintf(hFile, "<br />\n");
                 fprintf(hFile, "<table class=\"center\">\n");
-                fprintf(hFile, "<tr><th>Used yet</th><th>Default value</th><th>Name</th>"
+                fprintf(hFile, "<tr><th colspan=\"2\">Used yet</th><th>Default value</th><th>Name</th>"
                     "<th>Comment</th><th>Range is enforced</th><th>Minimum</th><th>Maximum</th></tr>\n");
                 for(i=0, Range=RangeSet->Ranges; i<RangeSet->RangeCount; i++, Range++)
-                    fprintf(hFile, "<tr><td>%s</td><td>%u</td><td>%s</td><td>%s</td><td>%s</td><td>%u</td><td>%u</td></tr>\n",
+                    fprintf(hFile, "<tr><td>%u</td><td>%s</td><td>%u</td><td>%s</td><td>%s</td><td>%s</td><td>%u</td><td>%u</td></tr>\n",
+                        i+1,
                         Range->IsUnused ? "No" : "Yes", Range->DefaultValue,
                         Range->Name ? Range->Name : "",
                         Range->Comment ? Range->Comment : "",
@@ -417,6 +459,8 @@ int main(int argc, char *argv[]){
                         Range->RangeMin, Range->RangeMax);
                 fprintf(hFile, "</table>\n");
             }
+        }else{
+            fprintf(hFile, "The contents of this chunk cannot be shown on this page.\n");
         }
 
         fprintf(hFile, "</div>\n\n");

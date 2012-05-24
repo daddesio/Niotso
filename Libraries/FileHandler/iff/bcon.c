@@ -26,12 +26,11 @@ int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 
     if(Size < 2)
         return 0;
-    ChunkInfo->FormattedData = malloc(sizeof(IFF_BCON));
+    ChunkInfo->FormattedData = calloc(1, sizeof(IFF_BCON));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
     BCONData = (IFF_BCON*) ChunkInfo->FormattedData;
-    BCONData->Constants = NULL;
     BCONData->ConstantCount = read_uint8le(Buffer);
     BCONData->Flags = read_uint8le(Buffer + 1);
     if(BCONData->ConstantCount == 0)

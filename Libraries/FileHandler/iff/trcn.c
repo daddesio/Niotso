@@ -26,7 +26,7 @@ int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 
     if(Size < 16)
         return 0;
-    ChunkInfo->FormattedData = malloc(sizeof(IFFRangeSet));
+    ChunkInfo->FormattedData = calloc(1, sizeof(IFFRangeSet));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
@@ -37,7 +37,7 @@ int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     memcpy(RangeSet->MagicNumber, Buffer+8, 4);
     RangeSet->MagicNumber[4] = 0x00;
     RangeSet->RangeCount = read_uint32le(Buffer+12);
-    if(RangeSet->Version > 2)
+    if(RangeSet->Reserved != 0 || RangeSet->Version > 2)
         return 0;
     if(RangeSet->RangeCount == 0)
         return 1;
@@ -85,6 +85,11 @@ int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                 /* Pascal string */
                 length = read_uint8le(Buffer);
                 Buffer++; Size--;
+                if(length > 127){
+                    if(Size == 0) return 0;
+                    length = (length&127) | (read_uint8le(Buffer)<<7);
+                    Buffer++; Size--;
+                }
 
                 if(length != 0){
                     *string = malloc(length+1);

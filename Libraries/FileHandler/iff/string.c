@@ -23,9 +23,6 @@ int iff_parse_c_string(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     unsigned Size = ChunkInfo->Size - 76;
     unsigned length;
 
-    if(Size == 0)
-        return 0;
-
     for(length=0; length != Size && Buffer[length]; length++);
     if(length == Size) return 0;
 

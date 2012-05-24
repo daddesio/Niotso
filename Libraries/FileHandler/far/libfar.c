@@ -106,29 +106,21 @@ int far_identify(const uint8_t * Buffer, unsigned FileSize)
 
 FARFile * far_create_archive(int Type)
 {
-    FARFile *ptr = malloc(sizeof(FARFile));
+    FARFile *ptr = calloc(1, sizeof(FARFile));
     if(ptr == NULL) return NULL;
-
-    memset(ptr, 0, sizeof(FARFile));
     ptr->Type = Type;
-
     return ptr;
 }
 
 PersistFile * far_create_persist()
 {
-    PersistFile *ptr = malloc(sizeof(PersistFile));
-    if(ptr == NULL) return NULL;
-
-    memset(ptr, 0, sizeof(PersistFile));
-    return ptr;
+    return calloc(1, sizeof(PersistFile));
 }
 
 FAREntryNode * far_add_entry(FARFile * FARFileInfo, int Position)
 {
-    FAREntryNode *ptr = malloc(sizeof(FAREntryNode)), *node;
+    FAREntryNode *ptr = calloc(1, sizeof(FAREntryNode)), *node;
     if(ptr == NULL) return NULL;
-    memset(ptr, 0, sizeof(FAREntryNode));
     if(FARFileInfo == NULL) return ptr;
 
     if(Position >= 0){

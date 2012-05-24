@@ -80,6 +80,24 @@ typedef struct IFF_BCON_s
     uint16_t * Constants;
 } IFF_BCON;
 
+/* FCNS chunk */
+
+typedef struct IFFConstant_s
+{
+    char * Name;
+    float Value;
+    char * Description;
+} IFFConstant;
+
+typedef struct IFFConstantList_s
+{
+    uint32_t Reserved;
+    uint32_t Version;
+    char MagicNumber[5];
+    uint32_t ConstantCount;
+    IFFConstant * Constants;
+} IFFConstantList;
+
 /* STR# chunk */
 
 enum IFFLanguage {
@@ -125,6 +143,20 @@ typedef struct IFF_STR_s
     IFFLanguageSet LanguageSets[20];
 } IFFString;
 
+/* TMPL chunk */
+
+typedef struct IFFTemplateField_s
+{
+    char * Name;
+    char Type[5];
+} IFFTemplateField;
+
+typedef struct IFFTemplate_s
+{
+    uint32_t FieldCount;
+    IFFTemplateField * Fields;
+} IFFTemplate;
+
 /* TRCN chunk */
 
 typedef struct IFFRangeEntry_s
@@ -146,6 +178,33 @@ typedef struct IFFRangeSet_s
     uint32_t RangeCount;
     IFFRangeEntry * Ranges;
 } IFFRangeSet;
+
+/* rsmp chunk */
+
+typedef struct IFFResource_s
+{
+    uint32_t Offset;
+    uint32_t ChunkID;
+    uint16_t Flags;
+    char * Label;
+} IFFResource;
+
+typedef struct IFFResouceType_s
+{
+    char Type[5];
+    uint32_t ResourceCount;
+    IFFResource * Resources;
+} IFFResourceType;
+
+typedef struct IFFResourceMap_s
+{
+    uint32_t Reserved;
+    uint32_t Version;
+    char MagicNumber[5];
+    uint32_t IFFSize;
+    uint32_t TypeCount;
+    IFFResourceType * ResourceTypes;
+} IFFResourceMap;
 
 #ifdef __cplusplus
 extern "C" {

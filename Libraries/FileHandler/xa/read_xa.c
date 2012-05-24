@@ -113,7 +113,7 @@ static const int16_t XATable[] =
 int xa_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames, unsigned Channels)
 {
     channel_t Channel[8];
-    memset(Channel, 0x00, sizeof(Channel));
+    memset(Channel, 0, sizeof(Channel));
     if(Frames == 0) return 1;
 
     while(1){
