@@ -1,6 +1,6 @@
 /*
     FileHandler - General-purpose file handling library for Niotso
-    cats.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    palt.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
     Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
@@ -18,38 +18,25 @@
 
 #include "iff.h"
 
-int iff_parse_cats(IFFChunk * ChunkInfo, const uint8_t * Buffer){
-    IFFStringPair * StringData;
+int iff_parse_palt(IFFChunk * ChunkInfo, const uint8_t * Buffer){
+    IFFPalette *Palette;
     unsigned Size = ChunkInfo->Size - 76;
-    int s;
 
-    ChunkInfo->FormattedData = calloc(1, sizeof(IFFStringPair));
+    if(Size < 16)
+        return 0;
+    ChunkInfo->FormattedData = malloc(sizeof(IFFPalette));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
-    StringData = ChunkInfo->FormattedData;
 
-    for(s=0; s<2; s++){
-        unsigned length;
-        for(length=0; length != Size && Buffer[length]; length++);
-        if(length == Size) return 0;
+    Palette = ChunkInfo->FormattedData;
+    Palette->Version = read_uint32le(Buffer);
+    Palette->ColorCount = read_uint32le(Buffer+4);
+    Palette->Reserved1 = read_uint32le(Buffer+8);
+    Palette->Reserved2 = read_uint32le(Buffer+12);
+    if(Palette->Version != 1 || Palette->ColorCount == 0 || Palette->ColorCount > 256 ||
+        Palette->Reserved1 != 0 || Palette->Reserved2 != 0 || Palette->ColorCount*3 > Size-16)
+        return 0;
 
-        if(length != 0){
-            char ** string = (s==0) ? &StringData->Key : &StringData->Value;
-            *string = malloc(length+1);
-            if(*string == NULL) return 0;
-            strcpy(*string, (char*) Buffer);
-
-            Buffer += length;
-            Size   -= length;
-        }
-        Buffer++; Size--;
-    }
-
+    memcpy(Palette->Data, Buffer+16, Palette->ColorCount*3);
     return 1;
-}
-
-void iff_free_cats(void * FormattedData){
-    IFFStringPair * StringData = FormattedData;
-    free(StringData->Key);
-    free(StringData->Value);
 }

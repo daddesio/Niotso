@@ -21,11 +21,8 @@
 int main(){
     printf("Usage: hitld [-f] [-hsm infile.hsm] [-hot infile.hot]\n"
     "       outfile.hit INFILES\n"
-    "Link object files produced by hitasm into a HIT binary.\n"
-    "\n"
-    "The HSM and HOT files associated with the HIT file are required\n"
-    "for modification; their paths are normally defined by one of the\n"
-    "linked objects but can be forced using the above options.\n"
+    "Link object files produced by hitasm into a HIT binary, and\n"
+    "relink the game's HSM and HOT files.\n"
     "Use -f to force overwriting without confirmation.\n"
     "\n"
     "Report bugs to <X-Fi6@phppoll.org>.\n"

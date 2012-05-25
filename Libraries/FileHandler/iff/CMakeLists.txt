@@ -7,6 +7,7 @@ set(IFF_SOURCES
     bcon.c
     fcns.c
     glob.c
+    palt.c
     rsmp.c
     str.c
     string.c

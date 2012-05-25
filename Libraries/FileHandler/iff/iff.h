@@ -98,6 +98,17 @@ typedef struct IFFConstantList_s
     IFFConstant * Constants;
 } IFFConstantList;
 
+/* PALT chunk */
+
+typedef struct IFFPalette_s
+{
+    uint32_t Version;
+    uint32_t ColorCount;
+    uint32_t Reserved1;
+    uint32_t Reserved2;
+    uint8_t Data[256*3];
+} IFFPalette;
+
 /* STR# chunk */
 
 enum IFFLanguage {
@@ -161,7 +172,7 @@ typedef struct IFFTemplate_s
 
 typedef struct IFFRangeEntry_s
 {
-    uint32_t IsUnused;
+    uint32_t IsUsed;
     uint32_t DefaultValue;
     char * Name;
     char * Comment;

@@ -30,7 +30,7 @@ int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
-    RangeSet = (IFFRangeSet*) ChunkInfo->FormattedData;
+    RangeSet = ChunkInfo->FormattedData;
     RangeSet->Ranges = NULL;
     RangeSet->Reserved = read_uint32le(Buffer);
     RangeSet->Version = read_uint32le(Buffer+4);
@@ -53,7 +53,7 @@ int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
         if(Size < 10)
             return 0;
 
-        Range->IsUnused = read_uint32le(Buffer);
+        Range->IsUsed = read_uint32le(Buffer);
         Range->DefaultValue = read_uint32le(Buffer+4);
         Buffer += 8; Size -= 8;
 
@@ -116,7 +116,7 @@ int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 }
 
 void iff_free_trcn(void * FormattedData){
-    IFFRangeSet *RangeSet = (IFFRangeSet*) FormattedData;
+    IFFRangeSet *RangeSet = FormattedData;
     if(RangeSet->Ranges){
         unsigned i;
         for(i=0; i<RangeSet->RangeCount; i++){

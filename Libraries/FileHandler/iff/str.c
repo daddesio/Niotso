@@ -29,7 +29,7 @@ int iff_parse_str(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
-    StringData = (IFFString*) ChunkInfo->FormattedData;
+    StringData = ChunkInfo->FormattedData;
     StringData->Format = read_int16le(Buffer);
     if((Size-=2) < 2) /* TSO allows this; as seen in the animations chunk in personglobals.iff */
         return 1;
@@ -261,7 +261,7 @@ void iff_free_str(void * FormattedData){
     ** - If the Pairs pointer is nonzero, there must be PairCount initialized pairs in Pairs
     */
 
-    IFFString * StringData = (IFFString*) FormattedData;
+    IFFString * StringData = FormattedData;
     unsigned ls;
 
     for(ls=0; ls<20; ls++){

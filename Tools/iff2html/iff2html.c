@@ -244,6 +244,18 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "    margin: auto auto;\n");
     fprintf(hFile, "}\n");
     fprintf(hFile, "\n");
+    fprintf(hFile, ".palette td, .palette th {\n");
+    fprintf(hFile, "    border: none;\n");
+    fprintf(hFile, "    width: 16px;\n");
+    fprintf(hFile, "    height: 16px;\n");
+    fprintf(hFile, "    font-size: 12px;\n");
+    fprintf(hFile, "    line-height: 16px;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, ".palette td[title] {\n");
+    fprintf(hFile, "    border: 1px solid #000;\n");
+    fprintf(hFile, "    cursor: help;\n");
+    fprintf(hFile, "}\n");
+    fprintf(hFile, "\n");
     fprintf(hFile, "#footer {\n");
     fprintf(hFile, "    margin-top: 2em;\n");
     fprintf(hFile, "    padding-bottom: 0.5em;\n");
@@ -447,18 +459,47 @@ int main(int argc, char *argv[]){
 
                 fprintf(hFile, "<br />\n");
                 fprintf(hFile, "<table class=\"center\">\n");
-                fprintf(hFile, "<tr><th colspan=\"2\">Used yet</th><th>Default value</th><th>Name</th>"
+                fprintf(hFile, "<tr><th colspan=\"2\">In use</th><th>Default value</th><th>Name</th>"
                     "<th>Comment</th><th>Range is enforced</th><th>Minimum</th><th>Maximum</th></tr>\n");
                 for(i=0, Range=RangeSet->Ranges; i<RangeSet->RangeCount; i++, Range++)
                     fprintf(hFile, "<tr><td>%u</td><td>%s</td><td>%u</td><td>%s</td><td>%s</td><td>%s</td><td>%u</td><td>%u</td></tr>\n",
                         i+1,
-                        Range->IsUnused ? "No" : "Yes", Range->DefaultValue,
+                        Range->IsUsed ? "Yes" : "No", Range->DefaultValue,
                         Range->Name ? Range->Name : "",
                         Range->Comment ? Range->Comment : "",
                         Range->Enforced ? "Yes" : "No",
                         Range->RangeMin, Range->RangeMax);
                 fprintf(hFile, "</table>\n");
             }
+        }else if(!strcmp(ChunkData->Type, "PALT")){
+            /****
+            ** PALT parsing
+            */
+
+            IFFPalette * Palette = ChunkData->FormattedData;
+            uint8_t * Data = Palette->Data;
+            unsigned i, j;
+
+            fprintf(hFile, "<table class=\"center palette\" border=\"0\">\n");
+            fprintf(hFile, "<tr><th></th>");
+            for(i=0; i<16; i++) fprintf(hFile, "<th>%X</th>", i);
+            fprintf(hFile, "</tr>\n");
+            for(i=0; i<16; i++){
+                fprintf(hFile, "<tr><th>%X</th>", i);
+                for(j=0; j<16; j++){
+                    if(i*16 + j < Palette->ColorCount){
+                        unsigned blue = *(Data++);
+                        unsigned green = *(Data++);
+                        unsigned red = *(Data++);
+
+                        fprintf(hFile, "\n<td style=\"background:#%.2x%.2x%.2x\" title=\"%u: #%.2x%.2x%.2x\"></td>",
+                            red, green, blue, i*16 + j, red, green, blue);
+                    }else
+                        fprintf(hFile, "\n<td></td>");
+                }
+                fprintf(hFile, "</tr>\n");
+            }
+            fprintf(hFile, "</table>\n");
         }else{
             fprintf(hFile, "The contents of this chunk cannot be shown on this page.\n");
         }

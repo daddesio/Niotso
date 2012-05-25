@@ -33,6 +33,7 @@ iff_register(cats);
 iff_register(c_string);
 iff_register(glob);
 iff_register(fcns);
+iff_register(palt);
 iff_register(tmpl);
 iff_register(trcn);
 iff_register(rsmp);
@@ -45,6 +46,7 @@ const char chunktypes[] =
     "GLOB"
     "BCON"
     "FCNS"
+    "PALT"
     "TMPL"
     "TRCN"
     "rsmp"
@@ -56,6 +58,7 @@ int (* const iff_parse_function[])(IFFChunk*, const uint8_t*) = {
     iff_parse_glob,
     iff_parse_bcon,
     iff_parse_fcns,
+    iff_parse_palt,
     iff_parse_tmpl,
     iff_parse_trcn,
     iff_parse_rsmp
@@ -67,6 +70,7 @@ void (* const iff_free_function[])(void*) = {
     NULL,
     iff_free_bcon,
     iff_free_fcns,
+    NULL,
     iff_free_tmpl,
     iff_free_trcn,
     iff_free_rsmp

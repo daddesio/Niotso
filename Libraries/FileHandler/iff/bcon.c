@@ -30,7 +30,7 @@ int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
-    BCONData = (IFF_BCON*) ChunkInfo->FormattedData;
+    BCONData = ChunkInfo->FormattedData;
     BCONData->ConstantCount = read_uint8le(Buffer);
     BCONData->Flags = read_uint8le(Buffer + 1);
     if(BCONData->ConstantCount == 0)
@@ -49,6 +49,6 @@ int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 }
 
 void iff_free_bcon(void * FormattedData){
-    IFF_BCON *BCONData = (IFF_BCON*) FormattedData;
+    IFF_BCON *BCONData = FormattedData;
     free(BCONData->Constants);
 }

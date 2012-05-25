@@ -39,7 +39,7 @@ int iff_parse_tmpl(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
-    Template = (IFFTemplate*) ChunkInfo->FormattedData;
+    Template = ChunkInfo->FormattedData;
     Template->FieldCount = FieldCount;
     Template->Fields = calloc(FieldCount, sizeof(IFFTemplateField));
     if(Template->Fields == NULL)
