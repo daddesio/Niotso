@@ -23,12 +23,15 @@ int iff_parse_glob(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     unsigned Size = ChunkInfo->Size - 76;
     unsigned length;
 
-    if(Size == 0) return 0;
+    if(Size == 0){
+        *string = NULL;
+        return 0;
+    }
 
     /* Try reading as a C string */
     for(length=0; length != Size && Buffer[length] && Buffer[length] != 0xA3; length++);
 
-    if(length != Size){
+    if(length != Size && !Buffer[length] /* null character; in these strings, 0xA3 doesn't count */){
         if(length > 0){
             *string = malloc(length+1);
             if(*string == NULL) return 0;
