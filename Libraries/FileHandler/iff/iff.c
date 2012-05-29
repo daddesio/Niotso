@@ -34,6 +34,7 @@ iff_register(c_string);
 iff_register(glob);
 iff_register(fcns);
 iff_register(palt);
+iff_register(spr);
 iff_register(tmpl);
 iff_register(trcn);
 iff_register(rsmp);
@@ -47,6 +48,7 @@ const char chunktypes[] =
     "BCON"
     "FCNS"
     "PALT"
+    "SPR#"
     "TMPL"
     "TRCN"
     "rsmp"
@@ -59,6 +61,7 @@ int (* const iff_parse_function[])(IFFChunk*, const uint8_t*) = {
     iff_parse_bcon,
     iff_parse_fcns,
     iff_parse_palt,
+    iff_parse_spr,
     iff_parse_tmpl,
     iff_parse_trcn,
     iff_parse_rsmp
@@ -71,6 +74,7 @@ void (* const iff_free_function[])(void*) = {
     iff_free_bcon,
     iff_free_fcns,
     NULL,
+    iff_free_spr,
     iff_free_tmpl,
     iff_free_trcn,
     iff_free_rsmp
@@ -183,6 +187,17 @@ int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer){
         }
     }
     return 0;
+}
+
+IFFChunk * iff_find_chunk(IFFFile * IFFFileInfo, const char * Type, int ChunkID){
+    unsigned i;
+    for(i=0; i<IFFFileInfo->ChunkCount; i++){
+        IFFChunk * Chunk = &IFFFileInfo->Chunks[i];
+        if((Type == NULL || !strcmp(Chunk->Type, Type)) &&
+            (ChunkID == -1 || Chunk->ChunkID == ChunkID))
+            return Chunk;
+    }
+    return NULL;
 }
 
 void iff_free_chunk(IFFChunk * ChunkInfo){

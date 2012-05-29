@@ -16,6 +16,7 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include "read_bmp.h"
@@ -33,6 +34,7 @@
 #endif
 
 int bmp_read_header(bmpheader_t * BMPHeader, const uint8_t * Buffer, size_t FileSize){
+    unsigned padding;
     if(FileSize < 54) return 0;
     BMPHeader->bfType = read_uint16(Buffer);
     BMPHeader->bfSize = read_uint32(Buffer+2);
@@ -52,25 +54,27 @@ int bmp_read_header(bmpheader_t * BMPHeader, const uint8_t * Buffer, size_t File
     BMPHeader->biClrUsed = read_uint32(Buffer+46);
     BMPHeader->biClrImportant = read_uint32(Buffer+50);
 
-    BMPHeader->CompressedSize = FileSize - BMPHeader->bfOffBits;
+    if(BMPHeader->bfSize == 0) BMPHeader->bfSize = FileSize;
+    BMPHeader->CompressedSize = BMPHeader->bfSize - BMPHeader->bfOffBits;
     BMPHeader->DecompressedSize = BMPHeader->biWidth * BMPHeader->biHeight * 3;
+    padding = BMPHeader->biWidth%4;
+    if(padding != 0) padding = (BMPHeader->biHeight-1)*(4-padding);
 
     if(BMPHeader->bfType != 0x4D42 ||
-        BMPHeader->bfSize != FileSize ||
+        BMPHeader->bfSize > FileSize ||
         BMPHeader->bfReserved1 != 0 || BMPHeader->bfReserved2 != 0 ||
         BMPHeader->biSize != 40 ||
         BMPHeader->biWidth == 0 || BMPHeader->biWidth > 4096 ||   /*< Includes negative check */
         BMPHeader->biHeight == 0 || BMPHeader->biHeight > 4096 || /*< by treating as unsigned */
         BMPHeader->biPlanes != 1 ||
         (BMPHeader->biBitCount != 24 &&
-            (BMPHeader->biBitCount != 8 || FileSize < 1078 /* We need room for the color palette */)) ||
+            (BMPHeader->biBitCount != 8 || BMPHeader->bfSize < 1078 /* We need room for the color palette */)) ||
         (BMPHeader->biCompression != BI_RGB &&
             (BMPHeader->biCompression != BI_RLE8 || BMPHeader->biBitCount > 8)) ||
-        BMPHeader->bfOffBits >= FileSize ||
+        BMPHeader->bfOffBits >= BMPHeader->bfSize ||
         (BMPHeader->biCompression == BI_RGB &&
-            ((BMPHeader->biBitCount == 24 && BMPHeader->CompressedSize < BMPHeader->DecompressedSize) ||
-            (BMPHeader->biBitCount == 8 && BMPHeader->CompressedSize < BMPHeader->DecompressedSize/3 +
-                BMPHeader->biHeight*(BMPHeader->biWidth%4) /* Account for padding in 8-bit BMPs */)))
+            ((BMPHeader->biBitCount == 24 && BMPHeader->CompressedSize < BMPHeader->DecompressedSize + padding) ||
+            (BMPHeader->biBitCount == 8 && BMPHeader->CompressedSize < BMPHeader->DecompressedSize/3 + padding)))
     )   return 0;
 
     return 1;
@@ -78,7 +82,24 @@ int bmp_read_header(bmpheader_t * BMPHeader, const uint8_t * Buffer, size_t File
 
 int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer){
     if(BMPHeader->biBitCount == 24 && BMPHeader->biCompression == BI_RGB){
-        memcpy(OutBuffer, InBuffer+BMPHeader->bfOffBits, BMPHeader->DecompressedSize);
+        unsigned pitch = BMPHeader->biWidth*3;
+        unsigned i;
+        unsigned padding = pitch%4;
+        if(padding != 0) padding = 4-padding;
+
+        for(i=0; i<BMPHeader->biHeight; i++)
+            memcpy(OutBuffer + i*pitch, InBuffer+BMPHeader->bfOffBits + i*(pitch + padding), pitch);
+        return 1;
+    }
+
+    if(BMPHeader->biBitCount == 32 && BMPHeader->biCompression == BI_RGB){
+        unsigned i;
+        for(i=0; i<BMPHeader->biHeight*BMPHeader->biWidth; i++){
+            *(OutBuffer++) = *(InBuffer++);
+            *(OutBuffer++) = *(InBuffer++);
+            *(OutBuffer++) = *(InBuffer++);
+            InBuffer++;
+        }
         return 1;
     }
 
@@ -89,6 +110,8 @@ int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t *__restrict InBuffer, u
         if(BMPHeader->biCompression == BI_RGB){
             unsigned y, x;
             unsigned padding = BMPHeader->biWidth % 4;
+            if(padding != 0) padding = 4-padding;
+            
             for(y=0; y<BMPHeader->biHeight; y++){
                 for(x=0; x<BMPHeader->biWidth; x++){
                     unsigned index = 4*(*InBuffer++);

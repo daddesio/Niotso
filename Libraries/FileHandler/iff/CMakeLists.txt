@@ -9,6 +9,7 @@ set(IFF_SOURCES
     glob.c
     palt.c
     rsmp.c
+    spr.c
     str.c
     string.c
     tmpl.c

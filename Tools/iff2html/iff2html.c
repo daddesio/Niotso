@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <iff/iff.h>
 #include "md5.h"
+#include "image.h"
 
 #ifndef min
  #define min(x,y) ((x) < (y) ? (x) : (y))
@@ -49,15 +50,14 @@ static void printsize(FILE * hFile, size_t FileSize){
 }
 
 int main(int argc, char *argv[]){
-    unsigned i;
+    unsigned c, slash;
     FILE * hFile;
     int overwrite = 0;
-    char *InFile, *OutFile = NULL;
+    char *InFile, *OutFile = NULL, *OutDir = NULL;
     size_t FileSize;
     struct MD5Context md5c;
     unsigned char digest[16];
     uint8_t * IFFData;
-    unsigned chunk = 0;
     IFFFile * IFFFileInfo;
     IFFChunk * ChunkData;
 
@@ -92,6 +92,14 @@ int main(int argc, char *argv[]){
         strcpy(OutFile, InFile);
         strcpy(max(OutFile+length-4, OutFile), ".html");
     }
+
+    for(c=0, slash=0; OutFile[c]; c++)
+        if(OutFile[c] == '/' || OutFile[c] == '\\') slash = c;
+    if(slash != 0){
+        OutDir = malloc(slash+2);
+        memcpy(OutDir, OutFile, slash+1);
+        OutDir[slash+1] = 0x00;
+    }else OutDir = "";
 
     /****
     ** Open the file and read in entire contents to memory
@@ -150,7 +158,7 @@ int main(int argc, char *argv[]){
     MD5Final(digest, &md5c);
     free(IFFData);
 
-    for(chunk = 0, ChunkData = IFFFileInfo->Chunks; chunk < IFFFileInfo->ChunkCount; chunk++, ChunkData++)
+    for(c = 0, ChunkData = IFFFileInfo->Chunks; c < IFFFileInfo->ChunkCount; c++, ChunkData++)
         iff_parse_chunk(ChunkData, ChunkData->Data);
 
     /****
@@ -184,8 +192,8 @@ int main(int argc, char *argv[]){
         "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n");
     fprintf(hFile, "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\" dir=\"ltr\">\n");
     fprintf(hFile, "<head>\n");
-    fprintf(hFile, "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n");
-    fprintf(hFile, "<meta http-equiv=\"Content-Style-Type\" content=\"text/css; charset=utf-8\" />\n");
+    fprintf(hFile, "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\" />\n");
+    fprintf(hFile, "<meta http-equiv=\"Content-Style-Type\" content=\"text/css; charset=iso-8859-1\" />\n");
     fprintf(hFile, "<meta http-equiv=\"Content-Language\" content=\"en\" />\n");
     fprintf(hFile, "<meta name=\"description\" content=\"%s (iff2html)\" />\n", InFile);
     fprintf(hFile, "<meta name=\"generator\" content=\"iff2html\" />\n");
@@ -243,6 +251,10 @@ int main(int argc, char *argv[]){
     fprintf(hFile, ".center {\n");
     fprintf(hFile, "    margin: auto auto;\n");
     fprintf(hFile, "}\n");
+    fprintf(hFile, ".centerall * {\n");
+    fprintf(hFile, "    text-align: center;\n");
+    fprintf(hFile, "    vertical-align: middle;\n");
+    fprintf(hFile, "}\n");
     fprintf(hFile, "\n");
     fprintf(hFile, ".palette td, .palette th {\n");
     fprintf(hFile, "    border: none;\n");
@@ -267,8 +279,8 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "<h1>%s</h1>\n", InFile);
     fprintf(hFile, "<div id=\"attributes\">\n");
     fprintf(hFile, "<div>");
-    for(i=0; i<16; i++)
-        fprintf(hFile, "%.2x", digest[i]);
+    for(c=0; c<16; c++)
+        fprintf(hFile, "%.2x", digest[c]);
     fprintf(hFile, " (md5), ");
     printsize(hFile, FileSize);
     fprintf(hFile, "</div>\n");
@@ -276,23 +288,40 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "\n");
     fprintf(hFile, "<div id=\"toc\"><div><b>Contents</b> &ndash; %u chunks</div>\n", IFFFileInfo->ChunkCount);
     fprintf(hFile, "<ul>\n");
-    for(i=1, ChunkData = IFFFileInfo->Chunks; i <= IFFFileInfo->ChunkCount; i++, ChunkData++)
+    for(c=1, ChunkData = IFFFileInfo->Chunks; c <= IFFFileInfo->ChunkCount; c++, ChunkData++)
         fprintf(hFile, "<li><a href=\"#chunk%u_%.4x\">%u [%s] (%.4X)%s%s</a></li>\n",
-            i, ChunkData->ChunkID, i, ChunkData->Type, ChunkData->ChunkID,
+            c, ChunkData->ChunkID, c, ChunkData->Type, ChunkData->ChunkID,
             (ChunkData->Label[0] != 0x00) ? " &ndash; " : "", ChunkData->Label);
     fprintf(hFile, "</ul>\n");
     fprintf(hFile, "</div>\n");
     fprintf(hFile, "\n");
 
-    for(i=1, ChunkData = IFFFileInfo->Chunks; i <= IFFFileInfo->ChunkCount; i++, ChunkData++){
+    for(c=1, ChunkData = IFFFileInfo->Chunks; c <= IFFFileInfo->ChunkCount; c++, ChunkData++){
         fprintf(hFile, "<h2 id=\"chunk%u_%.4x\">%u [%s] (%.4X)%s%s <a href=\"#chunk%u_%.4x\">(Jump)</a></h2>\n",
-            i, ChunkData->ChunkID, i, ChunkData->Type, ChunkData->ChunkID,
+            c, ChunkData->ChunkID, c, ChunkData->Type, ChunkData->ChunkID,
             (ChunkData->Label[0] != 0x00) ? " &ndash; " : "", ChunkData->Label,
-            i, ChunkData->ChunkID);
+            c, ChunkData->ChunkID);
         fprintf(hFile, "<div>\n");
 
         if(ChunkData->FormattedData == NULL){
-            fprintf(hFile, "The contents of this chunk could not be parsed.\n");
+            int success = 0;
+            /* The iff library does not parse BMP_ or FBMP chunks */
+            if(!strcmp(ChunkData->Type, "BMP_") || !strcmp(ChunkData->Type, "FBMP")){
+                size_t Width, Height;
+                char filename[32];
+                sprintf(filename, "%simg_%u_%.4x.png", OutDir, c, ChunkData->ChunkID);
+
+                if(WritePNG(filename, ChunkData, NULL, &Width, &Height)){
+                    fprintf(hFile, "<table class=\"center centerall\">\n");
+                    fprintf(hFile, "<tr><th>Image</th></tr>\n");
+                    fprintf(hFile, "<tr><td><img src=\"img_%u_%.4x.png\" width=\"%u\" height=\"%u\" alt=\"\" /></td></tr>\n",
+                        c, ChunkData->ChunkID, Width, Height);
+                    fprintf(hFile, "</table>\n");
+                    success++;
+                }
+            }
+            if(!success)
+                fprintf(hFile, "The contents of this chunk could not be parsed.\n");
         }else if(!strcmp(ChunkData->Type, "STR#")  ||
             !strcmp(ChunkData->Type, "CTSS") ||
             !strcmp(ChunkData->Type, "FAMs") ||
@@ -462,7 +491,8 @@ int main(int argc, char *argv[]){
                 fprintf(hFile, "<tr><th colspan=\"2\">In use</th><th>Default value</th><th>Name</th>"
                     "<th>Comment</th><th>Range is enforced</th><th>Minimum</th><th>Maximum</th></tr>\n");
                 for(i=0, Range=RangeSet->Ranges; i<RangeSet->RangeCount; i++, Range++)
-                    fprintf(hFile, "<tr><td>%u</td><td>%s</td><td>%u</td><td>%s</td><td>%s</td><td>%s</td><td>%u</td><td>%u</td></tr>\n",
+                    fprintf(hFile,
+                        "<tr><td>%u</td><td>%s</td><td>%u</td><td>%s</td><td>%s</td><td>%s</td><td>%u</td><td>%u</td></tr>\n",
                         i+1,
                         Range->IsUsed ? "Yes" : "No", Range->DefaultValue,
                         Range->Name ? Range->Name : "",
@@ -488,9 +518,9 @@ int main(int argc, char *argv[]){
                 fprintf(hFile, "<tr><th>%X</th>", i);
                 for(j=0; j<16; j++){
                     if(i*16 + j < Palette->ColorCount){
-                        unsigned blue = *(Data++);
-                        unsigned green = *(Data++);
                         unsigned red = *(Data++);
+                        unsigned green = *(Data++);
+                        unsigned blue = *(Data++);
 
                         fprintf(hFile, "\n<td style=\"background:#%.2x%.2x%.2x\" title=\"%u: #%.2x%.2x%.2x\"></td>",
                             red, green, blue, i*16 + j, red, green, blue);
@@ -498,6 +528,50 @@ int main(int argc, char *argv[]){
                         fprintf(hFile, "\n<td></td>");
                 }
                 fprintf(hFile, "</tr>\n");
+            }
+            fprintf(hFile, "</table>\n");
+        }else if(!strcmp(ChunkData->Type, "SPR#")){
+            /****
+            ** SPR# parsing
+            */
+
+            IFFSpriteList * SpriteList = ChunkData->FormattedData;
+            IFFChunk * Palette = NULL;
+            IFFPalette BlankPalette;
+            IFFPalette * PaletteData;
+            unsigned i;
+
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Version:</td><td>%u</td></tr>\n", SpriteList->Version);
+            fprintf(hFile, "<tr><td>Palette ID:</td><td>%.4X</td></tr>\n", SpriteList->PaletteID);
+            fprintf(hFile, "</table>\n");
+
+            if(SpriteList->PaletteID < 0xFFFF){
+                Palette = iff_find_chunk(IFFFileInfo, "PALT", SpriteList->PaletteID);
+                if(!Palette || !Palette->FormattedData) Palette = iff_find_chunk(IFFFileInfo, "PALT", ChunkData->ChunkID);
+                if(!Palette || !Palette->FormattedData) Palette = iff_find_chunk(IFFFileInfo, "PALT", -1);
+            }
+            if(!Palette || !Palette->FormattedData){
+                memset(&BlankPalette, 0, sizeof(IFFPalette));
+                BlankPalette.Version = 1;
+                BlankPalette.ColorCount = 256;
+                PaletteData = &BlankPalette;
+            }else PaletteData = Palette->FormattedData;
+
+            fprintf(hFile, "<table class=\"center centerall\">\n");
+            fprintf(hFile, "<tr><th colspan=\"2\">Sprite</th></tr>\n");
+            for(i=0; i<SpriteList->SpriteCount; i++){
+                IFFSprite * Sprite = &SpriteList->Sprites[i];
+                char filename[32];
+                sprintf(filename, "%sspr1_%u_%.4x_%u.png", OutDir, c, ChunkData->ChunkID, i+1);
+
+                fprintf(hFile, "<tr><td>%u</td><td>", i+1);
+                if(iff_depalette(Sprite, PaletteData) && WritePNG(filename, NULL, Sprite, NULL, NULL))
+                    fprintf(hFile, "<img src=\"spr1_%u_%.4x_%u.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
+                        c, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
+                else
+                    fprintf(hFile, "This sprite cannot be displayed.");
+                fprintf(hFile, "</td></tr>\n");
             }
             fprintf(hFile, "</table>\n");
         }else{

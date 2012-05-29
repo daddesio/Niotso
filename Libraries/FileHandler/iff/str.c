@@ -266,8 +266,8 @@ void iff_free_str(void * FormattedData){
 
     for(ls=0; ls<20; ls++){
         IFFLanguageSet * LanguageSet = &StringData->LanguageSets[ls];
-        unsigned p;
         if(LanguageSet->Pairs){
+            unsigned p;
             for(p=0; p<LanguageSet->PairCount; p++){
                 free(LanguageSet->Pairs[p].Key);
                 free(LanguageSet->Pairs[p].Value);

@@ -2,6 +2,7 @@ libvitaboy 1.0.1 (2012-03-10)  Fatbag
 
  * Corrected the BlendVertices function; blend vertices tug real vertices, not the other way around
  * Interleaved all vertex data (coords, texcoords, normals, blend weights) into the VertexData array
+ * Made reading floats cross-platform (on modern architectures that use IEEE floats) by using unions
 
 
 libvitaboy 1.0.0 (2012-03-04)  Fatbag

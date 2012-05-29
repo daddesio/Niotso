@@ -109,6 +109,27 @@ typedef struct IFFPalette_s
     uint8_t Data[256*3];
 } IFFPalette;
 
+/* SPR# chunk */
+
+typedef struct IFFSprite_s
+{
+    uint32_t Reserved;
+    uint16_t Height;
+    uint16_t Width;
+    uint8_t * IndexData;
+    uint8_t * BGRA32Data;
+} IFFSprite;
+
+typedef struct IFFSpriteList_s
+{
+    uint32_t Version;
+    uint32_t SpriteCount;
+    uint32_t PaletteID;
+    IFFSprite * Sprites;
+} IFFSpriteList;
+
+int iff_depalette(IFFSprite * Sprite, const IFFPalette * Palette);
+
 /* STR# chunk */
 
 enum IFFLanguage {
@@ -232,6 +253,7 @@ IFFChunk * iff_add_chunk(IFFFile * IFFFileInfo);
 int iff_read_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned MaxChunkSize);
 int iff_parse_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer);
 int iff_enumerate_chunks(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned BufferSize);
+IFFChunk * iff_find_chunk(IFFFile * IFFFileInfo, const char * Type, int ChunkID);
 
 void iff_free_chunk(IFFChunk * ChunkInfo);
 void iff_delete_chunk(IFFFile * IFFFileInfo, int Position);

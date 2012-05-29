@@ -70,11 +70,10 @@ class VBFile_t {
     }
 
     inline float readfloat(){
-        //Obviously a platform-dependent implementation
-        float value;
-        memcpy(&value, Position, 4);
+        union { uint32_t i; float f; } value;
+        value.i = (uint32_t)((Position[0]<<(8*0)) | (Position[1]<<(8*1)) | (Position[2]<<(8*2)) | (Position[3]<<(8*3)));
         Position += 4;
-        return value;
+        return value.f;
     }
 
     inline void readbytes(void* Destination, unsigned length){
