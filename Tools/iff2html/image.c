@@ -66,6 +66,14 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
         Image.Width = Sprite->Width;
         Image.Height = Sprite->Height;
         Image.Data = Sprite->BGRA32Data;
+        
+        /* Swap from BGR to RGB; this cannot be done with libpng when you use opng_reduce_image
+        ** due to the state that it leaves png_ptr in */
+        for(i=0; i<Image.Width*Image.Height; i++){
+            uint8_t temp = Image.Data[i*4 + 0];
+            Image.Data[i*4 + 0] = Image.Data[i*4 + 2];
+            Image.Data[i*4 + 2] = temp;
+        }
     }
 
     row_pointers = malloc(Image.Height * sizeof(png_bytep));
@@ -123,7 +131,7 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
 
     png_set_rows(png_ptr, info_ptr, row_pointers);
     opng_reduce_image(png_ptr, info_ptr, OPNG_REDUCE_ALL);
-    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_BGR, NULL);
+    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
 
     png_destroy_write_struct(&png_ptr, &info_ptr);
     fclose(hFile);
