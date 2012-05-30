@@ -5,6 +5,7 @@ set(IFF2HTML_SOURCES
     iff2html.c
     md5.c
     image.c
+    opngreduc.c
     ../../Libraries/FileHandler/bmp/read_bmp.c
 )
 

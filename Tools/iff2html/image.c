@@ -21,6 +21,7 @@
 #include <bmp/read_bmp.h>
 #include <setjmp.h>
 #include <libpng/png.h>
+#include "opngreduc.h"
 
 int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite * Sprite, size_t * Width, size_t * Height){
     FILE * hFile;
@@ -121,6 +122,7 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
         PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
     png_set_rows(png_ptr, info_ptr, row_pointers);
+    opng_reduce_image(png_ptr, info_ptr, OPNG_REDUCE_ALL);
     png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_BGR, NULL);
 
     png_destroy_write_struct(&png_ptr, &info_ptr);
