@@ -16,6 +16,7 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include <stdio.h>
 #include "iff.h"
 
 typedef struct {
@@ -84,15 +85,24 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     SpriteList->PaletteID = read_uint32xe(&b);
     if(SpriteList->Version < 502 || (SpriteList->Version > 505 && SpriteList->Version != 1001))
         return 0;
+
+    if(SpriteList->Version == 1001){
+        /* Sprite count is blank in version 1001, so we must walk and count up the sprites ourselves;
+        ** this is easy with the sprite size field */
+
+        /* At this point, we are looking at the first field of the first sprite */
+
+        for(SpriteList->SpriteCount = 0; b.Size >= 18; SpriteList->SpriteCount++){
+            if(read_uint32xe(&b) != 1001 || !skipbytes(&b, read_uint32xe(&b)))
+                break;
+        }
+        seekto(&b, 12);
+    }
+
     if(SpriteList->SpriteCount == 0)
         return 1;
-
     SpriteList->Sprites = calloc(SpriteList->SpriteCount, sizeof(IFFSprite));
     if(SpriteList->Sprites == NULL)
-        return 0;
-
-    /* Skip past the offset table */
-    if(SpriteList->SpriteCount > UINT_MAX/4 || !skipbytes(&b, SpriteList->SpriteCount*4))
         return 0;
 
     for(i=0; i<SpriteList->SpriteCount; i++){
@@ -101,21 +111,17 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
         unsigned row = 0;
 
         if(SpriteList->Version != 1001){
+            /* Jump to the next sprite using the offset table; this is mandatory */
             seekto(&b, 12 + 4*i);
             if(!seekto(&b, read_uint32xe(&b)))
                 return 0;
-            SpriteSize = b.Size;
-        }else
-            seekto(&b, b.Buffer - b.StartPos); /* Update b.Size */
+            if((SpriteSize = b.Size) < 10)
+                return 0;
+        }
 
-        if(b.Size < ((SpriteList->Version == 1001) ? 18 : 10))
-            return 0;
         if(SpriteList->Version == 1001){
-            if(read_uint32xe(&b) != 1001)
-                return 0;
+            read_uint32xe(&b); /* Sprite version; already checked to be equal to 1001 */
             SpriteSize = read_uint32xe(&b);
-            if(SpriteSize > b.Size || SpriteSize < 10)
-                return 0;
         }
 
         Sprite->Reserved = read_uint32xe(&b);
@@ -128,13 +134,13 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
         }
         Sprite->IndexData = calloc(Sprite->Height*Sprite->Width, 2);
         if(Sprite->IndexData == NULL)
-            return 0;
+            {printf("Error %u\n", 1);return 0;}
 
         while(1){
             /* Row command: valid commands are 0, 4, 5, and 9 */
             uint8_t Command, Count;
             if(SpriteSize < 2)
-                return 0;
+                {printf("Error %u\n", 2);return 0;}
 
             Command = *(b.Buffer++);
             Count = *(b.Buffer++);
@@ -147,27 +153,27 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                 unsigned pixel = 0;
 
                 if(row == Sprite->Height || Count < 2 || (Count -= 2) > SpriteSize || Count%2 != 0)
-                    return 0;
+                    {printf("Error %u\n", 3);return 0;}
                 SpriteSize -= Count;
                 while(Count){
                     uint8_t PixelCommand, PixelCount;
                     if(Count < 2)
-                        return 0;
+                        {printf("Error %u\n", 4);return 0;}
 
                     PixelCommand = *(b.Buffer++);
                     PixelCount = *(b.Buffer++);
                     Count -= 2;
 
                     if(PixelCommand == 1){
-                        /* Leave pixels as transparent */
+                        /* Leave next n pixels as transparent */
                         if(PixelCount > Sprite->Width - pixel)
-                            return 0;
+                            {printf("Error %u\n", 5);return 0;}
                         pixel += PixelCount;
                     }else if(PixelCommand == 2){
                         /* Set next n pixels to shared palette index */
                         uint8_t PaletteIndex;
                         if(PixelCount > Sprite->Width - pixel || Count < 2)
-                            return 0;
+                            {printf("Error %u\n", 6);return 0;}
 
                         PaletteIndex = *(b.Buffer++);
                         b.Buffer++; /* Padding byte */
@@ -182,7 +188,7 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                         /* Set next n pixels to n palette indices */
                         int padding = PixelCount%2;
                         if(PixelCount > Sprite->Width - pixel || PixelCount + padding > Count)
-                            return 0;
+                            {printf("Error %u\n", 7);return 0;}
                         Count -= PixelCount + padding;
 
                         while(PixelCount--){
@@ -191,7 +197,7 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                             pixel++;
                         }
                         if(padding) b.Buffer++; /* Padding byte */
-                    }else return 0;
+                    }else {printf("Error %u\n", 8);return 0;}
                 }
                 row++;
             }else if(Command == 5){
@@ -200,9 +206,11 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
             }else if(Command == 9){
                 /* Leave rows as transparent */
                 if(Count > Sprite->Height - row)
-                    return 0;
+                    {printf("Error %u\n", 9);return 0;}
                 row += Count;
-            }else return 0;
+            }else if(Command == 16){
+                /* Do nothing */
+            }else {printf("Error %u\n", 10);return 0;}
         }
     }
 
