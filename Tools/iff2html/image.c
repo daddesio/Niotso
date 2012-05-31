@@ -53,20 +53,12 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
 
         Image.Width = BMPHeader.biWidth;
         Image.Height = BMPHeader.biHeight;
-
-        row_pointers = malloc(Image.Height * sizeof(png_bytep));
-        if(row_pointers == NULL){
-            free(Image.Data);
-            return 0;
-        }
-        for(i=0; i<Image.Height; i++)
-            row_pointers[i] = Image.Data + (Image.Height-i-1)*Image.Width*3;
     }else{
         /* SPR# or SPR2 sprite */
         Image.Width = Sprite->Width;
         Image.Height = Sprite->Height;
         Image.Data = Sprite->BGRA32Data;
-        
+
         /* Swap from BGR to RGB; this cannot be done with libpng when you use opng_reduce_image
         ** due to the state that it leaves png_ptr in */
         for(i=0; i<Image.Width*Image.Height; i++){
@@ -82,7 +74,7 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
         return 0;
     }
     for(i=0; i<Image.Height; i++)
-        row_pointers[i] = Image.Data + (Image.Height-i-1)*Image.Width*((ChunkData)?3:4);
+        row_pointers[i] = Image.Data + Image.Width*((ChunkData) ? 3*(Image.Height-i-1) : 4*i);
 
     /****
     ** PNG handling
