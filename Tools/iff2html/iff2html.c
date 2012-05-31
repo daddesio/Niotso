@@ -309,13 +309,13 @@ int main(int argc, char *argv[]){
             if(!strcmp(ChunkData->Type, "BMP_") || !strcmp(ChunkData->Type, "FBMP")){
                 size_t Width, Height;
                 char filename[32];
-                sprintf(filename, "%simg_%u_%.4x.png", OutDir, c, ChunkData->ChunkID);
+                sprintf(filename, "%sbmp_%u_%.4x.png", OutDir, c+1, ChunkData->ChunkID);
 
                 if(WritePNG(filename, ChunkData, NULL, &Width, &Height)){
                     fprintf(hFile, "<table class=\"center centerall\">\n");
                     fprintf(hFile, "<tr><th>Image</th></tr>\n");
-                    fprintf(hFile, "<tr><td><img src=\"img_%u_%.4x.png\" width=\"%u\" height=\"%u\" alt=\"\" /></td></tr>\n",
-                        c, ChunkData->ChunkID, Width, Height);
+                    fprintf(hFile, "<tr><td><img src=\"bmp_%u_%.4x.png\" width=\"%u\" height=\"%u\" alt=\"\" /></td></tr>\n",
+                        c+1, ChunkData->ChunkID, Width, Height);
                     fprintf(hFile, "</table>\n");
                     success++;
                 }
@@ -563,14 +563,14 @@ int main(int argc, char *argv[]){
             for(i=0; i<SpriteList->SpriteCount; i++){
                 IFFSprite * Sprite = &SpriteList->Sprites[i];
                 char filename[32];
-                sprintf(filename, "%sspr1_%u_%.4x_%u.png", OutDir, c, ChunkData->ChunkID, i+1);
+                sprintf(filename, "%sspr1_%u_%.4x_%u.png", OutDir, c+1, ChunkData->ChunkID, i+1);
 
                 fprintf(hFile, "<tr><td>%u</td><td>", i+1);
-                if(iff_depalette(Sprite, PaletteData) && WritePNG(filename, NULL, Sprite, NULL, NULL))
+                if(Sprite->IndexData && iff_depalette(Sprite, PaletteData) && WritePNG(filename, NULL, Sprite, NULL, NULL))
                     fprintf(hFile, "<img src=\"spr1_%u_%.4x_%u.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
-                        c, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
+                        c+1, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
                 else
-                    fprintf(hFile, "This sprite cannot be displayed.");
+                    fprintf(hFile, Sprite->InvalidDimensions ? "Blank sprite" : "This sprite cannot be displayed.");
                 fprintf(hFile, "</td></tr>\n");
             }
             fprintf(hFile, "</table>\n");

@@ -118,6 +118,8 @@ typedef struct IFFSprite_s
     uint16_t Width;
     uint8_t * IndexData;
     uint8_t * BGRA32Data;
+
+    uint8_t InvalidDimensions;
 } IFFSprite;
 
 typedef struct IFFSpriteList_s

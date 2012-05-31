@@ -117,11 +117,15 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
             if(SpriteSize > b.Size || SpriteSize < 10)
                 return 0;
         }
+
         Sprite->Reserved = read_uint32xe(&b);
         Sprite->Height = read_uint16xe(&b);
         Sprite->Width = read_uint16xe(&b);
-        if(Sprite->Reserved != 0 || Sprite->Height == 0 || Sprite->Width == 0 || Sprite->Height > UINT_MAX/Sprite->Width/2)
-            return 0;
+        if(Sprite->Reserved != 0 || Sprite->Height == 0 || Sprite->Width == 0 || Sprite->Height > UINT_MAX/Sprite->Width/2){
+            /* This happens in the third sprite of every SPR# chunk in sprites.iff */
+            Sprite->InvalidDimensions = 1;
+            continue;
+        }
         Sprite->IndexData = calloc(Sprite->Height*Sprite->Width, 2);
         if(Sprite->IndexData == NULL)
             return 0;
@@ -229,6 +233,7 @@ int iff_depalette(IFFSprite * Sprite, const IFFPalette * Palette){
         uint8_t Index = Sprite->IndexData[2*i + 0];
         if(Index >= Palette->ColorCount){
             free(Sprite->BGRA32Data);
+            Sprite->BGRA32Data = NULL;
             return 0;
         }
         Sprite->BGRA32Data[4*i + 0] = Palette->Data[3*Index + 2];
