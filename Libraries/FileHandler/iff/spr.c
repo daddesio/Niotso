@@ -146,8 +146,8 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
             Count = *(b.Buffer++);
             SpriteSize -= 2;
 
-            if(Command == 0){
-                /* Do nothing */
+            if(Command == 0 || Command == 16){
+                /* Start marker */
             }else if(Command == 4){
                 /* Pixel command: valid commands are 1, 2, and 3 */
                 unsigned pixel = 0;
@@ -208,8 +208,6 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                 if(Count > Sprite->Height - row)
                     {printf("Error %u\n", 9);return 0;}
                 row += Count;
-            }else if(Command == 16){
-                /* Do nothing */
             }else {printf("Error %u\n", 10);return 0;}
         }
     }

@@ -1,3 +1,4 @@
 add_subdirectory(FileHandler)
 add_subdirectory(freetype)
+add_subdirectory(libpq)
 add_subdirectory(libvitaboy)

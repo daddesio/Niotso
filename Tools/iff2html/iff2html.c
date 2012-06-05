@@ -50,10 +50,11 @@ static void printsize(FILE * hFile, size_t FileSize){
 }
 
 int main(int argc, char *argv[]){
-    unsigned c, slash;
+    unsigned c;
+    int slash;
     FILE * hFile;
     int overwrite = 0;
-    char *InFile, *OutFile = NULL, *OutDir = NULL;
+    char *InFile, *OutFile = NULL, *FileName, *OutDir = NULL;
     size_t FileSize;
     struct MD5Context md5c;
     unsigned char digest[16];
@@ -93,13 +94,17 @@ int main(int argc, char *argv[]){
         strcpy(max(OutFile+length-4, OutFile), ".html");
     }
 
-    for(c=0, slash=0; OutFile[c]; c++)
+    for(c=0, slash=-1; OutFile[c]; c++)
         if(OutFile[c] == '/' || OutFile[c] == '\\') slash = c;
-    if(slash != 0){
+    if(slash >= 0){
         OutDir = malloc(slash+2);
         memcpy(OutDir, OutFile, slash+1);
         OutDir[slash+1] = 0x00;
     }else OutDir = "";
+
+    for(c=0, slash=-1; InFile[c]; c++)
+        if(InFile[c] == '/' || InFile[c] == '\\') slash = c;
+    FileName = InFile + slash + 1;
 
     /****
     ** Open the file and read in entire contents to memory
@@ -195,9 +200,9 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\" />\n");
     fprintf(hFile, "<meta http-equiv=\"Content-Style-Type\" content=\"text/css; charset=iso-8859-1\" />\n");
     fprintf(hFile, "<meta http-equiv=\"Content-Language\" content=\"en\" />\n");
-    fprintf(hFile, "<meta name=\"description\" content=\"%s (iff2html)\" />\n", InFile);
+    fprintf(hFile, "<meta name=\"description\" content=\"%s (iff2html)\" />\n", FileName);
     fprintf(hFile, "<meta name=\"generator\" content=\"iff2html\" />\n");
-    fprintf(hFile, "<title>%s (iff2html)</title>\n", InFile);
+    fprintf(hFile, "<title>%s (iff2html)</title>\n", FileName);
     fprintf(hFile, "<style type=\"text/css\" media=\"all\">\n");
     fprintf(hFile, "html, body {\n");
     fprintf(hFile, "    background: #fff;\n");
@@ -276,7 +281,7 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "</style>\n");
     fprintf(hFile, "</head>\n");
     fprintf(hFile, "<body>\n");
-    fprintf(hFile, "<h1>%s</h1>\n", InFile);
+    fprintf(hFile, "<h1>%s</h1>\n", FileName);
     fprintf(hFile, "<div id=\"attributes\">\n");
     fprintf(hFile, "<div>");
     for(c=0; c<16; c++)
