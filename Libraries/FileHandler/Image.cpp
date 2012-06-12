@@ -29,7 +29,7 @@ enum ImageType {
     FIMG_BMP,
     FIMG_JPEG,
     FIMG_PNG,
-    FIMG_TGA,
+    FIMG_TGACUR,
     FIMG_COUNT
 };
 

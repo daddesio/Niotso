@@ -17,10 +17,10 @@
 */
 
 #include "FileHandler.hpp"
-#include "libmpg123/mpg123.h"
-#include "utk/read_utk.h"
 #include "wav/read_wav.h"
 #include "xa/read_xa.h"
+#include "utk/read_utk.h"
+#include "libmpg123/mpg123.h"
 
 namespace File {
 
@@ -159,7 +159,8 @@ static uint8_t * ReadUTK(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
 }
 
 static uint8_t * ReadMP3(Sound_t * Sound, const uint8_t * InData, size_t FileSize){
-    if(mpg123_init() != MPG123_OK){
+    mpg123_handle *mh;
+    if(mpg123_init() != MPG123_OK || (mh = mpg123_new(NULL, NULL)) == NULL){
         mpg123_exit();
         return NULL;
     }
@@ -170,9 +171,7 @@ static uint8_t * ReadMP3(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
     size_t OutSize;
     uint8_t * OutData;
 
-    mpg123_handle *mh = mpg123_new(NULL, NULL);
-    if(mh == NULL ||
-        mpg123_format_none(mh) != MPG123_OK ||
+    if(mpg123_format_none(mh) != MPG123_OK ||
         mpg123_format(mh, 44100, MPG123_MONO | MPG123_STEREO, MPG123_ENC_SIGNED_16) != MPG123_OK ||
         mpg123_open_feed(mh) != MPG123_OK ||
         mpg123_feed(mh, InData, FileSize) != MPG123_OK ||
