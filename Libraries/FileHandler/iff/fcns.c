@@ -16,25 +16,26 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_fcns(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFFConstantList *List;
-    unsigned Size = ChunkInfo->Size - 76;
+    bytestream b;
     unsigned i;
 
-    if(Size < 16)
+    if(ChunkInfo->Size < 16)
         return 0;
+    set_bytestream(&b, Buffer, ChunkInfo->Size);
     ChunkInfo->FormattedData = calloc(1, sizeof(IFFConstantList));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
     List = ChunkInfo->FormattedData;
-    List->Reserved = read_uint32le(Buffer);
-    List->Version = read_uint32le(Buffer+4);
-    memcpy(List->MagicNumber, Buffer+8, 4);
-    List->MagicNumber[4] = 0x00;
-    List->ConstantCount = read_uint32le(Buffer+12);
+    List->Reserved = read_uint32(&b);
+    List->Version = read_uint32(&b);
+    memcpy(List->MagicNumber, b.Buffer, 4);
+    skipbytes(&b, 4);
+    List->ConstantCount = read_uint32(&b);
     if(List->Reserved != 0 || List->Version == 0 || List->Version > 2)
         return 0;
 
@@ -42,61 +43,29 @@ int iff_parse_fcns(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     if(List->Constants == NULL)
         return 0;
 
-    Buffer += 16; Size -= 16;
     for(i=0; i<List->ConstantCount; i++){
         IFFConstant * Constant = &List->Constants[i];
         unsigned s;
         for(s=0; s<2; s++){
             char ** string = (s==0) ? &Constant->Name : &Constant->Description;
-            unsigned length;
-            if(Size == 0) return 0;
-
             if(List->Version < 2){
-                /* C string */
-                for(length=0; length != Size && Buffer[length]; length++);
-                if(length == Size) return 0;
-
-                if(length != 0){
-                    *string = malloc(length+1);
-                    if(*string == NULL) return 0;
-                    strcpy(*string, (char*) Buffer);
-                }
-
-                Buffer += length+1;
-                Size   -= length+1;
+                /* C string, possible padding */
+                if(!read_c_string(&b, string))
+                    return 0;
 
                 /* Skip past the 0xA3 character;
                 ** see global.iff chunk 546 for why you can't do modulo-2 to detect this */
-                if(Size && *Buffer == 0xA3){
-                    Buffer++; Size--;
-                }
+                if(b.Size && *b.Buffer == 0xA3)
+                    skipbytes(&b, 1);
             }else{
-                /* Pascal string */
-                length = read_uint8le(Buffer);
-                Buffer++; Size--;
-                if(length > 127){
-                    if(Size == 0) return 0;
-                    length = (length&127) | (read_uint8le(Buffer)<<7);
-                    Buffer++; Size--;
-                }
-
-                if(length != 0){
-                    *string = malloc(length+1);
-                    if(*string == NULL) return 0;
-                    memcpy(*string, Buffer, length);
-                    (*string)[length] = 0x00;
-                }
-
-                Buffer += length;
-                Size   -= length;
+                /* Extended Pascal string, no padding */
+                if(!read_pascal2_string(&b, string))
+                    return 0;
             }
 
             if(s == 0){
-                union { float f; uint32_t v; } value;
-                if(Size < 4) return 0;
-                value.v = read_uint32le(Buffer);
-                Constant->Value = value.f;
-                Buffer+=4; Size-=4;
+                if(b.Size < 4) return 0;
+                Constant->Value = read_float(&b);
             }
         }
     }

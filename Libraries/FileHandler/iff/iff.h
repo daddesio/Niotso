@@ -17,6 +17,9 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#ifndef IFF_H
+#define IFF_H
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -41,13 +44,13 @@
 #endif
 
 /*
-** IFF file headers
+** IFF file structs
 */
 
 typedef struct IFFChunk_s
 {
     char      Type[5];
-    uint32_t  Size;
+    uint32_t  Size; /* After subtracting the 76-byte header */
     uint16_t  ChunkID;
     uint16_t  Flags;
     char      Label[65];
@@ -263,4 +266,6 @@ void iff_delete(IFFFile * IFFFileInfo);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

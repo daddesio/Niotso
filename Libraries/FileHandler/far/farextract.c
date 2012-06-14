@@ -16,25 +16,12 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "config.h"
-
-#define _CRT_SECURE_NO_WARNINGS
-#include <windows.h>
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-
-#ifdef HAVE_STDINT_H
- #include <stdint.h>
-#else
- typedef signed char int8_t;
- typedef unsigned char uint8_t;
- typedef signed short int16_t;
- typedef unsigned short uint16_t;
- typedef signed long int32_t;
- typedef unsigned long uint32_t;
- typedef unsigned int uintptr_t;
-#endif
-
+#include <stdio.h>
+#include <stdint.h>
+#include <time.h>
+#include "config.h"
 #include "libfar.h"
 
 enum {
@@ -49,15 +36,12 @@ enum {
 int main(int argc, char *argv[]){
     int profile = 0, overwrite = 0;
     char infile[256] = "", outdirectory[256] = "";
-
-    HANDLE ProcessHeap = GetProcessHeap();
-    HANDLE hFile;
-    DWORD ArchiveSize;
-    DWORD bytestransferred = 0;
+    FILE * hFile;
+    size_t ArchiveSize;
     uint8_t * ArchiveData;
     int ArchiveType;
-
-    unsigned BeginningTime, EndingTime;
+    clock_t BeginningTime, EndingTime;
+    unsigned extracted = 0;
     int i;
 
     /****
@@ -121,33 +105,32 @@ int main(int argc, char *argv[]){
     libfar_set_option(LIBFAR_CONFIG_REFPACK_HNSV, 0xFB);
 
     /****
-    ** Attempt to open the file and read in the entire contents to memory
+    ** Open the file and read in the entire contents to memory
     */
 
-    hFile = CreateFile(infile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            printf("%sThe specified input file does not exist.", "farextract: error: ");
-            return -1;
-        }
-        printf("%sThe input file could not be opened for reading.", "farextract: error: ");
+    hFile = fopen(infile, "rb");
+    if(hFile == NULL){
+        printf("%sThe specified input file does not exist or could not be opened for reading.", "farextract: error: ");
         return -1;
     }
-    ArchiveSize = GetFileSize(hFile, NULL);
-    if(ArchiveSize < LIBFAR_ARCHIVE_MINIMUM_SIZE){
+    fseek(hFile, 0, SEEK_END);
+    ArchiveSize = ftell(hFile);
+    if(ArchiveSize < 24){
         printf("%sNot a valid archive.", "farextract: error: ");
         return -1;
     }
-    ArchiveData = HeapAlloc(ProcessHeap, HEAP_NO_SERIALIZE, ArchiveSize);
+    fseek(hFile, 0, SEEK_SET);
+
+    ArchiveData = malloc(ArchiveSize);
     if(ArchiveData == NULL){
         printf("%sMemory for this archive could not be allocated.", "farextract: error: ");
         return -1;
     }
-    if(!ReadFile(hFile, ArchiveData, ArchiveSize, &bytestransferred, NULL) || bytestransferred != ArchiveSize){
+    if(!fread(ArchiveData, ArchiveSize, 1, hFile)){
         printf("%sThe input file could not be read.", "farextract: error: ");
         return -1;
     }
-    CloseHandle(hFile);
+    fclose(hFile);
 
     /****
     ** Identify the type of archive
@@ -179,7 +162,7 @@ int main(int argc, char *argv[]){
 
         filescount = FARFileInfo->Files;
         printf("This archive contains %u files.\n\nExtracting\n", filescount);
-        BeginningTime = GetTickCount();
+        BeginningTime = clock();
 
         /****
         ** Load entry information
@@ -211,12 +194,20 @@ int main(int argc, char *argv[]){
             }
             /* Decompression, if any, was successful */
 
-            hFile = CreateFile(destination, GENERIC_WRITE, 0, NULL, CREATE_NEW+overwrite,
-                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-            if(hFile == INVALID_HANDLE_VALUE){
-                printf(" (%u/%u) Skipped (%s): %s\n", file, filescount,
-                    (!overwrite && GetLastError() == ERROR_FILE_EXISTS) ? "file exists" : "could not open",
-                    EntryNode->Entry.Filename);
+            if(!overwrite){
+                hFile = fopen(destination, "rb");
+                if(hFile != NULL){
+                    /* File exists */
+                    fclose(hFile);
+                    printf(" (%u/%u) Skipped (%s): %s\n", file, filescount, "could not open", EntryNode->Entry.Filename);
+                    if(EntryNode->Entry.DecompressedData != EntryNode->Entry.CompressedData)
+                        libfar_free(EntryNode->Entry.DecompressedData);
+                    continue;
+                }
+            }
+            hFile = fopen(destination, "wb");
+            if(hFile == NULL){
+                printf(" (%u/%u) Skipped (%s): %s\n", file, filescount, "could not open", EntryNode->Entry.Filename);
                 if(EntryNode->Entry.DecompressedData != EntryNode->Entry.CompressedData)
                     libfar_free(EntryNode->Entry.DecompressedData);
                 continue;
@@ -230,15 +221,15 @@ int main(int argc, char *argv[]){
                     EntryNode->Entry.TypeID, EntryNode->Entry.GroupID, EntryNode->Entry.FileID,
                     EntryNode->Entry.DecompressedSize);
 
-            WriteFile(hFile, EntryNode->Entry.DecompressedData,
-                EntryNode->Entry.DecompressedSize, &bytestransferred, NULL);
-            CloseHandle(hFile);
+            fwrite(EntryNode->Entry.DecompressedData, 1, EntryNode->Entry.DecompressedSize, hFile);
+            fclose(hFile);
 
             if(EntryNode->Entry.DecompressedData != EntryNode->Entry.CompressedData)
                 libfar_free(EntryNode->Entry.DecompressedData);
+            extracted++;
         }
-        printf("\nFinished extracting %u of %u files in %.2f seconds.", file, filescount,
-            ((float) (GetTickCount() - BeginningTime))/1000);
+        printf("\nFinished extracting %u of %u files in %.2f seconds.", extracted, filescount,
+            ((float) (clock() - BeginningTime))/CLOCKS_PER_SEC);
     }else{
         /* Persist file */
         PersistFile * PersistInfo;
@@ -263,25 +254,34 @@ int main(int argc, char *argv[]){
         ** Extract the data
         */
         printf("Extracting\n");
-        BeginningTime = GetTickCount();
+        BeginningTime = clock();
         if(!far_read_persist_data(PersistInfo, ArchiveData+18)){
             printf("%sNot a valid archive.", "farextract: error: ");
             return -1;
         }
-        EndingTime = GetTickCount();
+        EndingTime = clock();
 
-        hFile = CreateFile(destination, GENERIC_WRITE, 0, NULL, CREATE_NEW+overwrite,
-            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-        if(hFile == INVALID_HANDLE_VALUE){
-            printf((!overwrite && GetLastError() == ERROR_FILE_EXISTS) ?
-                "%sFile exists." : "%sCould not open.", "farextract: error: ");
+        if(!overwrite){
+            hFile = fopen(destination, "rb");
+            if(hFile != NULL){
+                /* File exists */
+                fclose(hFile);
+                printf("%sFile exists.", "farextract: error: ");
+                libfar_free(PersistInfo->DecompressedData);
+                return -1;
+            }
+        }
+        hFile = fopen(destination, "wb");
+        if(hFile == NULL){
+            printf("%sCould not open.", "farextract: error: ");
+            libfar_free(PersistInfo->DecompressedData);
             return -1;
         }
-        WriteFile(hFile, PersistInfo->DecompressedData,
-            PersistInfo->DecompressedSize, &bytestransferred, NULL);
-        CloseHandle(hFile);
+
+        fwrite(PersistInfo->DecompressedData, 1, PersistInfo->DecompressedSize, hFile);
+        fclose(hFile);
         printf("Extracted %u bytes in %.2f seconds.\n", PersistInfo->DecompressedSize,
-            ((float) (EndingTime - BeginningTime))/1000);
+            ((float) (EndingTime - BeginningTime))/CLOCKS_PER_SEC);
     }
     return 0;
 }

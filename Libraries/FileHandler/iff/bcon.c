@@ -17,14 +17,13 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFF_BCON *BCONData;
-    unsigned Size = ChunkInfo->Size - 76;
     unsigned i;
 
-    if(Size < 2)
+    if(ChunkInfo->Size < 2)
         return 0;
     ChunkInfo->FormattedData = calloc(1, sizeof(IFF_BCON));
     if(ChunkInfo->FormattedData == NULL)
@@ -35,7 +34,7 @@ int iff_parse_bcon(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     BCONData->Flags = read_uint8le(Buffer + 1);
     if(BCONData->ConstantCount == 0)
         return 1;
-    if(BCONData->ConstantCount * 2 /* bytes */ > Size - 2)
+    if(BCONData->ConstantCount * 2 /* bytes */ > ChunkInfo->Size - 2)
         return 0;
 
     BCONData->Constants = malloc(BCONData->ConstantCount * sizeof(uint16_t));

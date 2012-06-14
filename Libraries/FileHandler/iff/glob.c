@@ -16,39 +16,13 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_glob(IFFChunk * ChunkInfo, const uint8_t * Buffer){
-    char ** string = (char**) &ChunkInfo->FormattedData;
-    unsigned Size = ChunkInfo->Size - 76;
-    unsigned length;
+    bytestream b;
+    set_bytestream(&b, Buffer, ChunkInfo->Size);
 
-    if(Size == 0){
-        *string = NULL;
-        return 0;
-    }
-
-    /* Try reading as a C string */
-    for(length=0; length != Size && Buffer[length] && Buffer[length] != 0xA3; length++);
-
-    if(length != Size && !Buffer[length] /* null character; in these strings, 0xA3 doesn't count */){
-        if(length > 0){
-            *string = malloc(length+1);
-            if(*string == NULL) return 0;
-            strcpy(*string, (char*) Buffer);
-        }
-        return 1;
-    }
-
-    /* Try again as a Pascal string */
-    length = Buffer[0];
-    if(length >= Size) return 0;
-
-    if(length > 0){
-        *string = malloc(length+1);
-        if(*string == NULL) return 0;
-        memcpy(*string, Buffer+1, length);
-        (*string)[length] = 0x00;
-    }
-    return 1;
+    /* Try reading as a C string, and if that fails, again as a Pascal string */
+    return (read_c_string(&b, (char**) &ChunkInfo->FormattedData) ||
+        read_pascal_string(&b, (char**) &ChunkInfo->FormattedData));
 }

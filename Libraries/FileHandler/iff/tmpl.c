@@ -16,26 +16,26 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_tmpl(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFFTemplate *Template;
-    unsigned Size = ChunkInfo->Size - 76;
+    bytestream b;
+    const uint8_t * ptr = Buffer;
+    unsigned Size = ChunkInfo->Size;
     unsigned FieldCount;
     unsigned i;
-    const uint8_t * TempBuffer = Buffer;
     if(Size == 0) return 1;
 
     /* Walk through a first-pass to find the total field count */
     for(FieldCount=0; Size; FieldCount++){
-        unsigned length = *TempBuffer;
-
+        unsigned length = *ptr;
         if(Size < 5 || length > Size-5)
             return 0;
-        TempBuffer += length+5; Size -= length+5;
+        ptr += length+5; Size -= length+5;
     }
 
-    ChunkInfo->FormattedData = malloc(sizeof(IFFTemplate));
+    ChunkInfo->FormattedData = calloc(1, sizeof(IFFTemplate));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
@@ -45,17 +45,15 @@ int iff_parse_tmpl(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     if(Template->Fields == NULL)
         return 0;
 
+    set_bytestream(&b, Buffer, ChunkInfo->Size);
+
     for(i=0; i<FieldCount; i++){
         IFFTemplateField * Field = &Template->Fields[i];
-        unsigned length = *Buffer;
-        Field->Name = malloc(length+1);
-        if(Field->Name == NULL) return 0;
-        memcpy(Field->Name, Buffer+1, length);
-        Field->Name[length] = 0x00;
-        Buffer += length+1;
+        if(!read_pascal_string(&b, &Field->Name))
+            return 0;
 
-        memcpy(Field->Type, Buffer, 4);
-        Buffer += 4;
+        memcpy(Field->Type, b.Buffer, 4);
+        skipbytes(&b, 4);
     }
 
     return 1;

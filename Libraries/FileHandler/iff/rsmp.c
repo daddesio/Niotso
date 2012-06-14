@@ -16,26 +16,27 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFFResourceMap *Map;
-    unsigned Size = ChunkInfo->Size - 76;
+    bytestream b;
     unsigned i;
 
-    if(Size < 20)
+    if(ChunkInfo->Size < 20)
         return 0;
+    set_bytestream(&b, Buffer, ChunkInfo->Size);
     ChunkInfo->FormattedData = calloc(1, sizeof(IFFResourceMap));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
     Map = ChunkInfo->FormattedData;
-    Map->Reserved = read_uint32le(Buffer);
-    Map->Version = read_uint32le(Buffer+4);
-    memcpy(Map->MagicNumber, Buffer+8, 4);
-    Map->MagicNumber[4] = 0x00;
-    Map->IFFSize = read_uint32le(Buffer+12);
-    Map->TypeCount = read_uint32le(Buffer+16);
+    Map->Reserved = read_uint32(&b);
+    Map->Version = read_uint32(&b);
+    memcpy(Map->MagicNumber, b.Buffer, 4);
+    skipbytes(&b, 4);
+    Map->IFFSize = read_uint32(&b);
+    Map->TypeCount = read_uint32(&b);
     if(Map->Reserved != 0 || Map->Version > 1)
         return 0;
 
@@ -43,64 +44,31 @@ int iff_parse_rsmp(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     if(Map->ResourceTypes == NULL)
         return 0;
 
-    Buffer += 20; Size -= 20;
     for(i=0; i<Map->TypeCount; i++){
         IFFResourceType * Type = &Map->ResourceTypes[i];
         unsigned j;
-        if(Size < 8) return 0;
-        memcpy(Type->Type, Buffer, 4);
-        Type->Type[4] = 0x00;
-        Type->ResourceCount = read_uint32le(Buffer+4);
+        if(b.Size < 8) return 0;
+
+        memcpy(Type->Type, b.Buffer, 4);
+        skipbytes(&b, 4);
+        Type->ResourceCount = read_uint32(&b);
         Type->Resources = calloc(Type->ResourceCount, sizeof(IFFResource));
         if(Type->Resources == NULL)
             return 0;
 
-        Buffer += 8; Size -= 8;
         for(j=0; j<Type->ResourceCount; j++){
             IFFResource * Resource = &Type->Resources[j];
-            unsigned length;
-            if(Size < ((Map->Version == 0) ? 9 : 11)) return 0;
-            Resource->Offset = read_uint32le(Buffer);
-            Buffer += 4;
-            if(Map->Version == 0){
-                Resource->ChunkID = read_uint16le(Buffer);
-                Buffer += 2; Size -= 2;
-            }else{
-                Resource->ChunkID = read_uint32le(Buffer);
-                Buffer += 4; Size -= 4;
-            }
-            Resource->Flags = read_uint16le(Buffer);
-            Buffer += 2;
-            Size -= 4+2;
+            if(b.Size < ((Map->Version == 0) ? 9 : 11)) return 0;
+            Resource->Offset = read_uint32(&b);
+            Resource->ChunkID = (Map->Version == 0) ? read_uint16(&b) : read_uint32(&b);
+            Resource->Flags = read_uint16(&b);
 
             if(Map->Version == 0){
-                /* C string */
-                for(length=0; length != Size && Buffer[length]; length++);
-                if(length == Size) return 0;
-
-                if(length != 0){
-                    Resource->Label = malloc(length+1);
-                    if(Resource->Label == NULL) return 0;
-                    strcpy(Resource->Label, (char*) Buffer);
-
-                    Buffer += length;
-                    Size   -= length;
-                }
-                Buffer++; Size--;
+                if(!read_c_string(&b, &Resource->Label))
+                    return 0;
             }else{
-                /* Pascal string */
-                length = read_uint8le(Buffer);
-                Buffer++; Size--;
-
-                if(length != 0){
-                    Resource->Label = malloc(length+1);
-                    if(Resource->Label == NULL) return 0;
-                    memcpy(Resource->Label, Buffer, length);
-                    Resource->Label[length] = 0x00;
-                }
-
-                Buffer += length;
-                Size   -= length;
+                if(!read_pascal_string(&b, &Resource->Label))
+                    return 0;
             }
         }
     }

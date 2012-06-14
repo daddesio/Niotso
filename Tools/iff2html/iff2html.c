@@ -17,6 +17,7 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <iff/iff.h>

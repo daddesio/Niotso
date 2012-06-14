@@ -17,26 +17,26 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFFRangeSet *RangeSet;
-    unsigned Size = ChunkInfo->Size - 76;
+    bytestream b;
     unsigned i;
 
-    if(Size < 16)
+    if(ChunkInfo->Size < 16)
         return 0;
+    set_bytestream(&b, Buffer, ChunkInfo->Size);
     ChunkInfo->FormattedData = calloc(1, sizeof(IFFRangeSet));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
 
     RangeSet = ChunkInfo->FormattedData;
-    RangeSet->Ranges = NULL;
-    RangeSet->Reserved = read_uint32le(Buffer);
-    RangeSet->Version = read_uint32le(Buffer+4);
-    memcpy(RangeSet->MagicNumber, Buffer+8, 4);
-    RangeSet->MagicNumber[4] = 0x00;
-    RangeSet->RangeCount = read_uint32le(Buffer+12);
+    RangeSet->Reserved = read_uint32(&b);
+    RangeSet->Version = read_uint32(&b);
+    memcpy(RangeSet->MagicNumber, b.Buffer, 4);
+    skipbytes(&b, 4);
+    RangeSet->RangeCount = read_uint32(&b);
     if(RangeSet->Reserved != 0 || RangeSet->Version > 2)
         return 0;
     if(RangeSet->RangeCount == 0)
@@ -46,69 +46,40 @@ int iff_parse_trcn(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     if(RangeSet->Ranges == NULL)
         return 0;
 
-    Buffer += 16; Size -= 16;
     for(i=0; i<RangeSet->RangeCount; i++){
         unsigned s;
         IFFRangeEntry * Range = &RangeSet->Ranges[i];
-        if(Size < 10)
+        if(b.Size < 10)
             return 0;
 
-        Range->IsUsed = read_uint32le(Buffer);
-        Range->DefaultValue = read_uint32le(Buffer+4);
-        Buffer += 8; Size -= 8;
+        Range->IsUsed = read_uint32(&b);
+        Range->DefaultValue = read_uint32(&b);
 
         for(s=0; s<2; s++){
             char ** string = (s==0) ? &Range->Name : &Range->Comment;
-            unsigned length;
-            if(Size == 0) return 0;
+            if(b.Size == 0) return 0;
 
             if(RangeSet->Version < 2){
-                /* C string */
-                for(length=0; length != Size && Buffer[length]; length++);
-                if(length == Size) return 0;
-
-                if(length != 0){
-                    *string = malloc(length+1);
-                    if(*string == NULL) return 0;
-                    strcpy(*string, (char*) Buffer);
-                }
-
-                Buffer += length+1;
-                Size   -= length+1;
+                /* C string, possible padding */
+                if(!read_c_string(&b, string))
+                    return 0;
 
                 /* Skip past the 0xA3 character;
                 ** see global.iff chunk 546 for why you can't do modulo-2 to detect this */
-                if(Size && *Buffer == 0xA3){
-                    Buffer++; Size--;
-                }
+                if(b.Size && *b.Buffer == 0xA3)
+                    skipbytes(&b, 1);
             }else{
-                /* Pascal string */
-                length = read_uint8le(Buffer);
-                Buffer++; Size--;
-                if(length > 127){
-                    if(Size == 0) return 0;
-                    length = (length&127) | (read_uint8le(Buffer)<<7);
-                    Buffer++; Size--;
-                }
-
-                if(length != 0){
-                    *string = malloc(length+1);
-                    if(*string == NULL) return 0;
-                    memcpy(*string, Buffer, length);
-                    (*string)[length] = 0x00;
-                }
-
-                Buffer += length;
-                Size   -= length;
+                /* Extended Pascal string, no padding */
+                if(!read_pascal2_string(&b, string))
+                    return 0;
             }
         }
 
         if(RangeSet->Version != 0){
-            if(Size < 5) return 0;
-            Range->Enforced = read_uint8le(Buffer);
-            Range->RangeMin = read_uint16le(Buffer+1);
-            Range->RangeMax = read_uint16le(Buffer+3);
-            Buffer += 5; Size -= 5;
+            if(b.Size < 5) return 0;
+            Range->Enforced = read_uint8(&b);
+            Range->RangeMin = read_uint16(&b);
+            Range->RangeMax = read_uint16(&b);
         }
     }
 

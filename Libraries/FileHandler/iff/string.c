@@ -16,20 +16,10 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_c_string(IFFChunk * ChunkInfo, const uint8_t * Buffer){
-    char ** string = (char**) &ChunkInfo->FormattedData;
-    unsigned Size = ChunkInfo->Size - 76;
-    unsigned length;
-
-    for(length=0; length != Size && Buffer[length]; length++);
-    if(length == Size) return 0;
-
-    if(length > 0){
-        *string = malloc(length+1);
-        if(*string == NULL) return 0;
-        strcpy(*string, (char*) Buffer);
-    }
-    return 1;
+    bytestream b;
+    set_bytestream(&b, Buffer, ChunkInfo->Size);
+    return (read_c_string(&b, (char**) &ChunkInfo->FormattedData) != 0);
 }

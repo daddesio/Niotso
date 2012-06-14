@@ -16,13 +16,12 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_palt(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFFPalette *Palette;
-    unsigned Size = ChunkInfo->Size - 76;
 
-    if(Size < 16)
+    if(ChunkInfo->Size < 16)
         return 0;
     ChunkInfo->FormattedData = malloc(sizeof(IFFPalette));
     if(ChunkInfo->FormattedData == NULL)
@@ -34,7 +33,7 @@ int iff_parse_palt(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     Palette->Reserved1 = read_uint32le(Buffer+8);
     Palette->Reserved2 = read_uint32le(Buffer+12);
     if(Palette->Version != 1 || Palette->ColorCount == 0 || Palette->ColorCount > 256 ||
-        Palette->Reserved1 != 0 || Palette->Reserved2 != 0 || Palette->ColorCount*3 > Size-16)
+        Palette->Reserved1 != 0 || Palette->Reserved2 != 0 || Palette->ColorCount*3 > ChunkInfo->Size-16)
         return 0;
 
     memcpy(Palette->Data, Buffer+16, Palette->ColorCount*3);

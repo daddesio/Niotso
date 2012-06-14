@@ -16,9 +16,11 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <windows.h>
+#include <time.h>
 #include "iff.h"
 
 int charmatches(char c, const char * filter){
@@ -30,14 +32,14 @@ int charmatches(char c, const char * filter){
 }
 
 int main(int argc, char *argv[]){
-    HANDLE hFile;
+    FILE * hFile;
     int overwrite = 0;
     char *InFile, *OutDirectory;
-    HANDLE ProcessHeap = GetProcessHeap();
-    DWORD FileSize;
-    DWORD bytestransferred = 0;
+    size_t FileSize;
     uint8_t * IFFData;
+    clock_t BeginningTime;
     unsigned chunkcount, chunk;
+    unsigned exported = 0;
     IFFFile * IFFFileInfo;
     IFFChunk * ChunkData;
 
@@ -65,30 +67,29 @@ int main(int argc, char *argv[]){
     ** Open the file and read in entire contents to memory
     */
 
-    hFile = CreateFile(InFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        if(GetLastError() == ERROR_FILE_NOT_FOUND){
-            printf("%sThe specified input file does not exist.", "iffexport: error: ");
-            return -1;
-        }
-        printf("%sThe input file could not be opened for reading.", "iffexport: error: ");
+    hFile = fopen(InFile, "rb");
+    if(hFile == NULL){
+        printf("%sThe specified input file does not exist or could not be opened for reading.", "iffexport: error: ");
         return -1;
     }
-    FileSize = GetFileSize(hFile, NULL);
-    if(FileSize < 64){
+    fseek(hFile, 0, SEEK_END);
+    FileSize = ftell(hFile);
+    if(FileSize < 24){
         printf("%sNot a valid IFF file.", "iffexport: error: ");
         return -1;
     }
-    IFFData = HeapAlloc(ProcessHeap, HEAP_NO_SERIALIZE, FileSize);
+    fseek(hFile, 0, SEEK_SET);
+
+    IFFData = malloc(FileSize);
     if(IFFData == NULL){
         printf("%sMemory for this file could not be allocated.", "iffexport: error: ");
         return -1;
     }
-    if(!ReadFile(hFile, IFFData, FileSize, &bytestransferred, NULL) || bytestransferred != FileSize){
+    if(!fread(IFFData, FileSize, 1, hFile)){
         printf("%sThe input file could not be read.", "iffexport: error: ");
         return -1;
     }
-    CloseHandle(hFile);
+    fclose(hFile);
 
     /****
     ** Load header information
@@ -115,6 +116,7 @@ int main(int argc, char *argv[]){
 
     chunkcount = IFFFileInfo->ChunkCount;
     printf("This IFF file contains %u chunks.\n\nExporting\n", chunkcount);
+    BeginningTime = clock();
 
     /****
     ** Extract each entry
@@ -138,20 +140,34 @@ int main(int argc, char *argv[]){
         sprintf(destination, "%s/%s.%s", OutDirectory, name,
             (!memcmp(ChunkData->Type, "BMP_", 4) || !memcmp(ChunkData->Type, "FBMP", 4)) ? "bmp" : "dat");
 
-        hFile = CreateFile(destination, GENERIC_WRITE, 0, NULL, CREATE_NEW+overwrite,
-            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-        if(hFile == INVALID_HANDLE_VALUE){
-            printf(" (%u/%u) Skipped (%s): %s\n", chunk, chunkcount,
-                (!overwrite && GetLastError() == ERROR_FILE_EXISTS) ? "file exists" : "could not open",
-                name);
-            continue;
+        if(!overwrite){
+            hFile = fopen(destination, "rb");
+            if(hFile != NULL){
+                /* File exists */
+                char c;
+                fclose(hFile);
+                printf("File \"%s\" exists.\nContinue anyway? (y/n) ", destination);
+                c = getchar();
+                if(c != 'y' && c != 'Y'){
+                    printf("\nAborted.");
+                    return -1;
+                }
+            }
+            overwrite++;
         }
+        hFile = fopen(destination, "wb");
+        if(hFile == NULL){
+            printf("%sThe output file could not be opened for writing.", "iffexport: error: ");
+            return -1;
+        }
+        fwrite(ChunkData->Data, 1, ChunkData->Size, hFile);
+        fclose(hFile);
 
-        printf(" (%u/%u) %s (%u bytes)\n", chunk, chunkcount, name, ChunkData->Size-76);
-
-        WriteFile(hFile, ChunkData->Data, ChunkData->Size-76, &bytestransferred, NULL);
-        CloseHandle(hFile);
+        exported++;
     }
+
+    printf("\nExported %u of %u chunks in %.2f seconds.", exported, chunkcount,
+        ((float) (clock() - BeginningTime))/CLOCKS_PER_SEC);
 
     return 0;
 }

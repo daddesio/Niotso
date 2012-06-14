@@ -17,7 +17,7 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 /****
 ** Supported Chunks
@@ -91,7 +91,7 @@ IFFFile * iff_create()
     IFFFile *ptr = calloc(1, sizeof(IFFFile));
     if(ptr == NULL) return NULL;
 
-    ptr->Chunks = malloc(sizeof(IFFChunk));
+    ptr->Chunks = calloc(1, sizeof(IFFChunk));
     if(ptr->Chunks == NULL){
         free(ptr);
         return NULL;
@@ -151,11 +151,13 @@ int iff_read_chunk(IFFChunk * ChunkInfo, const uint8_t * Buffer, unsigned MaxChu
     if(ChunkInfo->Size < 76 || ChunkInfo->Size > MaxChunkSize)
         return 0;
 
-    if(ChunkInfo->Size > 76){
-        ChunkInfo->Data = malloc(ChunkInfo->Size - 76);
+    ChunkInfo->Size -= 76;
+
+    if(ChunkInfo->Size){
+        ChunkInfo->Data = malloc(ChunkInfo->Size);
         if(ChunkInfo->Data == NULL)
             return 0;
-        memcpy(ChunkInfo->Data, Buffer+76, ChunkInfo->Size - 76);
+        memcpy(ChunkInfo->Data, Buffer+76, ChunkInfo->Size);
     }
     ChunkInfo->FormattedData = NULL;
 
@@ -171,8 +173,8 @@ int iff_enumerate_chunks(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned
         if(!iff_read_chunk(chunk, Buffer, BufferSize))
             return 0;
 
-        Buffer += chunk->Size;
-        BufferSize -= chunk->Size;
+        Buffer += chunk->Size + 76;
+        BufferSize -= chunk->Size + 76;
     }
     return 1;
 }

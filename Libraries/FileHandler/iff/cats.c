@@ -16,36 +16,19 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include "iff.h"
+#include "iffparser.h"
 
 int iff_parse_cats(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFFStringPair * StringData;
-    unsigned Size = ChunkInfo->Size - 76;
-    int s;
+    bytestream b;
 
+    set_bytestream(&b, Buffer, ChunkInfo->Size);
     ChunkInfo->FormattedData = calloc(1, sizeof(IFFStringPair));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
+
     StringData = ChunkInfo->FormattedData;
-
-    for(s=0; s<2; s++){
-        unsigned length;
-        for(length=0; length != Size && Buffer[length]; length++);
-        if(length == Size) return 0;
-
-        if(length != 0){
-            char ** string = (s==0) ? &StringData->Key : &StringData->Value;
-            *string = malloc(length+1);
-            if(*string == NULL) return 0;
-            strcpy(*string, (char*) Buffer);
-
-            Buffer += length;
-            Size   -= length;
-        }
-        Buffer++; Size--;
-    }
-
-    return 1;
+    return (read_c_string(&b, &StringData->Key) && read_c_string(&b, &StringData->Value));
 }
 
 void iff_free_cats(void * FormattedData){

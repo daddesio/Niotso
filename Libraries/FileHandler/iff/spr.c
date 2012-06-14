@@ -17,72 +17,27 @@
 */
 
 #include <stdio.h>
-#include "iff.h"
-
-typedef struct {
-    const uint8_t * StartPos;
-    const uint8_t * Buffer;
-    size_t TotalSize;
-    size_t Size;
-    uint8_t Endian; /* 0 = little, 1 = big */
-} bytestream;
-
-static unsigned read_uint32xe(bytestream * b){
-    if(b->Size >= 4){
-        unsigned value = (b->Endian == 0) ? read_uint32le(b->Buffer) : read_uint32be(b->Buffer);
-        b->Buffer += 4;
-        b->Size -= 4;
-        return value;
-    }
-    return 0;
-}
-
-static unsigned read_uint16xe(bytestream * b){
-    if(b->Size >= 2){
-        unsigned value = (b->Endian == 0) ? read_uint16le(b->Buffer) : read_uint16be(b->Buffer);
-        b->Buffer += 2;
-        b->Size -= 2;
-        return value;
-    }
-    return 0;
-}
-
-static int skipbytes(bytestream * b, uint32_t bytes){
-    if(b->Size < bytes) return 0;
-    b->Buffer += bytes; b->Size -= bytes;
-    return 1;
-}
-
-static int seekto(bytestream * b, uint32_t Position){
-    if(Position > b->TotalSize) return 0;
-    b->Buffer = b->StartPos + Position;
-    b->Size = b->TotalSize - Position;
-    return 1;
-}
+#include "iffparser.h"
 
 int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
     IFFSpriteList *SpriteList;
-    unsigned ChunkSize = ChunkInfo->Size - 76;
+    unsigned ChunkSize = ChunkInfo->Size;
     bytestream b;
     unsigned i;
 
-    b.StartPos = Buffer;
-    b.Buffer = Buffer;
-    b.TotalSize = ChunkSize;
-    b.Size = ChunkSize;
-    b.Endian = 0;
-
     if(ChunkSize < 12)
         return 0;
+    set_bytestream(&b, Buffer, ChunkSize);
+
     ChunkInfo->FormattedData = calloc(1, sizeof(IFFSpriteList));
     if(ChunkInfo->FormattedData == NULL)
         return 0;
     SpriteList = ChunkInfo->FormattedData;
 
     if((Buffer[0]|Buffer[1]) == 0) b.Endian++; /* Big endian */
-    SpriteList->Version = read_uint32xe(&b);
-    SpriteList->SpriteCount = read_uint32xe(&b);
-    SpriteList->PaletteID = read_uint32xe(&b);
+    SpriteList->Version = read_uint32(&b);
+    SpriteList->SpriteCount = read_uint32(&b);
+    SpriteList->PaletteID = read_uint32(&b);
     if(SpriteList->Version < 502 || (SpriteList->Version > 505 && SpriteList->Version != 1001))
         return 0;
 
@@ -93,7 +48,7 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
         /* At this point, we are looking at the first field of the first sprite */
 
         for(SpriteList->SpriteCount = 0; b.Size >= 18; SpriteList->SpriteCount++){
-            if(read_uint32xe(&b) != 1001 || !skipbytes(&b, read_uint32xe(&b)))
+            if(read_uint32(&b) != 1001 || !skipbytes(&b, read_uint32(&b)))
                 break;
         }
         seekto(&b, 12);
@@ -113,20 +68,23 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
         if(SpriteList->Version != 1001){
             /* Jump to the next sprite using the offset table; this is mandatory */
             seekto(&b, 12 + 4*i);
-            if(!seekto(&b, read_uint32xe(&b)))
+            if(!seekto(&b, read_uint32(&b)))
                 return 0;
             if((SpriteSize = b.Size) < 10)
                 return 0;
         }
 
         if(SpriteList->Version == 1001){
-            read_uint32xe(&b); /* Sprite version; already checked to be equal to 1001 */
-            SpriteSize = read_uint32xe(&b);
+            seekto(&b, b.Buffer - b.StartPos); /* Resynchronize b.Size with b.Buffer */
+            if(b.Size < 18)
+                return 0;
+            read_uint32(&b); /* Sprite version; already checked to be equal to 1001 */
+            SpriteSize = read_uint32(&b);
         }
 
-        Sprite->Reserved = read_uint32xe(&b);
-        Sprite->Height = read_uint16xe(&b);
-        Sprite->Width = read_uint16xe(&b);
+        Sprite->Reserved = read_uint32(&b);
+        Sprite->Height = read_uint16(&b);
+        Sprite->Width = read_uint16(&b);
         if(Sprite->Reserved != 0 || Sprite->Height == 0 || Sprite->Width == 0 || Sprite->Height > UINT_MAX/Sprite->Width/2){
             /* This happens in the third sprite of every SPR# chunk in sprites.iff */
             Sprite->InvalidDimensions = 1;
