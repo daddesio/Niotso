@@ -83,6 +83,49 @@ typedef struct IFF_BCON_s
     uint16_t * Constants;
 } IFF_BCON;
 
+/* DGRP chunk */
+
+typedef struct IFFSpriteInfo_s
+{
+    uint16_t Type;
+    uint32_t ChunkID;
+    uint32_t SpriteIndex;
+    uint16_t Flags;
+    int32_t SpriteX;
+    int32_t SpriteY;
+    float ObjectZ;
+    float ObjectX;
+    float ObjectY;
+} IFFSpriteInfo;
+
+typedef struct IFFDrawAngle_s
+{
+    uint16_t SpriteCount;
+    uint32_t Direction;
+    uint32_t Zoom;
+    IFFSpriteInfo * SpriteInfo;
+} IFFDrawAngle;
+
+typedef struct IFFDrawGroup_s
+{
+    uint16_t Version;
+    uint32_t AngleCount;
+    IFFDrawAngle DrawAngles[12];
+} IFFDrawGroup;
+
+enum IFFDrawDirection {
+    IFFDIRECTION_NORTHEAST = 1,
+    IFFDIRECTION_SOUTHEAST = 4,
+    IFFDIRECTION_NORTHWEST = 16,
+    IFFDIRECTION_SOUTHWEST = 64
+};
+
+enum IFFDrawZoom {
+    IFFZOOM_FAR = 1,
+    IFFZOOM_MIDDLE,
+    IFFZOOM_CLOSE
+};
+
 /* FCNS chunk */
 
 typedef struct IFFConstant_s
@@ -101,6 +144,23 @@ typedef struct IFFConstantList_s
     IFFConstant * Constants;
 } IFFConstantList;
 
+/* OBJf chunk */
+
+typedef struct IFFFunction_s
+{
+    uint16_t ConditionID;
+    uint16_t ActionID;
+} IFFFunction;
+
+typedef struct IFFFunctionTable_s
+{
+    uint32_t Reserved;
+    uint32_t Version;
+    char MagicNumber[5];
+    uint32_t FunctionCount;
+    IFFFunction * Functions;
+} IFFFunctionTable;
+
 /* PALT chunk */
 
 typedef struct IFFPalette_s
@@ -112,15 +172,21 @@ typedef struct IFFPalette_s
     uint8_t Data[256*3];
 } IFFPalette;
 
-/* SPR# chunk */
+/* SPR#/SPR2 chunk */
 
 typedef struct IFFSprite_s
 {
     uint32_t Reserved;
     uint16_t Height;
     uint16_t Width;
+    uint32_t Flags;
+    uint16_t PaletteID;
+    uint16_t TransparentColor;
+    int16_t YLoc;
+    int16_t XLoc;
     uint8_t * IndexData;
     uint8_t * BGRA32Data;
+    uint8_t * ZBuffer;
 
     uint8_t InvalidDimensions;
 } IFFSprite;
@@ -132,6 +198,12 @@ typedef struct IFFSpriteList_s
     uint32_t PaletteID;
     IFFSprite * Sprites;
 } IFFSpriteList;
+
+enum IFFSpriteFlags {
+    IFFSPRITE_FLAG_COLOR   = 1,
+    IFFSPRITE_FLAG_ZBUFFER = 2,
+    IFFSPRITE_FLAG_ALPHA   = 4
+};
 
 int iff_depalette(IFFSprite * Sprite, const IFFPalette * Palette);
 

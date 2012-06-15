@@ -302,26 +302,27 @@ int main(int argc, char *argv[]){
     fprintf(hFile, "</div>\n");
     fprintf(hFile, "\n");
 
-    for(c=1, ChunkData = IFFFileInfo->Chunks; c <= IFFFileInfo->ChunkCount; c++, ChunkData++){
+    for(c=0, ChunkData = IFFFileInfo->Chunks; c < IFFFileInfo->ChunkCount; c++, ChunkData++){
         fprintf(hFile, "<h2 id=\"chunk%u_%.4x\">%u [%s] (%.4X)%s%s <a href=\"#chunk%u_%.4x\">(Jump)</a></h2>\n",
-            c, ChunkData->ChunkID, c, ChunkData->Type, ChunkData->ChunkID,
+            c+1, ChunkData->ChunkID, c+1, ChunkData->Type, ChunkData->ChunkID,
             (ChunkData->Label[0] != 0x00) ? " &ndash; " : "", ChunkData->Label,
-            c, ChunkData->ChunkID);
+            c+1, ChunkData->ChunkID);
         fprintf(hFile, "<div>\n");
 
         if(ChunkData->FormattedData == NULL){
             int success = 0;
             /* The iff library does not parse BMP_ or FBMP chunks */
             if(!strcmp(ChunkData->Type, "BMP_") || !strcmp(ChunkData->Type, "FBMP")){
+                int bmp = !strcmp(ChunkData->Type, "BMP_");
                 size_t Width, Height;
                 char filename[32];
-                sprintf(filename, "%sbmp_%u_%.4x.png", OutDir, c+1, ChunkData->ChunkID);
+                sprintf(filename, "%s%s_%u_%.4x.png", OutDir, bmp ? "bmp" : "fbmp", c+1, ChunkData->ChunkID);
 
-                if(WritePNG(filename, ChunkData, NULL, &Width, &Height)){
+                if(WritePNG(filename, ChunkData, 0, NULL, &Width, &Height)){
                     fprintf(hFile, "<table class=\"center centerall\">\n");
                     fprintf(hFile, "<tr><th>Image</th></tr>\n");
-                    fprintf(hFile, "<tr><td><img src=\"bmp_%u_%.4x.png\" width=\"%u\" height=\"%u\" alt=\"\" /></td></tr>\n",
-                        c+1, ChunkData->ChunkID, Width, Height);
+                    fprintf(hFile, "<tr><td><img src=\"%s_%u_%.4x.png\" width=\"%u\" height=\"%u\" alt=\"\" /></td></tr>\n",
+                        bmp ? "bmp" : "fbmp", c+1, ChunkData->ChunkID, Width, Height);
                     fprintf(hFile, "</table>\n");
                     success++;
                 }
@@ -536,11 +537,12 @@ int main(int argc, char *argv[]){
                 fprintf(hFile, "</tr>\n");
             }
             fprintf(hFile, "</table>\n");
-        }else if(!strcmp(ChunkData->Type, "SPR#")){
+        }else if(!strcmp(ChunkData->Type, "SPR#") || !strcmp(ChunkData->Type, "SPR2")){
             /****
-            ** SPR# parsing
+            ** SPR# and SPR2 parsing
             */
 
+            int spr1 = !strcmp(ChunkData->Type, "SPR#");
             IFFSpriteList * SpriteList = ChunkData->FormattedData;
             IFFChunk * Palette = NULL;
             IFFPalette BlankPalette;
@@ -565,21 +567,98 @@ int main(int argc, char *argv[]){
             }else PaletteData = Palette->FormattedData;
 
             fprintf(hFile, "<table class=\"center centerall\">\n");
-            fprintf(hFile, "<tr><th colspan=\"2\">Sprite</th></tr>\n");
+            fprintf(hFile, "<tr><th colspan=\"2\">Sprite</th>");
+            if(!spr1) fprintf(hFile, "<th>Z-Buffer</th>");
+            fprintf(hFile, "</tr>\n");
             for(i=0; i<SpriteList->SpriteCount; i++){
                 IFFSprite * Sprite = &SpriteList->Sprites[i];
                 char filename[32];
-                sprintf(filename, "%sspr1_%u_%.4x_%u.png", OutDir, c+1, ChunkData->ChunkID, i+1);
+                sprintf(filename, "%s%s_%u_%.4x_%u.png", OutDir, spr1 ? "spr1" : "spr2", c+1, ChunkData->ChunkID, i+1);
 
-                fprintf(hFile, "<tr><td>%u</td><td>", i+1);
-                if(Sprite->IndexData && iff_depalette(Sprite, PaletteData) && WritePNG(filename, NULL, Sprite, NULL, NULL))
-                    fprintf(hFile, "<img src=\"spr1_%u_%.4x_%u.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
-                        c+1, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
-                else
-                    fprintf(hFile, Sprite->InvalidDimensions ? "Blank sprite" : "This sprite cannot be displayed.");
+                fprintf(hFile, "<tr><td>%u</td><td", i+1);
+                if(Sprite->IndexData && iff_depalette(Sprite, PaletteData)){
+                    WritePNG(filename, NULL, 0, Sprite, NULL, NULL);
+                    fprintf(hFile, "><img src=\"%s_%u_%.4x_%u.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
+                        spr1 ? "spr1" : "spr2", c+1, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
+                    if(!spr1){
+                        sprintf(filename, "%sspr2_%u_%.4x_%u_z.png", OutDir, c+1, ChunkData->ChunkID, i+1);
+                        if(Sprite->ZBuffer){
+                            WritePNG(filename, NULL, 1, Sprite, NULL, NULL);
+                            fprintf(hFile, "</td><td><img src=\"spr2_%u_%.4x_%u_z.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
+                                c+1, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
+                        }else
+                            fprintf(hFile, "None provided");
+                    }
+                }else
+                    fprintf(hFile, Sprite->InvalidDimensions ? "%sBlank sprite" : "%sThis sprite cannot be displayed.",
+                        !spr1 ? " colspan=\"2\">" : "");
                 fprintf(hFile, "</td></tr>\n");
             }
             fprintf(hFile, "</table>\n");
+        }else if(!strcmp(ChunkData->Type, "DGRP")){
+            /****
+            ** DGRP parsing
+            */
+
+            IFFDrawGroup * Group = ChunkData->FormattedData;
+            IFFDrawAngle * Angle;
+            IFFSpriteInfo * Sprite;
+            unsigned i,j;
+            const char * Zooms[] = {"Far", "Middle", "Close"};
+
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Version:</td><td>%u</td></tr>\n", Group->Version);
+            fprintf(hFile, "</table>\n");
+            fprintf(hFile, "<br />\n");
+
+            fprintf(hFile, "<table class=\"center\">\n");
+            fprintf(hFile, "<tr><th>Direction</th><th>Zoom</th><th colspan=\"6\">Sprite</th></tr>\n");
+            for(i=0, Angle=Group->DrawAngles; i<12; i++, Angle++){
+                const char * Direction =
+                    (Angle->Direction == IFFDIRECTION_NORTHEAST)  ? "North east" :
+                    (Angle->Direction == IFFDIRECTION_SOUTHEAST)  ? "South east" :
+                    (Angle->Direction == IFFDIRECTION_NORTHWEST)  ? "North west" :
+                                                                    "South west";
+
+                if(Angle->SpriteCount){
+                    fprintf(hFile,
+                        "<tr><td rowspan=\"%u\">%s</td><td rowspan=\"%u\">%s</td>"
+                        "<th>#</th><th>Type</th><th>Chunk ID</th><th>Sprite index</th>"
+                        "<th>Flags</th><th>Sprite offset</th><th>Object offset</th></tr>\n",
+                        1+Angle->SpriteCount, Direction, 1+Angle->SpriteCount, Zooms[Angle->Zoom-1]);
+                    for(j=0, Sprite = Angle->SpriteInfo; j<Angle->SpriteCount; j++, Sprite++)
+                        fprintf(hFile, "<tr><td>%u</td><td>%u</td><td>%.4X</td><td>%u</td><td>%u</td>"
+                            "<td>(%+d,%+d)</td><td>(%+g,%+g,%+g)</td></tr>",
+                            j+1, Sprite->Type, Sprite->ChunkID, Sprite->SpriteIndex, Sprite->Flags,
+                            Sprite->SpriteX, Sprite->SpriteY, Sprite->ObjectX, Sprite->ObjectY, Sprite->ObjectZ);
+
+                }else{
+                    fprintf(hFile, "<tr><td>%s</td><td>%s</td><td>None specified</td></tr>", Direction, Zooms[Angle->Zoom-1]);
+                }
+            }
+            fprintf(hFile, "</table>\n");
+        }else if(!strcmp(ChunkData->Type, "OBJf")){
+            /****
+            ** OBJf parsing
+            */
+
+            IFFFunctionTable * Table = ChunkData->FormattedData;
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Version:</td><td>%u</td></tr>\n", Table->Version);
+            fprintf(hFile, "</table>\n");
+
+            if(Table->FunctionCount > 0){
+                unsigned i;
+
+                fprintf(hFile, "<br />\n");
+                fprintf(hFile, "<table class=\"center\">\n");
+                fprintf(hFile, "<tr><th colspan=\"2\">Condition function</th><th>Action function</th></tr>\n");
+                for(i=0; i<Table->FunctionCount; i++)
+                    fprintf(hFile,
+                        "<tr><td>%u</td><td>%.4X</td><td>%.4X</td></tr>\n",
+                        i+1, Table->Functions[i].ConditionID, Table->Functions[i].ActionID);
+                fprintf(hFile, "</table>\n");
+            }
         }else{
             fprintf(hFile, "The contents of this chunk cannot be shown on this page.\n");
         }

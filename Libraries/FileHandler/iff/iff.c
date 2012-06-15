@@ -28,13 +28,16 @@
     void iff_free_##x(void *)
 
 iff_register(bcon);
+iff_register(dgrp);
 iff_register(str);
 iff_register(cats);
 iff_register(c_string);
 iff_register(glob);
 iff_register(fcns);
 iff_register(palt);
+iff_register(objf);
 iff_register(spr);
+iff_register(spr2);
 iff_register(tmpl);
 iff_register(trcn);
 iff_register(rsmp);
@@ -49,8 +52,11 @@ const char chunktypes[] =
     "FCNS"
     "PALT"
     "SPR#"
+    "SPR2"
+    "DGRP"
     "TMPL"
     "TRCN"
+    "OBJf"
     "rsmp"
 ;
 int (* const iff_parse_function[])(IFFChunk*, const uint8_t*) = {
@@ -62,8 +68,11 @@ int (* const iff_parse_function[])(IFFChunk*, const uint8_t*) = {
     iff_parse_fcns,
     iff_parse_palt,
     iff_parse_spr,
+    iff_parse_spr2,
+    iff_parse_dgrp,
     iff_parse_tmpl,
     iff_parse_trcn,
+    iff_parse_objf,
     iff_parse_rsmp
 };
 void (* const iff_free_function[])(void*) = {
@@ -75,8 +84,11 @@ void (* const iff_free_function[])(void*) = {
     iff_free_fcns,
     NULL,
     iff_free_spr,
+    iff_free_spr,
+    iff_free_dgrp,
     iff_free_tmpl,
     iff_free_trcn,
+    iff_free_objf,
     iff_free_rsmp
 };
 /* End */

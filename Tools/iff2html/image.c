@@ -23,7 +23,8 @@
 #include <libpng/png.h>
 #include "opngreduc.h"
 
-int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite * Sprite, size_t * Width, size_t * Height){
+int WritePNG(const char * OutName, const IFFChunk * ChunkData, int ZBuffer,
+    const IFFSprite * Sprite, size_t * Width, size_t * Height){
     FILE * hFile;
     png_structp png_ptr;
     png_infop info_ptr;
@@ -40,7 +41,7 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
         /* BMP_ or FBMP chunk */
         bmpheader_t BMPHeader;
 
-        if(!bmp_read_header(&BMPHeader, ChunkData->Data, ChunkData->Size - 76))
+        if(!bmp_read_header(&BMPHeader, ChunkData->Data, ChunkData->Size))
             return 0;
 
         Image.Data = malloc(BMPHeader.DecompressedSize);
@@ -57,14 +58,16 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
         /* SPR# or SPR2 sprite */
         Image.Width = Sprite->Width;
         Image.Height = Sprite->Height;
-        Image.Data = Sprite->BGRA32Data;
+        Image.Data = (!ZBuffer) ? Sprite->BGRA32Data : Sprite->ZBuffer;
 
-        /* Swap from BGR to RGB; this cannot be done with libpng when you use opng_reduce_image
-        ** due to the state that it leaves png_ptr in */
-        for(i=0; i<Image.Width*Image.Height; i++){
-            uint8_t temp = Image.Data[i*4 + 0];
-            Image.Data[i*4 + 0] = Image.Data[i*4 + 2];
-            Image.Data[i*4 + 2] = temp;
+        if(!ZBuffer){
+            /* Swap from BGR to RGB; this cannot be done with libpng when you use opng_reduce_image
+            ** due to the state that it leaves png_ptr in */
+            for(i=0; i<Image.Width*Image.Height; i++){
+                uint8_t temp = Image.Data[i*4 + 0];
+                Image.Data[i*4 + 0] = Image.Data[i*4 + 2];
+                Image.Data[i*4 + 2] = temp;
+            }
         }
     }
 
@@ -74,7 +77,7 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
         return 0;
     }
     for(i=0; i<Image.Height; i++)
-        row_pointers[i] = Image.Data + Image.Width*((ChunkData) ? 3*(Image.Height-i-1) : 4*i);
+        row_pointers[i] = Image.Data + Image.Width*((ChunkData) ? 3*(Image.Height-i-1) : ((!ZBuffer)?4:1)*i);
 
     /****
     ** PNG handling
@@ -118,7 +121,8 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite *
     png_set_compression_window_bits(png_ptr, 15);
     png_set_compression_buffer_size(png_ptr, 32768);
 
-    png_set_IHDR(png_ptr, info_ptr, Image.Width, Image.Height, 8, ChunkData ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_RGB_ALPHA,
+    png_set_IHDR(png_ptr, info_ptr, Image.Width, Image.Height, 8,
+        ChunkData ? PNG_COLOR_TYPE_RGB : (!ZBuffer) ? PNG_COLOR_TYPE_RGB_ALPHA : PNG_COLOR_TYPE_GRAY,
         PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
     png_set_rows(png_ptr, info_ptr, row_pointers);

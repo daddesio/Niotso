@@ -5,11 +5,14 @@ set(IFF_SOURCES
     cats.c
     iff.c
     bcon.c
+    dgrp.c
     fcns.c
     glob.c
+    objf.c
     palt.c
     rsmp.c
     spr.c
+    spr2.c
     str.c
     string.c
     tmpl.c

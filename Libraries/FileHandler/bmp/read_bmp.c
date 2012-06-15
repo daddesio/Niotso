@@ -111,7 +111,7 @@ int bmp_read_data(bmpheader_t * BMPHeader, const uint8_t *__restrict InBuffer, u
             unsigned y, x;
             unsigned padding = BMPHeader->biWidth % 4;
             if(padding != 0) padding = 4-padding;
-            
+
             for(y=0; y<BMPHeader->biHeight; y++){
                 for(x=0; x<BMPHeader->biWidth; x++){
                     unsigned index = 4*(*InBuffer++);

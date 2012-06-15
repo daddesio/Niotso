@@ -16,4 +16,5 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-int WritePNG(const char * OutName, const IFFChunk * ChunkData, const IFFSprite * Sprite, size_t * Width, size_t * Height);
+int WritePNG(const char * OutName, const IFFChunk * ChunkData, int ZBuffer,
+    const IFFSprite * Sprite, size_t * Width, size_t * Height);
