@@ -578,20 +578,20 @@ int main(int argc, char *argv[]){
                 fprintf(hFile, "<tr><td>%u</td><td", i+1);
                 if(Sprite->IndexData && iff_depalette(Sprite, PaletteData)){
                     WritePNG(filename, NULL, 0, Sprite, NULL, NULL);
-                    fprintf(hFile, "><img src=\"%s_%u_%.4x_%u.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
+                    fprintf(hFile, "><img src=\"%s_%u_%.4x_%u.png\" width=\"%u\" height=\"%u\" alt=\"\" /></td><td>",
                         spr1 ? "spr1" : "spr2", c+1, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
                     if(!spr1){
                         sprintf(filename, "%sspr2_%u_%.4x_%u_z.png", OutDir, c+1, ChunkData->ChunkID, i+1);
                         if(Sprite->ZBuffer){
                             WritePNG(filename, NULL, 1, Sprite, NULL, NULL);
-                            fprintf(hFile, "</td><td><img src=\"spr2_%u_%.4x_%u_z.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
+                            fprintf(hFile, "<img src=\"spr2_%u_%.4x_%u_z.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
                                 c+1, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
                         }else
                             fprintf(hFile, "None provided");
                     }
                 }else
                     fprintf(hFile, Sprite->InvalidDimensions ? "%sBlank sprite" : "%sThis sprite cannot be displayed.",
-                        !spr1 ? " colspan=\"2\">" : "");
+                        !spr1 ? " colspan=\"2\">" : ">");
                 fprintf(hFile, "</td></tr>\n");
             }
             fprintf(hFile, "</table>\n");
@@ -637,6 +637,38 @@ int main(int argc, char *argv[]){
                 }
             }
             fprintf(hFile, "</table>\n");
+        }else if(!strcmp(ChunkData->Type, "BHAV")){
+            /****
+            ** BHAV parsing
+            */
+
+            IFFBehavior * Behavior = ChunkData->FormattedData;
+            IFFInstruction * Instruction;
+
+            fprintf(hFile, "<table>\n");
+            fprintf(hFile, "<tr><td>Version:</td><td>%u</td></tr>\n", Behavior->Version);
+            fprintf(hFile, "<tr><td>Type:</td><td>%u</td></tr>\n", Behavior->Type);
+            fprintf(hFile, "<tr><td>Arguments:</td><td>%u</td></tr>\n", Behavior->ArgumentCount);
+            fprintf(hFile, "<tr><td>Locals:</td><td>%u</td></tr>\n", Behavior->LocalCount);
+            fprintf(hFile, "<tr><td>Flags:</td><td>%.4X</td></tr>\n", Behavior->Flags);
+            fprintf(hFile, "</table>\n");
+
+            if(Behavior->InstructionCount > 0){
+                unsigned i;
+
+                fprintf(hFile, "<br />\n");
+                fprintf(hFile, "<table class=\"center\">\n");
+                fprintf(hFile, "<tr><th colspan=\"2\">Opcode</th><th>T-Dest</th><th>F-Dest</th><th>Operand data</th></tr>\n");
+                for(i=0, Instruction = Behavior->Instructions; i<Behavior->InstructionCount; i++, Instruction++)
+                    fprintf(hFile, "<tr><td>%u</td><td><tt>%.4X</tt></td><td>%u</td><td>%u</td>"
+                        "<td><tt>%.2X %.2X %.2X %.2X %.2X %.2X %.2X %.2X</tt></td></tr>\n",
+                        i, Instruction->Opcode, Instruction->TDest, Instruction->FDest,
+                        Instruction->Operands[0], Instruction->Operands[1],
+                        Instruction->Operands[2], Instruction->Operands[3],
+                        Instruction->Operands[4], Instruction->Operands[5],
+                        Instruction->Operands[6], Instruction->Operands[7]);
+                fprintf(hFile, "</table>\n");
+            }
         }else if(!strcmp(ChunkData->Type, "OBJf")){
             /****
             ** OBJf parsing

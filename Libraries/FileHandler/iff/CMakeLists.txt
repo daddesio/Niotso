@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(iff)
 
 set(IFF_SOURCES
+    bhav.c
     cats.c
     iff.c
     bcon.c

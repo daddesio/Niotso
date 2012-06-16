@@ -144,6 +144,7 @@ int iff_parse_spr2(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                 while(RowCount){
                     uint8_t PixelCommand; /* 3 bits */
                     uint16_t PixelCount;  /* 13 bits */
+                    uint8_t * IndexData, * ZBuffer;
                     if(RowCount < 2)
                         return 0;
 
@@ -157,6 +158,10 @@ int iff_parse_spr2(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                     if(PixelCount > Sprite->Width - pixel)
                         return 0;
 
+                    IndexData = Sprite->IndexData + (Sprite->Width*row + pixel)*2;
+                    ZBuffer = Sprite->ZBuffer + (Sprite->Width*row + pixel)*1;
+                    pixel += PixelCount;
+
                     if(PixelCommand == 1){
                         /* color+z-buffer: Set next n pixels to n palette indices */
 
@@ -165,10 +170,10 @@ int iff_parse_spr2(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                         RowCount -= PixelCount*2;
 
                         while(PixelCount--){
-                            Sprite->ZBuffer[Sprite->Width*row + pixel] = *(b.Buffer++);
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 0] = *(b.Buffer++);
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 1] = 0xFF;
-                            pixel++;
+                            *ZBuffer++ = *(b.Buffer++);
+                            IndexData[0] = *(b.Buffer++);
+                            IndexData[1] = (IndexData[0] != Sprite->TransparentColor) ? 0xFF : 0x00;
+                            IndexData += 2;
                         }
                     }else if(PixelCommand == 2){
                         /* color+z-buffer+alpha: Set next n pixels to n palette indices */
@@ -179,16 +184,13 @@ int iff_parse_spr2(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                         RowCount -= PixelCount*3 + padding;
 
                         while(PixelCount--){
-                            Sprite->ZBuffer[Sprite->Width*row + pixel] = *(b.Buffer++);
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 0] = *(b.Buffer++);
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 1] = *(b.Buffer++);
-                            pixel++;
+                            *ZBuffer++ = *(b.Buffer++);
+                            *IndexData++ = *(b.Buffer++);
+                            *IndexData++ = *(b.Buffer++);
                         }
                         if(padding) b.Buffer++; /* Padding byte */
                     }else if(PixelCommand == 3){
                         /* Leave next n pixels as transparent */
-
-                        pixel += PixelCount;
                     }else if(PixelCommand == 6){
                         /* color: Set next n pixels to n palette indices */
 
@@ -198,10 +200,11 @@ int iff_parse_spr2(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                         RowCount -= PixelCount + padding;
 
                         while(PixelCount--){
-                            Sprite->ZBuffer[Sprite->Width*row + pixel] = 0x00;
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 0] = *(b.Buffer++);
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 1] = 0xFF;
-                            pixel++;
+                            IndexData[0] = *(b.Buffer++);
+                            IndexData[1] = (IndexData[0] != Sprite->TransparentColor) ? 0xFF : 0x00;
+                            if(Sprite->Flags >= 3)
+                                *ZBuffer++ = (IndexData[0] != Sprite->TransparentColor) ? 0x00 : 0xFF;
+                            IndexData += 2;
                         }
                         if(padding) b.Buffer++; /* Padding byte */
                     } else return 0;

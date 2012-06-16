@@ -83,6 +83,27 @@ typedef struct IFF_BCON_s
     uint16_t * Constants;
 } IFF_BCON;
 
+/* BHAV chunk */
+
+typedef struct IFFInstruction_s
+{
+    uint16_t Opcode;
+    uint8_t TDest;
+    uint8_t FDest;
+    uint8_t Operands[8];
+} IFFInstruction;
+
+typedef struct IFFBehavior_s
+{
+    uint16_t Version;
+    uint32_t InstructionCount;
+    uint8_t Type;
+    uint8_t ArgumentCount;
+    uint16_t LocalCount;
+    uint16_t Flags;
+    IFFInstruction * Instructions;
+} IFFBehavior;
+
 /* DGRP chunk */
 
 typedef struct IFFSpriteInfo_s

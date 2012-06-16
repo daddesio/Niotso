@@ -120,6 +120,7 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
 
                 while(RowCount){
                     uint8_t PixelCommand, PixelCount;
+                    uint8_t * IndexData;
                     if(RowCount < 2)
                         return 0;
 
@@ -130,10 +131,11 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                     if(PixelCount > Sprite->Width - pixel)
                         return 0;
 
+                    IndexData = Sprite->IndexData + (Sprite->Width*row + pixel)*2;
+                    pixel += PixelCount;
+
                     if(PixelCommand == 1){
                         /* Leave next n pixels as transparent */
-
-                        pixel += PixelCount;
                     }else if(PixelCommand == 2){
                         /* Set next n pixels to shared palette index */
 
@@ -146,9 +148,8 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                         RowCount -= 2;
 
                         while(PixelCount--){
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 0] = PaletteIndex;
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 1] = 0xFF;
-                            pixel++;
+                            *IndexData++ = PaletteIndex;
+                            *IndexData++ = 0xFF;
                         }
                     }else if(PixelCommand == 3){
                         /* Set next n pixels to n palette indices */
@@ -159,9 +160,8 @@ int iff_parse_spr(IFFChunk * ChunkInfo, const uint8_t * Buffer){
                         RowCount -= PixelCount + padding;
 
                         while(PixelCount--){
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 0] = *(b.Buffer++);
-                            Sprite->IndexData[(Sprite->Width*row + pixel)*2 + 1] = 0xFF;
-                            pixel++;
+                            *IndexData++ = *(b.Buffer++);
+                            *IndexData++ = 0xFF;
                         }
                         if(padding) b.Buffer++; /* Padding byte */
                     }else return 0;
