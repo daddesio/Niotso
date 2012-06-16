@@ -37,6 +37,9 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, int ZBuffer,
         uint8_t * Data;
     } Image;
 
+    /* We must swap from BGR to RGB; this cannot be done with libpng when you use
+    ** opng_reduce_image due to the state that it leaves png_ptr in */
+
     if(ChunkData){
         /* BMP_ or FBMP chunk */
         bmpheader_t BMPHeader;
@@ -54,6 +57,12 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, int ZBuffer,
 
         Image.Width = BMPHeader.biWidth;
         Image.Height = BMPHeader.biHeight;
+
+        for(i=0; i<Image.Width*Image.Height; i++){
+            uint8_t temp = Image.Data[i*3 + 0];
+            Image.Data[i*3 + 0] = Image.Data[i*3 + 2];
+            Image.Data[i*3 + 2] = temp;
+        }
     }else{
         /* SPR# or SPR2 sprite */
         Image.Width = Sprite->Width;
@@ -61,8 +70,6 @@ int WritePNG(const char * OutName, const IFFChunk * ChunkData, int ZBuffer,
         Image.Data = (!ZBuffer) ? Sprite->BGRA32Data : Sprite->ZBuffer;
 
         if(!ZBuffer){
-            /* Swap from BGR to RGB; this cannot be done with libpng when you use opng_reduce_image
-            ** due to the state that it leaves png_ptr in */
             for(i=0; i<Image.Width*Image.Height; i++){
                 uint8_t temp = Image.Data[i*4 + 0];
                 Image.Data[i*4 + 0] = Image.Data[i*4 + 2];
