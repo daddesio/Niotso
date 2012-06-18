@@ -578,13 +578,13 @@ int main(int argc, char *argv[]){
                 fprintf(hFile, "<tr><td>%u</td><td", i+1);
                 if(Sprite->IndexData && iff_depalette(Sprite, PaletteData)){
                     WritePNG(filename, NULL, 0, Sprite, NULL, NULL);
-                    fprintf(hFile, "><img src=\"%s_%u_%.4x_%u.png\" width=\"%u\" height=\"%u\" alt=\"\" /></td><td>",
+                    fprintf(hFile, "><img src=\"%s_%u_%.4x_%u.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
                         spr1 ? "spr1" : "spr2", c+1, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
                     if(!spr1){
                         sprintf(filename, "%sspr2_%u_%.4x_%u_z.png", OutDir, c+1, ChunkData->ChunkID, i+1);
                         if(Sprite->ZBuffer){
                             WritePNG(filename, NULL, 1, Sprite, NULL, NULL);
-                            fprintf(hFile, "<img src=\"spr2_%u_%.4x_%u_z.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
+                            fprintf(hFile, "</td><td><img src=\"spr2_%u_%.4x_%u_z.png\" width=\"%u\" height=\"%u\" alt=\"\" />",
                                 c+1, ChunkData->ChunkID, i+1, Sprite->Width, Sprite->Height);
                         }else
                             fprintf(hFile, "None provided");
