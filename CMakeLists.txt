@@ -18,13 +18,13 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     # Base options
-    set(CFLAGS  "-Wall -Wextra -Wabi -pedantic -m32 -mmmx -msse -msse2 -msse3 -mfpmath=both -msahf -fvisibility=internal")
-    set(LDFLAGS "-m32 -fvisibility=hidden -fvisibility-inlines-hidden")
+    set(CFLAGS  "-Wall -Wextra -Wabi -pedantic -m32 -mmmx -msse -msse2 -msse3 -mfpmath=both -msahf -malign-double -mpc32 -fvisibility=hidden")
+    set(LDFLAGS "-m32")
     set(RCFLAGS "-F pe-i386")
     set(ASMFLAGS "-O3 -F win32")
 
     set(CFLAGS_LANG_C   "-ansi")
-    set(CFLAGS_LANG_CPP "-fno-exceptions -fno-rtti -fno-threadsafe-statics")
+    set(CFLAGS_LANG_CPP "-fvisibility-inlines-hidden -fno-exceptions -fno-rtti -fno-threadsafe-statics")
 
 
     ####
@@ -39,7 +39,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
         endif()
 
         # Size
-        set(CFLAGS_SIZE "${CFLAGS} -Os -g0 -fomit-frame-pointer -ffast-math -fmerge-all-constants -funsafe-loop-optimizations -fmerge-all-constants -fsched-pressure")
+        set(CFLAGS_SIZE "${CFLAGS} -Os -g0 -fomit-frame-pointer -ffast-math -fmerge-all-constants -funsafe-loop-optimizations -fmerge-all-constants -fsched-pressure -mstringop-strategy=rep_byte")
         set(LDFLAGS_SIZE "${LDFLAGS} -s -fwhole-program")
 
         # Speed

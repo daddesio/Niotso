@@ -23,8 +23,6 @@ namespace System {
     void Shutdown();
 
     extern HINSTANCE hInst;
-    extern HANDLE Process;
-    extern HANDLE ProcessHeap;
     extern LARGE_INTEGER ClockFreq;
     extern volatile float FramePeriod;
 

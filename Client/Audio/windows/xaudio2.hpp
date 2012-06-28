@@ -5,11 +5,7 @@
   ruby-specific header to provide mingw-friendly xaudio2 interfaces
 */
 
-#include <windows.h>
-#undef NULL
-#define NULL 0
-
-#include <guiddef.h>
+#include <unknwn.h>
 #include <mmreg.h>
 
 DEFINE_GUID(CLSID_XAudio2, 0xe21a7345, 0xeb21, 0x468e, 0xbe, 0x50, 0x80, 0x4d, 0xb9, 0x7c, 0xf7, 0x08);

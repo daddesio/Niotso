@@ -23,6 +23,13 @@
 static void Shutdown();
 Scene * CurrentScene;
 
+#ifdef _WIN32
+
+/* TDM GCC bonus feature; saves 66 kB in the binary :) */
+/* */ void* operator new(unsigned size){return malloc(size);}
+/* */ void operator delete(void *ptr){free(ptr);}
+/* */ extern "C" void __cxa_pure_virtual(){}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     int result;
@@ -122,3 +129,5 @@ static void Shutdown()
     System::Shutdown();
     Window::Shutdown();
 }
+
+#endif

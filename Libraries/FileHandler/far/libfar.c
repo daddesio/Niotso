@@ -18,21 +18,9 @@
 
 #include "config.h"
 
-#include <windows.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef HAVE_STDINT_H
- #include <stdint.h>
-#else
- typedef signed char int8_t;
- typedef unsigned char uint8_t;
- typedef signed short int16_t;
- typedef unsigned short uint16_t;
- typedef signed long int32_t;
- typedef unsigned long uint32_t;
- typedef unsigned int uintptr_t;
-#endif
+#include <stdint.h>
 
 #include "libfar.h"
 

@@ -16,7 +16,6 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#define NOWINDOWS
 #include "FileHandler.hpp"
 #include <setjmp.h> //Used by libpng
 #include "bmp/read_bmp.h"

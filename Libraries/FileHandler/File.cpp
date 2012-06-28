@@ -21,38 +21,37 @@
 namespace File {
 
 int Error = 0;
-unsigned FileSize = 0;
+size_t FileSize = 0;
 
 uint8_t * ReadFile(const char * Filename){
-    HANDLE hFile = CreateFile(Filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-    if(hFile == INVALID_HANDLE_VALUE){
-        File::Error = (GetLastError() == ERROR_FILE_NOT_FOUND) ? FERR_NOT_FOUND : FERR_OPEN;
+    FILE * hFile = fopen(Filename, "rb");
+    if(hFile == NULL){
+        File::Error = FERR_OPEN;
         return NULL;
     }
 
-    FileSize = GetFileSize(hFile, NULL);
+    FileSize = File::GetFileSize(hFile);
     if(FileSize == 0){
-        CloseHandle(hFile);
+        fclose(hFile);
         File::Error = FERR_BLANK;
         return NULL;
     }
 
     uint8_t * InData = (uint8_t*) malloc(FileSize);
     if(InData == NULL){
-        CloseHandle(hFile);
+        fclose(hFile);
         File::Error = FERR_MEMORY;
         return NULL;
     }
 
-    DWORD bytestransferred;
-    BOOL result = ::ReadFile(hFile, InData, FileSize, &bytestransferred, NULL);
-    CloseHandle(hFile);
-
-    if(!result || bytestransferred != FileSize){
+    size_t bytestransferred = fread(InData, 1, FileSize, hFile);
+    if(bytestransferred != FileSize){
         free(InData);
+        fclose(hFile);
         File::Error = FERR_READ;
         return NULL;
     }
+
     return InData;
 }
 

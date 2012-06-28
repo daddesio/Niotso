@@ -19,18 +19,24 @@
 */
 
 //Compiler/platform constants
-#define WINVER 0x0502
-#define _WIN32_WINNT 0x0502
-#define _CRT_SECURE_NO_WARNINGS
+#ifdef _WIN32
+ #define WINVER 0x0502
+ #define _WIN32_WINNT 0x0502
+ #define NTDDI_VERSION 0x05010300
+ #define _CRT_SECURE_NO_WARNINGS
+#endif
 
 //Standard libraries
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <windows.h>
-#undef NULL
-#define NULL 0
+#ifdef _WIN32
+ #define WIN32_LEAN_AND_MEAN
+ #include <windows.h>
+ #undef NULL
+ #define NULL 0
+#endif
 
 //Codebase libraries
 #include "FileHandler.hpp"

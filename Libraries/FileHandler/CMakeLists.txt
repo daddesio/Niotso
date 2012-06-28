@@ -25,6 +25,9 @@ set(FILEHANDLER_SOURCES
     wav/read_wav.c
     xa/read_xa.c
 )
+if(WIN32)
+    set(FILEHANDLER_SOURCES ${FILEHANDLER_SOURCES} resource.rc)
+endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
 

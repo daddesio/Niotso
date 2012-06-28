@@ -23,8 +23,6 @@
 namespace System {
 
 HINSTANCE hInst = NULL;
-HANDLE Process;
-HANDLE ProcessHeap;
 LARGE_INTEGER ClockFreq;
 volatile float FramePeriod;
 UserInput_t UserInput = UserInput_t();

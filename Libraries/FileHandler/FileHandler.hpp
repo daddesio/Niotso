@@ -24,12 +24,12 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <memory.h>
-#ifndef NOWINDOWS
- #include <windows.h>
-#endif
 
-#define fhexport __declspec(dllexport)
+#ifdef WIN32
+ #define fhexport __declspec(dllexport)
+#else
+ #define fhexport __attribute__((visibility ("default")))
+#endif
 
 struct Asset_t {
     uint32_t Group;
@@ -67,6 +67,13 @@ struct Sound_t {
 };
 
 namespace File {
+
+inline unsigned GetFileSize(FILE * hFile){
+    fseek(hFile, 0, SEEK_END);
+    unsigned FileSize = ftell(hFile);
+    fseek(hFile, 0, SEEK_SET);
+    return FileSize;
+}
 
 fhexport extern int Error;
 fhexport extern size_t FileSize;
