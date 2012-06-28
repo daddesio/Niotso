@@ -108,6 +108,7 @@ IDI_TOOLS_RESORT		RCDATA "../resources/icons/mail-send-receive.png"
 IDI_TOOLS_REMOVEHOLES	RCDATA "../resources/icons/edit-clear.png"
 IDI_TOOLS_BATCH			RCDATA "../resources/icons/utilities-terminal.png"
 IDI_HELP_WEBSITE		RCDATA "../resources/icons/internet-web-browser.png"
+IDI_HELP_ABOUT			RCDATA "../resources/icons/help-about.png"
 
 IDB_INFO                BITMAP "../resources/icons/info.bmp"
 

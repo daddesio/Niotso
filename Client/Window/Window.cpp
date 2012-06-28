@@ -42,14 +42,14 @@ int Initialize(){
         Shutdown();
         return ERROR_WINDOW_SYNCOBJECT;
     }
-    
+
     Thread = CreateThread(NULL, 1024 /* very tiny stack size is needed */, Window::Procedure, NULL, 0, &ThreadID);
     if(Thread == NULL){
         MessageBox(NULL, "Failed to create the message loop thread.", NULL, MB_OK | MB_ICONERROR);
         Shutdown();
         return ERROR_WINDOW_CREATE_THREAD;
     }
-    
+
     if(WaitForSingleObject(Window::Response, INFINITE) != WAIT_OBJECT_0){
         MessageBox(NULL, "Failed to synchronize with the message loop thread.", NULL, MB_OK | MB_ICONERROR);
         Shutdown();
@@ -60,14 +60,14 @@ int Initialize(){
         Shutdown();
         return Result;
     }
-    
+
     hWnd = FindWindow("TSO_NIOTSO", "The Sims Online");
     if(hWnd == NULL){
         MessageBox(NULL, "Failed to obtain a handle for the window.", NULL, MB_OK | MB_ICONERROR);
         Shutdown();
         return ERROR_WINDOW_HANDLE;
     }
-    
+
     return 0;
 }
 
@@ -88,7 +88,7 @@ void Shutdown(){
         CloseHandle(Response);
         Response = NULL;
     }
-    
+
     UnregisterClass("TSO_NIOTSO", System::hInst);
 }
 
@@ -103,7 +103,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     case WM_KEYUP:
         System::UserInput_v.Keys[wParam] = (uMsg == WM_KEYDOWN);
         return 0;
-    
+
     case WM_CLOSE:
         System::UserInput_v.CloseWindow = true;
         return 0;
@@ -113,7 +113,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
         System::FramePeriod = 1.0f/dm.dmDisplayFrequency;
     } return 0;
-    
+
     }
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
@@ -126,13 +126,13 @@ static DWORD WINAPI Procedure(LPVOID){
         return 0;
     }
     SetEvent(Window::Response);
-    
+
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0)){
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    
+
     return 0;
 }
 
@@ -179,7 +179,7 @@ static int CreateWindowInvisible(HINSTANCE hInst, unsigned Width, unsigned Heigh
     if(hWnd == NULL){
         Fullscreen = false;
         RECT WindowRect = {0, 0, Width, Height};
-        
+
         //Use a style of WS_OVERLAPPEDWINDOW to allow resizing
         AdjustWindowRectEx(&WindowRect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE,
             WS_EX_APPWINDOW); //This finds the dimensions of a window with a client area of our specified dimensions
@@ -189,14 +189,14 @@ static int CreateWindowInvisible(HINSTANCE hInst, unsigned Width, unsigned Heigh
         unsigned WindowWidth = WindowRect.right-WindowRect.left, WindowHeight = WindowRect.bottom-WindowRect.top;
         RECT WorkspaceRect;
         SystemParametersInfo(SPI_GETWORKAREA, 0, &WorkspaceRect, 0);
-        
+
         hWnd = CreateWindowEx(WS_EX_APPWINDOW, "TSO_NIOTSO", "The Sims Online",
             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
             ((WorkspaceRect.right-WorkspaceRect.left - WindowWidth)>>1) + WorkspaceRect.left,
             ((WorkspaceRect.bottom-WorkspaceRect.top - WindowHeight)>>1) + WorkspaceRect.top,
             WindowWidth, WindowHeight, 0, 0, hInst, NULL);
     }
-    
+
     if(hWnd == NULL){
         MessageBox(NULL, "Failed to create the window.", NULL, MB_OK | MB_ICONERROR);
         return ERROR_WINDOW_CREATE;

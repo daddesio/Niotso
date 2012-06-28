@@ -20,7 +20,7 @@
 
 #include "EngineInterface.hpp"
 
-void Shutdown();
+static void Shutdown();
 Scene * CurrentScene;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
@@ -115,7 +115,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     return 0;
 }
 
-void Shutdown()
+static void Shutdown()
 {
     Audio::Shutdown();
     Graphics::Shutdown();

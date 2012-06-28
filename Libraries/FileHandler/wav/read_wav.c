@@ -27,10 +27,6 @@
  #define read_uint16(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)))
 #endif
 
-#ifndef __restrict
- #define __restrict
-#endif
-
 int wav_read_header(wavheader_t * WAVHeader, const uint8_t * Buffer, size_t FileSize){
     if(FileSize < 45) return 0;
     WAVHeader->sID = read_uint32(Buffer);

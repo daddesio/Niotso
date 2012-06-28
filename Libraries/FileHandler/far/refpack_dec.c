@@ -17,11 +17,7 @@
 */
 
 #include <string.h>
-typedef unsigned char uint8_t;
-
-#ifndef __restrict
- #define __restrict
-#endif
+#include <stdint.h>
 
 int RefPackDecompress(const uint8_t *__restrict CompressedData, size_t CompressedSize,
     uint8_t *__restrict DecompressedData, size_t DecompressedSize, unsigned HNSV){

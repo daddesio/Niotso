@@ -29,10 +29,6 @@
  #define read_uint16(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)))
 #endif
 
-#ifndef __restrict
- #define __restrict
-#endif
-
 int bmp_read_header(bmpheader_t * BMPHeader, const uint8_t * Buffer, size_t FileSize){
     unsigned padding;
     if(FileSize < 54) return 0;

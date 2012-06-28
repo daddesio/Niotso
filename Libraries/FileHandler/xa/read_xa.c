@@ -29,13 +29,6 @@
  #define read_uint16(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)))
 #endif
 
-#ifndef __inline
-#define __inline
-#endif
-#ifndef __restrict
-#define __restrict
-#endif
-
 unsigned xa_compressed_size(unsigned Frames, unsigned Channels)
 {
     /* This function calculates the size of compressed XA data with known frames and channels, as such:

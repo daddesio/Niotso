@@ -38,13 +38,6 @@
  #define min(x, y) ((x) < (y) ? (x) : (y))
 #endif
 
-#ifndef __inline
-#define __inline
-#endif
-#ifndef __restrict
-#define __restrict
-#endif
-
 static uint8_t ReadBits(utkparams_t *p, uint8_t bits);
 static void SetUTKParameters(utkparams_t *p);
 static void DecompressBlock(utkparams_t *p);

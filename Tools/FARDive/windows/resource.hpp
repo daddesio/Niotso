@@ -36,7 +36,7 @@
 #define ID_HELP_WEBSITE 					1400
 #define ID_HELP_ABOUT						1401
 
-#define MENUICONS 26
+#define MENUICONS 27
     #define IDI_FILE_NEW				    2100
     #define IDI_FILE_OPEN					2101
     #define IDI_FILE_SAVE					2102
@@ -63,6 +63,7 @@
     #define IDI_TOOLS_REMOVEHOLES			2302
     #define IDI_TOOLS_BATCH					2303
     #define IDI_HELP_WEBSITE				2400
+    #define IDI_HELP_ABOUT					2401
 
 //Right-click menu items
 #define ID_LISTMENU_ADD                     3100
