@@ -82,7 +82,7 @@ int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, size_t File
     return 1;
 }
 
-int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames){
+int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, size_t Frames){
     utkparams_t p;
     p.InData = InBuffer;
     SetUTKParameters(&p);

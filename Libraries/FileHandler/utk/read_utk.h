@@ -50,8 +50,8 @@ typedef struct {
 extern "C" {
 #endif
 
-int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, unsigned FileSize);
-int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames);
+int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, size_t FileSize);
+int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, size_t Frames);
 void UTKGenerateTables(void);
 
 #ifdef __cplusplus

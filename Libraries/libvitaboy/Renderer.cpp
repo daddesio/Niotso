@@ -47,22 +47,11 @@
 */
 
 #include <math.h>
-#include <gl/gl.h>
-#include <gl/glu.h>
-#include <gl/glext.h>
 #include <FileHandler.hpp>
+#include <libgldemo.h>
 #include "libvitaboy.hpp"
 
-HDC       hDC=NULL;
-HGLRC     hRC=NULL;
-HWND      hWnd=NULL;
-HINSTANCE hInstance;
-
-bool keys[256] = {0};
-bool active=true;
-bool fullscreen=false;
-
-float zoom = -10;
+static float zoom = -10;
 struct BasicVertex_t {
     float x, y, z;
 };
@@ -70,34 +59,29 @@ struct CharacterPlacement_t {
     BasicVertex_t Translation;
     BasicVertex_t Rotation;
 };
-CharacterPlacement_t Character = {{0,-3,0}, {0,0,0}};
+static CharacterPlacement_t Character = {{0,-3,0}, {0,0,0}};
 
-Skeleton_t Skeleton;
+static Skeleton_t Skeleton;
 
-const unsigned TextureCount = 3;
-unsigned texture[3];
+static const unsigned TextureCount = 3;
+static unsigned texture[3];
 enum { Texture_Body, Texture_Head, Texture_Hand };
-const char* const TexturePaths[] = {"body.jpg", "head.jpg", "hand.jpg"};
+static const char* const TexturePaths[] = {"body.jpg", "head.jpg", "hand.jpg"};
 
-const unsigned MeshCount = 4;
-Mesh_t Meshes[4];
+static const unsigned MeshCount = 4;
+static Mesh_t Meshes[4];
 enum { Mesh_Body, Mesh_Head, Mesh_LHand, Mesh_RHand };
-const char* const MeshPaths[]    = {"body.mesh", "head.mesh", "lhand.mesh", "rhand.mesh" };
-const unsigned Mesh_UseTexture[] = { Texture_Body, Texture_Head, Texture_Hand, Texture_Hand };
-const char* const MeshActivate[] = {NULL, "HEAD", "L_HAND", "R_HAND"};
+static const char* const MeshPaths[]    = {"body.mesh", "head.mesh", "lhand.mesh", "rhand.mesh" };
+static const unsigned Mesh_UseTexture[] = { Texture_Body, Texture_Head, Texture_Hand, Texture_Hand };
+static const char* const MeshActivate[] = {NULL, "HEAD", "L_HAND", "R_HAND"};
 
-Animation_t Animation;
-float AnimationTime = 0;
+static Animation_t Animation;
+static float AnimationTime = 0;
 
-bool ShowMesh = true;
-bool ShowSkeleton = true;
+static bool ShowMesh = true;
+static bool ShowSkeleton = true;
 
-LARGE_INTEGER ClockFreq, PreviousTime;
-float FramePeriod;
-
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-
-void DisplayFileError(const char * Filename){
+static void DisplayFileError(const char * Filename){
     const char * Message;
     switch(File::Error){
     case FERR_NOT_FOUND:
@@ -121,10 +105,10 @@ void DisplayFileError(const char * Filename){
 
     char Buffer[1024];
     sprintf(Buffer, Message, Filename);
-    MessageBox(hWnd, Buffer, NULL, MB_OK | MB_ICONERROR);
+    DemoErrorBox(Buffer);
 }
 
-bool LoadTextures()
+static int LoadTextures()
 {
     glGenTextures(3, texture);
     for(int i=0; i<3; i++){
@@ -144,26 +128,10 @@ bool LoadTextures()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
-    return true;
+    return 1;
 }
 
-void ResizeScene(GLsizei width, GLsizei height)
-{
-    if(height==0) height++;
-
-    glViewport(0,0,width,height);
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-
-    // Calculate The Aspect Ratio Of The Window
-    gluPerspective(45.0f,(GLfloat)width/(GLfloat)height,0.1f,100.0f);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-}
-
-bool InitGL()
+static int InitGL()
 {
     if(!LoadTextures())
         return false;
@@ -177,10 +145,25 @@ bool InitGL()
     glDisable(GL_BLEND);
     glDepthFunc(GL_LEQUAL);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    return true;
+    return 1;
 }
 
-void TransformVertices(Bone_t& Bone)
+static int ResizeScene(uint16_t width, uint16_t height)
+{
+    glViewport(0, 0, width, height);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    // Calculate The Aspect Ratio Of The Window
+    gluPerspective(45.0f, (GLfloat)width/(GLfloat)height, 0.1f, 100.0f);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    return 1;
+}
+
+static void TransformVertices(Bone_t& Bone)
 {
     glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
     float Matrix[16];
@@ -240,7 +223,7 @@ void TransformVertices(Bone_t& Bone)
     }
 }
 
-void BlendVertices()
+static void BlendVertices()
 {
     for(unsigned i=0; i<MeshCount; i++){
         Mesh_t& Mesh = Meshes[i];
@@ -261,7 +244,7 @@ void BlendVertices()
     }
 }
 
-void DrawMeshes()
+static void DrawMeshes()
 {
     glPointSize(2.0);
     glColor3f(1.0, 1.0, 1.0);
@@ -287,7 +270,7 @@ void DrawMeshes()
     glDisable(GL_TEXTURE_2D);
 }
 
-void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
+static void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
 {
     float Duration = (float)Animation.Motions[0].FrameCount/30;
     AnimationTime += TimeDelta;
@@ -340,7 +323,7 @@ void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float TimeDelta)
     }
 }
 
-void DrawBonesSkeleton(Bone_t& Bone)
+static void DrawBonesSkeleton(Bone_t& Bone)
 {
     glPointSize(5.0);
     glTranslatef(Bone.Translation.x, Bone.Translation.y, Bone.Translation.z);
@@ -367,29 +350,22 @@ void DrawBonesSkeleton(Bone_t& Bone)
     }
 }
 
-void DrawSkeleton()
+static void DrawSkeleton()
 {
     glPushMatrix();
     DrawBonesSkeleton(Skeleton.Bones[0]);
     glPopMatrix();
 }
 
-int DrawGLScene()
+static int DrawScene(float TimeDelta, uint8_t keys[256])
 {
-    //Obtain the current time
-    LARGE_INTEGER CurrentTime;
-    QueryPerformanceCounter(&CurrentTime);
-    float TimeDelta = (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart;
-    if(TimeDelta < 0) TimeDelta = 0; //Safe-guard in case of system delay
-    PreviousTime = CurrentTime;
-
     //Handle user interaction
     if(keys['A'])      /*{if(zoom <=-1.0f)  zoom+=0.05f; }*/ zoom+=3*TimeDelta;
     if(keys['S'])      /*{if(zoom >=-10.0f) zoom-=0.05f; }*/ zoom-=3*TimeDelta;
-    if(keys[VK_UP]){    if((Character.Rotation.x-=60*TimeDelta) <=-360) Character.Rotation.x+=360; }
-    if(keys[VK_DOWN]){  if((Character.Rotation.x+=60*TimeDelta) >=360)  Character.Rotation.x-=360; }
-    if(keys[VK_LEFT]){  if((Character.Rotation.y-=60*TimeDelta) <=-360) Character.Rotation.y+=360; }
-    if(keys[VK_RIGHT]){ if((Character.Rotation.y+=60*TimeDelta) >=360)  Character.Rotation.y-=360; }
+    if(keys[KEY_UP]){    if((Character.Rotation.x-=60*TimeDelta) <=-360) Character.Rotation.x+=360; }
+    if(keys[KEY_DOWN]){  if((Character.Rotation.x+=60*TimeDelta) >=360)  Character.Rotation.x-=360; }
+    if(keys[KEY_LEFT]){  if((Character.Rotation.y-=60*TimeDelta) <=-360) Character.Rotation.y+=360; }
+    if(keys[KEY_RIGHT]){ if((Character.Rotation.y+=60*TimeDelta) >=360)  Character.Rotation.y-=360; }
     if(keys['X']){      if((Character.Rotation.z-=60*TimeDelta) <=-360) Character.Rotation.z+=360; }
     if(keys['Z']){      if((Character.Rotation.z+=60*TimeDelta) >=360)  Character.Rotation.z-=360; }
     if(keys['K']){      Character.Translation.y-=3*TimeDelta; }
@@ -421,224 +397,7 @@ int DrawGLScene()
     return true;
 }
 
-void KillGLWindow()
-{
-    if(fullscreen){
-        ChangeDisplaySettings(NULL, 0); //Reset to the desktop resolution
-        ShowCursor(true);
-    }
-
-    if(hRC){
-        wglMakeCurrent(NULL, NULL);
-        wglDeleteContext(hRC);
-        hRC = NULL;
-    }
-
-    if(hDC){
-        ReleaseDC(hWnd,hDC);
-        hDC = NULL;
-    }
-
-    if(hWnd){
-        DestroyWindow(hWnd);
-        hWnd = NULL;
-    }
-
-    UnregisterClass("OpenGL", hInstance);
-    hInstance = NULL;
-}
-
-BOOL CreateGLWindow(const char * title, int width, int height, int bits, bool fullscreenflag)
-{
-    fullscreen = fullscreenflag;
-    hInstance = GetModuleHandle(NULL);
-
-    WNDCLASS wc = {
-        CS_HREDRAW | CS_VREDRAW | CS_OWNDC, //style
-        (WNDPROC) WndProc,   //lpfnWndProc
-        0,                   //cbClsExtra
-        0,                   //cbWndExtra
-        hInstance,           //hInstance
-        (HICON) LoadImage(NULL, IDI_WINLOGO, IMAGE_ICON, 0, 0, LR_SHARED), //hIcon
-        (HCURSOR) LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED | LR_DEFAULTSIZE), //hCursor
-        NULL,                //hbrBackground
-        NULL,                //lpszMenuName
-        "OpenGL"             //lpszClassName
-    };
-
-    if(!RegisterClass(&wc)){
-        MessageBox(NULL, "Failed to registrer the window class.", NULL, MB_OK | MB_ICONERROR);
-        return false;
-    }
-
-    DWORD dwStyle, dwExStyle;
-
-    if(fullscreen){
-        DEVMODE dmScreenSettings;
-        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dmScreenSettings);
-        width  = dmScreenSettings.dmPelsWidth;
-        height = dmScreenSettings.dmPelsHeight;
-        bits   = dmScreenSettings.dmBitsPerPel;
-
-        dwExStyle = WS_EX_APPWINDOW | WS_EX_TOPMOST;
-        dwStyle = WS_POPUP;
-        ShowCursor(false);
-    }else{
-        dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
-        dwStyle = WS_OVERLAPPEDWINDOW;
-    }
-
-    RECT WindowRect;
-    WindowRect.left   = 0;
-    WindowRect.right  = width;
-    WindowRect.top    = 0;
-    WindowRect.bottom = height;
-    AdjustWindowRectEx(&WindowRect, dwStyle, false, dwExStyle);
-
-    // Create The Window
-    if(!(hWnd = CreateWindowEx(dwExStyle, "OpenGL",
-        title,
-        dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-        0, 0,
-        WindowRect.right-WindowRect.left,
-        WindowRect.bottom-WindowRect.top,
-        NULL, NULL, hInstance, NULL))
-    ){
-        KillGLWindow();
-        MessageBox(NULL, "Window creation error.", NULL, MB_OK | MB_ICONERROR);
-        return false;
-    }
-
-    const PIXELFORMATDESCRIPTOR pfd = {
-        sizeof(PIXELFORMATDESCRIPTOR), 1, //Size and version
-        PFD_DRAW_TO_WINDOW |              //dwFlags
-        PFD_SUPPORT_OPENGL |
-        PFD_DOUBLEBUFFER,
-        PFD_TYPE_RGBA,                    //iPixelType
-        bits,                             //cColorBits
-        0, 0, 0, 0, 0, 0, 0, 0,           //R,G,B,A bits
-        0, 0, 0, 0, 0,                    //Accumulation buffer bits
-        16,                               //cDepthBits
-        0,                                //cStencilBits
-        0,                                //cAuxBuffers
-        PFD_MAIN_PLANE,                   //iLayerType
-        0,                                //Reserved
-        0, 0, 0                           //Masks
-    };
-
-    hDC = GetDC(hWnd);
-    if(!hDC){
-        KillGLWindow();
-        MessageBox(NULL, "Failed to create an OpenGL device context.", NULL, MB_OK | MB_ICONERROR);
-        return false;
-    }
-
-    int PixelFormat = ChoosePixelFormat(hDC, &pfd);
-    if(!PixelFormat){
-        KillGLWindow();
-        MessageBox(NULL, "Can't find a suitable PixelFormat.", NULL, MB_OK | MB_ICONERROR);
-        return false;
-    }
-
-    if(!SetPixelFormat(hDC, PixelFormat, &pfd)){
-        KillGLWindow();
-        MessageBox(NULL, "Can't set the PixelFormat.", NULL, MB_OK | MB_ICONERROR);
-        return false;
-    }
-
-    hRC = wglCreateContext(hDC);
-    if(!hRC){
-        KillGLWindow();
-        MessageBox(NULL, "Failed to create an OpenGL rendering context.", NULL, MB_OK | MB_ICONERROR);
-        return false;
-    }
-
-    if(!wglMakeCurrent(hDC, hRC)){
-        KillGLWindow();
-        MessageBox(NULL, "Failed to activate the OpenGL device context.", NULL, MB_OK | MB_ICONERROR);
-        return false;
-    }
-
-    ShowWindow(hWnd, SW_SHOW);
-    SetForegroundWindow(hWnd);
-    SetFocus(hWnd);
-    ResizeScene(width, height);
-
-    if(!InitGL()){
-        KillGLWindow();
-        MessageBox(NULL, "Initialization failed.", NULL, MB_OK | MB_ICONERROR);
-        return false;
-    }
-
-    BOOL (WINAPI *wglSwapIntervalEXT)(int) = (BOOL (WINAPI *)(int)) wglGetProcAddress("wglSwapIntervalEXT");
-    if(wglSwapIntervalEXT) wglSwapIntervalEXT(1);
-    int (WINAPI *wglGetSwapIntervalEXT)(void) = (int (WINAPI *)(void)) wglGetProcAddress("wglGetSwapIntervalEXT");
-    if(wglGetSwapIntervalEXT) wglGetSwapIntervalEXT(); //Seems necessary on some cards
-
-    QueryPerformanceFrequency(&ClockFreq);
-    QueryPerformanceCounter(&PreviousTime);
-
-    return true;
-}
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    switch (uMsg) {
-    case WM_KEYDOWN: {
-        if(wParam == VK_ESCAPE){
-            PostQuitMessage(0);
-        }else if(wParam == VK_F11 && !keys[VK_F11]){
-            KillGLWindow();
-            fullscreen = !fullscreen;
-            if(!CreateGLWindow("libvitaboy - Renderer",640,480,24,fullscreen)){
-                PostQuitMessage(0);
-            }
-        }
-
-        keys[wParam] = true;
-    } return 0;
-
-    case WM_KEYUP: {
-        keys[wParam] = false;
-    } return 0;
-
-    case WM_ACTIVATE: {
-        // LoWord Can Be WA_INACTIVE, WA_ACTIVE, WA_CLICKACTIVE,
-        // The High-Order Word Specifies The Minimized State Of The Window Being Activated Or Deactivated.
-        // A NonZero Value Indicates The Window Is Minimized.
-        if ((LOWORD(wParam) != WA_INACTIVE) && !((BOOL)HIWORD(wParam)))
-            active = true;
-        else
-            active = false;
-    } return 0;
-
-    case WM_SIZE: {
-        ResizeScene(LOWORD(lParam),HIWORD(lParam));
-    } return 0;
-
-    case WM_SYSCOMMAND: {
-        switch (wParam) {
-        case SC_SCREENSAVE:
-        case SC_MONITORPOWER:
-            return 0;
-        }
-    } break;
-
-    case WM_DEVMODECHANGE: {
-        DEVMODE dm;
-        EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
-        FramePeriod = 1.0f/dm.dmDisplayFrequency;
-    } return 0;
-
-    case WM_CLOSE: {
-        PostQuitMessage(0);
-    } return 0;
-    }
-
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
-}
-
-bool Read(const char * Filename, uint8_t ** InData){
+static bool Read(const char * Filename, uint8_t ** InData){
     *InData = File::ReadFile(Filename);
     if(*InData != NULL){
         VBFile.set(*InData, File::FileSize);
@@ -649,7 +408,7 @@ bool Read(const char * Filename, uint8_t ** InData){
     return false;
 }
 
-int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+static int Startup()
 {
     uint8_t * InData;
 
@@ -671,36 +430,17 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     free(InData);
 
     AdvanceFrame(Skeleton, Animation, 0);
+    return 1;
+}
 
-    if(!CreateGLWindow("libvitaboy - Renderer",640,480,16,fullscreen)){
-        return 0;
-    }
-
-    DEVMODE dm;
-    EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
-    FramePeriod = 1.0f/dm.dmDisplayFrequency;
-
-    bool quit = false;
-    MSG msg;
-    while(true){
-        while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)){
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-
-            if(msg.message == WM_QUIT)
-                quit = true;
-        }
-        if(quit) break;
-
-        DrawGLScene();
-        SwapBuffers(hDC);
-        LARGE_INTEGER RenderTime;
-        QueryPerformanceCounter(&RenderTime);
-        float SleepDuration = (FramePeriod - (float)(RenderTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart) * 1000;
-        if(SleepDuration > 1) Sleep((unsigned) SleepDuration);
-    }
-
-    //Shutdown
-    KillGLWindow();
-    return (msg.wParam);
+extern "C" {
+const DemoConfig Demo = {
+    "libvitaboy - Renderer",    //Title
+    640,480,                    //Width, Height
+    Startup,                    //Startup
+    NULL,                       //Shutdown
+    InitGL,                     //InitGL
+    ResizeScene,                //ResizeScene
+    DrawScene                   //DrawScene
+};
 }

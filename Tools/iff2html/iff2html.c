@@ -41,10 +41,10 @@ static void printsize(FILE * hFile, size_t FileSize){
         fprintf(hFile, "%.1f kB (", (float)FileSize/1024);
     while((temp/=1000) != 0)
         position *= 1000;
-    fprintf(hFile, "%u", FileSize/position);
+    fprintf(hFile, "%u", (unsigned) FileSize/position);
     FileSize -= (FileSize/position)*position;
     while((position/=1000) != 0){
-        fprintf(hFile, ",%.3u", FileSize/position);
+        fprintf(hFile, ",%.3u", (unsigned) FileSize/position);
         FileSize -= (FileSize/position)*position;
     }
     fprintf(hFile, " bytes)");
@@ -322,7 +322,7 @@ int main(int argc, char *argv[]){
                     fprintf(hFile, "<table class=\"center centerall\">\n");
                     fprintf(hFile, "<tr><th>Image</th></tr>\n");
                     fprintf(hFile, "<tr><td><img src=\"%s_%u_%.4x.png\" width=\"%u\" height=\"%u\" alt=\"\" /></td></tr>\n",
-                        bmp ? "bmp" : "fbmp", c+1, ChunkData->ChunkID, Width, Height);
+                        bmp ? "bmp" : "fbmp", c+1, ChunkData->ChunkID, (unsigned) Width, (unsigned) Height);
                     fprintf(hFile, "</table>\n");
                     success++;
                 }

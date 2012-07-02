@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){
         "\n"
         "Report bugs to <X-Fi6@phppoll.org>.\n"
         "utkdecode is maintained by the Niotso project.\n"
-        "Home page: <http://www.niotso.org/>");
+        "Home page: <http://www.niotso.org/>\n");
         return 0;
     }
 

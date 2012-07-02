@@ -12,9 +12,7 @@ if(WIN32)
         windows/Dialog/AddToArchive.cpp
         windows/Dialog/NewArchive.cpp
     )
-    set(FARDIVE_LINK ole32 uxtheme)
+    include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler/libpng)
     add_executable(FARDive WIN32 ${FARDIVE_SOURCES})
+    target_link_libraries(FARDive ole32 uxtheme FileHandler_shared)
 endif()
-
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler/libpng)
-target_link_libraries(FARDive ${FARDIVE_LINK} FileHandler_shared)

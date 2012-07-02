@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <limits.h>
 #include "read_xa.h"
 
 #define HINIBBLE(byte) ((byte) >> 4)
@@ -29,7 +30,7 @@
  #define read_uint16(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)))
 #endif
 
-unsigned xa_compressed_size(unsigned Frames, unsigned Channels)
+size_t xa_compressed_size(size_t Frames, size_t Channels)
 {
     /* This function calculates the size of compressed XA data with known frames and channels, as such:
     **   Channels * (ceil(Frames/2) + ceil(Frames/28))
@@ -103,7 +104,7 @@ static const int16_t XATable[] =
     0,  -1,   -3,   -4
 };
 
-int xa_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames, unsigned Channels)
+int xa_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, size_t Frames, size_t Channels)
 {
     channel_t Channel[8];
     memset(Channel, 0, sizeof(Channel));

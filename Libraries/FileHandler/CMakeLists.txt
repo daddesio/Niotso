@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 2.6)
 project(FileHandler)
 
+set(FILEHANDLER_SERIES 0)
+set(FILEHANDLER_MAJOR  0)
+set(FILEHANDLER_MINOR  0)
+
+if(64BIT)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic")
+endif()
+
 add_subdirectory(far)
 add_subdirectory(iff)
 add_subdirectory(libexpat)
@@ -10,10 +18,6 @@ add_subdirectory(libpng)
 add_subdirectory(utk)
 add_subdirectory(xa)
 add_subdirectory(zlib)
-
-set(FILEHANDLER_SERIES 0)
-set(FILEHANDLER_MAJOR  0)
-set(FILEHANDLER_MINOR  0)
 
 set(FILEHANDLER_SOURCES
     Audio.cpp
@@ -46,4 +50,5 @@ set_target_properties(FileHandler_shared PROPERTIES
     PREFIX ""
     IMPORT_PREFIX ""
     CLEAN_DIRECT_OUTPUT 1)
-target_link_libraries(FileHandler_shared kernel32 far_static iff_static jpegturbo_static libmpg123_static libpng_static zlib_static)
+
+target_link_libraries(FileHandler_shared far_static iff_static jpegturbo_static libmpg123_static libpng_static zlib_static m)

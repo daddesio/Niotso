@@ -28,17 +28,17 @@ typedef struct
     uint16_t nBlockAlign;
     uint16_t wBitsPerSample;
 
-    unsigned Frames;
-    unsigned XADataSize;
+    size_t Frames;
+    size_t XADataSize;
 } xaheader_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-unsigned xa_compressed_size(unsigned Frames, unsigned Channels);
-int xa_read_header(xaheader_t * XAHeader, const uint8_t * Buffer, unsigned FileSize);
-int xa_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, unsigned Frames, unsigned Channels);
+size_t xa_compressed_size(size_t Frames, size_t Channels);
+int xa_read_header(xaheader_t * XAHeader, const uint8_t * Buffer, size_t FileSize);
+int xa_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, size_t Frames, size_t Channels);
 
 #ifdef __cplusplus
 }

@@ -19,8 +19,11 @@ set(LIBVITABOY_SOURCES
 )
 if(WIN32)
     set(LIBVITABOY_SOURCES ${LIBVITABOY_SOURCES} resource.rc)
+else()
+    add_definitions(-Dstricmp=strcasecmp)
 endif()
 
+include_directories(${CMAKE_SOURCE_DIR}/Libraries/libgldemo)
 include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
 
 #### Static library (uncomment to build)
@@ -31,6 +34,7 @@ include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
 
 add_library(libvitaboy_shared SHARED ${LIBVITABOY_SOURCES})
 set_target_properties(libvitaboy_shared PROPERTIES
+    COMPILE_FLAGS "-fvisibility=default"
     OUTPUT_NAME "vitaboy${LIBVITABOY_SERIES}"
     VERSION ${LIBVITABOY_SERIES}.${LIBVITABOY_MAJOR}.${LIBVITABOY_MINOR}
     SOVERSION ${LIBVITABOY_SERIES}
@@ -42,5 +46,5 @@ set_target_properties(libvitaboy_shared PROPERTIES
 add_executable(vbparse vbparse.cpp)
 target_link_libraries(vbparse libvitaboy_shared FileHandler_shared)
 
-add_executable(Renderer Renderer.cpp)
-target_link_libraries(Renderer libvitaboy_shared FileHandler_shared opengl32 glu32 winmm)
+add_executable(Renderer ${GLDEMO_EXE} Renderer.cpp)
+target_link_libraries(Renderer libvitaboy_shared ${GLDEMO_LIBS} FileHandler_shared m)

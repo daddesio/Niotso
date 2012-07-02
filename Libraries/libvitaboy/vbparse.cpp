@@ -17,6 +17,7 @@
 */
 
 #include <stdio.h>
+#include <strings.h>
 #include <FileHandler.hpp>
 #include "libvitaboy.hpp"
 
