@@ -1,6 +1,6 @@
 /*
     hitutils - The Sims HIT (dis)assembler and linker
-    hitasm.cpp - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    hitasm.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
     Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any

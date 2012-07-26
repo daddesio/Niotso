@@ -1,0 +1,59 @@
+1. Dumping
+
+A HIT file is dumped by running this command:
+
+$ hitdump -o example.txt example.hit
+
+This will disassemble example.hit into example.txt using MakeTrax syntax.
+* Instructions, arguments, registers, and globals are rewritten using the mnemonics in
+  example.hsm.
+* The disassembly is split into BINARY[] sections and logical addresses are defined names
+  using the data provided by example.hsm, example.hot, example.evt, and the HIT symbol table.
+  All user-created constants in example.hsm that begin with "tkd_" are interpreted by
+  hitutils as track data.
+
+
+2. Reassembling
+
+A source file is assembled into an intermediate object by running this command:
+
+$ hitasm -o example.o example.txt
+
+This will assemble example.txt into example.o according to MakeTrax syntax.
+* Instructions, arguments, and registers are interpreted using the mnemonics in example.hsm.
+* The logical addresses defined in example.hsm are ignored.
+
+
+3. Relinking into the game
+
+Object files are relinked into the game by running this command:
+
+$ hitld -o example.hit example1.o example2.o ...
+
+This will link example1.o, example2.o, and so on into example.hit and reconstruct the
+relocation tables in example.hot and example.hsm.
+
+
+To clarify, the user cannot change the events signaled by objects without changing the
+SimAntics of each of those objects. The HIT subroutines invoked by those events, however, can
+be changed or swapped out quite easily.
+
+
+Appendix A. Address labeling strategies
+
+In TSO, the HIT symbol table lists the logical address of each exported function, along with
+the Track File ID associated with it.
+
+In TSO, the EVT file lists the name of each exported function, along with the Track File ID
+associated with it.
+
+* The HIT file can be used to locate each exported function for placement in BINARY[] sections.
+* In the case of tsov2.hit, the HIT and EVT files can be used together to name these exported
+  functions, seeing that the HSM file is not provided.
+
+The HOT file lists all addresses that were labelled, along with the Track File ID associated
+with it, in the TrackData section. Because the HIT symbol table is not included in The Sims 1,
+the TrackData section can be used instead.
+
+The HSM file lists the name of each labelled address, along with its logical address in the
+HIT file. (This is done with a Ctrl+F for "tkd_").

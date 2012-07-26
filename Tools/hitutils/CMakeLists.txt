@@ -2,15 +2,15 @@ cmake_minimum_required(VERSION 2.6)
 project(hitutils)
 
 set(HITDUMP_SOURCES
-    hitdump.cpp
+    hitdump.c
 )
 
 set(HITASM_SOURCES
-    hitasm.cpp
+    hitasm.c
 )
 
 set(HITLD_SOURCES
-    hitld.cpp
+    hitld.c
 )
 
 add_executable(hitdump ${HITDUMP_SOURCES})

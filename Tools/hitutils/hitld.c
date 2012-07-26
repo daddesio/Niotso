@@ -1,6 +1,6 @@
 /*
     hitutils - The Sims HIT (dis)assembler and linker
-    hitdump.cpp - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    hitld.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
     Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
@@ -19,12 +19,10 @@
 #include <stdio.h>
 
 int main(){
-    printf("Usage: hitdump [-f] [-o outfile.txt] [-hsm outfile.hsm]\n"
-    "       [-hot outfile.hot] infile.hit\n"
-    "Disassemble a HIT binary.\n"
-    "\n"
-    "The HSM and HOT files contain necessary information and are\n"
-    "required as inputs.\n"
+    printf("Usage: hitld [-f] [-hsm infile.hsm] [-hot infile.hot]\n"
+    "       outfile.hit INFILES\n"
+    "Link object files produced by hitasm into a HIT binary, and\n"
+    "relink the game's HSM and HOT files.\n"
     "Use -f to force overwriting without confirmation.\n"
     "\n"
     "Report bugs to <X-Fi6@phppoll.org>.\n"

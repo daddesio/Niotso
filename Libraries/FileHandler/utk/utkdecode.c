@@ -150,7 +150,7 @@ int main(int argc, char *argv[]){
                 printf("File \"%s\" exists.\nContinue anyway? (y/n) ", OutFile);
                 c = getchar();
                 if(c != 'y' && c != 'Y'){
-                    printf("\nAborted.");
+                    printf("\nAborted.\n");
                     return -1;
                 }
             }
