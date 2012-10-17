@@ -23,8 +23,8 @@ else()
     add_definitions(-Dstricmp=strcasecmp)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/libgldemo)
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
+include_directories(${LIBGLDEMO_INCLUDE_DIR})
+include_directories(${FILEHANDLER_INCLUDE_DIR})
 
 #### Static library (uncomment to build)
 #add_library(libvitaboy_static STATIC ${LIBVITABOY_SOURCES})

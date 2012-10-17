@@ -9,7 +9,7 @@ set(IFF2HTML_SOURCES
     ../../Libraries/FileHandler/bmp/read_bmp.c
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
+include_directories(${FILEHANDLER_INCLUDE_DIR} ${LIBPNG_INCLUDE_DIR})
 
 add_executable(iff2html ${IFF2HTML_SOURCES})
 target_link_libraries(iff2html iff_static libpng_static zlib_static m)

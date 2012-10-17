@@ -7,7 +7,5 @@ else()
 endif()
 
 add_subdirectory(FileHandler)
-add_subdirectory(freetype)
 add_subdirectory(libgldemo)
-add_subdirectory(libpq)
 add_subdirectory(libvitaboy)

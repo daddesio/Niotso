@@ -42,6 +42,7 @@
     i,j,k,l: Translate the sim around the screen
     z,x: Rotate the sim like a clock
     a,s: Zoom in, out
+    q: Toggle skeleton
     n: Animate the character
     F11: Enter/leave fullscreen
 */
@@ -80,6 +81,8 @@ static float AnimationTime = 0;
 
 static bool ShowMesh = true;
 static bool ShowSkeleton = true;
+
+static bool PressedQ = false;
 
 static void DisplayFileError(const char * Filename){
     const char * Message;
@@ -366,13 +369,14 @@ static int DrawScene(float TimeDelta, uint8_t keys[256])
     if(keys[KEY_DOWN]){  if((Character.Rotation.x+=60*TimeDelta) >=360)  Character.Rotation.x-=360; }
     if(keys[KEY_LEFT]){  if((Character.Rotation.y-=60*TimeDelta) <=-360) Character.Rotation.y+=360; }
     if(keys[KEY_RIGHT]){ if((Character.Rotation.y+=60*TimeDelta) >=360)  Character.Rotation.y-=360; }
-    if(keys['X']){      if((Character.Rotation.z-=60*TimeDelta) <=-360) Character.Rotation.z+=360; }
-    if(keys['Z']){      if((Character.Rotation.z+=60*TimeDelta) >=360)  Character.Rotation.z-=360; }
-    if(keys['K']){      Character.Translation.y-=3*TimeDelta; }
-    if(keys['I']){      Character.Translation.y+=3*TimeDelta; }
-    if(keys['J']){      Character.Translation.x-=3*TimeDelta; }
-    if(keys['L']){      Character.Translation.x+=3*TimeDelta; }
-    if(keys['N']){      AdvanceFrame(Skeleton, Animation, TimeDelta); }
+    if(keys['X']){       if((Character.Rotation.z-=60*TimeDelta) <=-360) Character.Rotation.z+=360; }
+    if(keys['Z']){       if((Character.Rotation.z+=60*TimeDelta) >=360)  Character.Rotation.z-=360; }
+    if(keys['K']){       Character.Translation.y-=3*TimeDelta; }
+    if(keys['I']){       Character.Translation.y+=3*TimeDelta; }
+    if(keys['J']){       Character.Translation.x-=3*TimeDelta; }
+    if(keys['L']){       Character.Translation.x+=3*TimeDelta; }
+    if(keys['Q']){       if(!PressedQ){ PressedQ = 1; ShowSkeleton = !ShowSkeleton; }} else PressedQ = 0;
+    if(keys['N']){       AdvanceFrame(Skeleton, Animation, TimeDelta); }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear the screen and the depth buffer
 

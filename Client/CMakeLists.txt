@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(NiotsoClient)
 
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/freetype/include)
+include_directories(${FILEHANDLER_INCLUDE_DIR} ${FREETYPE_INCLUDE_DIR})
 
 if(WIN32)
     set(NIOTSOCLIENT_SOURCES

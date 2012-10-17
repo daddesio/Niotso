@@ -1,6 +1,6 @@
 /*
-    TSOSimulatorClient - TSOSimulatorClientD.dll injector
-    TSOSimulatorClient.hpp - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
+    TSOEdithEditor - TSOEdithEditorD.dll injector
+    TSOEdithEditor.hpp - Copyright (c) 2012 Fatbag <X-Fi6@phppoll.org>
     Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
@@ -41,7 +41,7 @@ DECLARE_INTERFACE(cUnknownObject1)
     DWORD   Unknown12;
 };
 
-DECLARE_INTERFACE(cTSOSimulatorClientDCOMDirector)
+DECLARE_INTERFACE(cEdithEditorCOMDirector)
 {
     void * vtable2;
     void * vtable1;

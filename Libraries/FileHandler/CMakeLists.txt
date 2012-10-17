@@ -11,13 +11,8 @@ endif()
 
 add_subdirectory(far)
 add_subdirectory(iff)
-add_subdirectory(libexpat)
-add_subdirectory(libjpeg-turbo)
-add_subdirectory(libmpg123)
-add_subdirectory(libpng)
 add_subdirectory(utk)
 add_subdirectory(xa)
-add_subdirectory(zlib)
 
 set(FILEHANDLER_SOURCES
     Audio.cpp
@@ -33,7 +28,7 @@ if(WIN32)
     set(FILEHANDLER_SOURCES ${FILEHANDLER_SOURCES} resource.rc)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
+include_directories(${FILEHANDLER_INCLUDE_DIR} ${LIBMPG123_INCLUDE_DIR} ${LIBJPEGTURBO_INCLUDE_DIR} ${LIBPNG_INCLUDE_DIR})
 
 #### Static library (uncomment to build)
 #add_library(FileHandler_static STATIC ${FILEHANDLER_SOURCES})

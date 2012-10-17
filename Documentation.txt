@@ -1,7 +1,0 @@
-All documentation is centralized online rather than scattered around the codebase.
-
-For documentation regarding the packages in the repository, that will be at the Trac:
-http://trac-hg.assembla.com/niotso
-
-For all other documentation (including format specifications), that will be at Niotso Wiki:
-http://wiki.niotso.org

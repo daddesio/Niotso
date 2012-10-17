@@ -1,6 +1,6 @@
 /*
     TSOSimulatorClient - TSOSimulatorClientD.dll injector
-    iff2html.c - Copyright (c) 2012 Niotso Project <http://niotso.org/>
+    TSOSimulatorClient.cpp - Copyright (c) 2012 Niotso Project <http://niotso.org/>
     Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
@@ -26,20 +26,20 @@ int main(){
         printf("TSOSimulatorClient: Error: Failed to load DLL \"TSOSimulatorClientD.dll\".");
         return -1;
     }
-    
-    GZCOMDirector * (__stdcall *GZDllGetGZCOMDirector)(void) =
-        (GZCOMDirector * (__stdcall *)(void)) GetProcAddress(dllmodule, "GZDllGetGZCOMDirector");
+
+    cTSOSimulatorClientDCOMDirector * (__stdcall *GZDllGetGZCOMDirector)(void) =
+        (cTSOSimulatorClientDCOMDirector * (__stdcall *)(void)) GetProcAddress(dllmodule, "GZDllGetGZCOMDirector");
     if(GZDllGetGZCOMDirector == NULL){
         printf("TSOSimulatorClient: Error: Failed to find GZDllGetGZCOMDirector() in TSOSimulatorClientD.dll.");
         return -1;
     }
-    
+
     printf("TSOSimulatorClient: Calling GZDllGetGZCOMDirector() ...\n");
-    GZCOMDirector * Simulator = GZDllGetGZCOMDirector();
+    cTSOSimulatorClientDCOMDirector * Simulator = GZDllGetGZCOMDirector();
     printf("TSOSimulatorClient: Finished calling GZDllGetGZCOMDirector().\nThe value returned was: %p.\n", (void *) Simulator);
-    
+
     printf("%s\n%s\n%s\n", Simulator->Object1.Strings1[0], Simulator->Object1.Strings2[0], Simulator->Object1.Strings3[0]);
-    
+
     printf("TSOSimulatorClient: Exiting.\n");
     FreeLibrary(dllmodule);
     return 0;

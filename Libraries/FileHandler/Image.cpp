@@ -18,9 +18,9 @@
 
 #include "FileHandler.hpp"
 #include <setjmp.h> //Used by libpng
+#include <jpeglib.h>
+#include <png.h>
 #include "bmp/read_bmp.h"
-#include "libjpeg-turbo/jpeglib.h"
-#include "libpng/png.h"
 
 namespace File {
 

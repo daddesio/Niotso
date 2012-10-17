@@ -17,10 +17,10 @@
 */
 
 #include "FileHandler.hpp"
+#include <mpg123.h>
 #include "wav/read_wav.h"
 #include "xa/read_xa.h"
 #include "utk/read_utk.h"
-#include "libmpg123/mpg123.h"
 
 namespace File {
 

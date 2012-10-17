@@ -7,7 +7,7 @@ set(TSOSCAN_SOURCES
     stats.c
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/Libraries/FileHandler)
+include_directories(${FILEHANDLER_INCLUDE_DIR})
 
 add_executable(tsoscan ${TSOSCAN_SOURCES})
 target_link_libraries(tsoscan iff_static)

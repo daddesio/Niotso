@@ -20,7 +20,7 @@
 #include <iff/iff.h>
 #include <bmp/read_bmp.h>
 #include <setjmp.h>
-#include <libpng/png.h>
+#include <png.h>
 #include "opngreduc.h"
 
 int WritePNG(const char * OutName, const IFFChunk * ChunkData, int ZBuffer,

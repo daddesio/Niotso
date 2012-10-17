@@ -1,0 +1,1 @@
+mkdir _deps; make -C _deps -f ../update-libraries.mk

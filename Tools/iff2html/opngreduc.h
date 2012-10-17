@@ -12,7 +12,7 @@
 #ifndef OPNGREDUC_H
 #define OPNGREDUC_H
 
-#include <libpng/png.h>
+#include <png.h>
 
 
 #ifdef __cplusplus

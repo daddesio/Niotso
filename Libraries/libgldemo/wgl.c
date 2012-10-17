@@ -49,8 +49,6 @@ static void KillGLWindow()
         DestroyWindow(hWnd);
         hWnd = NULL;
     }
-
-    UnregisterClass("OpenGL", hInst);
 }
 
 static int CreateGLWindow(const char *__restrict title, uint16_t width, uint16_t height)
@@ -71,7 +69,6 @@ static int CreateGLWindow(const char *__restrict title, uint16_t width, uint16_t
         0,                                /* Reserved */
         0, 0, 0                           /* Masks */
     };
-    DEVMODE dm;
     DWORD dwStyle, dwExStyle;
     RECT WindowRect;
     int PixelFormat;
@@ -79,10 +76,11 @@ static int CreateGLWindow(const char *__restrict title, uint16_t width, uint16_t
     int (WINAPI *wglGetSwapIntervalEXT)(void);
 
     if(fullscreen){
-        width  = dm.dmPelsWidth;
-        height = dm.dmPelsHeight;
         dwExStyle = WS_EX_APPWINDOW | WS_EX_TOPMOST;
         dwStyle = WS_POPUP;
+
+        width  = ResWidth;
+        height = ResHeight;
         ShowCursor(0);
     }else{
         dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
@@ -227,7 +225,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     wc.hInstance = hInst = hInstance;
     wc.hIcon = (HICON) LoadImage(NULL, IDI_WINLOGO, IMAGE_ICON, 0, 0, LR_SHARED);
     wc.hCursor = (HCURSOR) LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED | LR_DEFAULTSIZE);
-    hInstance = GetModuleHandle(NULL);
     EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
     ResWidth = dm.dmPelsWidth;
     ResHeight = dm.dmPelsHeight;
@@ -259,6 +256,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
             if(msg.message == WM_QUIT){
                 KillGLWindow();
+                UnregisterClass("OpenGL", hInstance);
                 return (!Demo.Shutdown || Demo.Shutdown()) ? 0 : -1;
             }
         }
