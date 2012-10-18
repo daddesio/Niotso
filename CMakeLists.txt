@@ -63,7 +63,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
         # Size
         set(CFLAGS_SIZE "${CFLAGS} -Os -g0 -fomit-frame-pointer -mfpmath=both -msahf -malign-double -mpc32 -ffast-math -fmerge-all-constants -funsafe-loop-optimizations -fsched-pressure -mstringop-strategy=rep_byte")
-        set(LDFLAGS_SIZE "${LDFLAGS} -s -fwhole-program")
+        set(LDFLAGS_SIZE "${LDFLAGS} -s -fwhole-program -flto")
 
         # Speed
         set(CFLAGS_SPEED "${CFLAGS} -O3 -g0 -fomit-frame-pointer -mfpmath=both -msahf -malign-double -mpc32 -ffast-math -fmerge-all-constants -funsafe-loop-optimizations -fsched-pressure -fmodulo-sched -fmodulo-sched-allow-regmoves -fgcse-sm -fgcse-las -fsched-spec-load -fsched-spec-load-dangerous -fsched-stalled-insns=0 -fsched-stalled-insns-dep -fsched2-use-superblocks -fipa-pta -fipa-matrix-reorg -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block -fgraphite-identity -floop-parallelize-all -ftree-loop-distribution -ftree-loop-im -ftree-loop-ivcanon -fivopts -fvect-cost-model -fvariable-expansion-in-unroller -fbranch-target-load-optimize -maccumulate-outgoing-args -flto")

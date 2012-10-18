@@ -22,7 +22,6 @@
 #ifdef _WIN32
  #define WINVER 0x0502
  #define _WIN32_WINNT 0x0502
- #define NTDDI_VERSION 0x05010300
  #define _CRT_SECURE_NO_WARNINGS
 #endif
 
