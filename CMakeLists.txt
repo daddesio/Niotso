@@ -34,7 +34,7 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     # Base options
     set(CFLAGS  "-Wall -Wextra -Wabi -pedantic -mmmx -msse -msse2 -msse3 -fvisibility=hidden")
-    set(LDFLAGS "")
+    set(LDFLAGS "-static-libgcc")
     set(RCFLAGS "")
 
     set(CFLAGS_LANG_C   "-ansi")
@@ -62,16 +62,16 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
         endif()
 
         # Size
-        set(CFLAGS_SIZE "${CFLAGS} -Os -g0 -fomit-frame-pointer -mfpmath=both -msahf -malign-double -mpc32 -ffast-math -fmerge-all-constants -funsafe-loop-optimizations -fsched-pressure -mstringop-strategy=rep_byte")
-        set(LDFLAGS_SIZE "${LDFLAGS} -s -fwhole-program -flto")
+        set(CFLAGS_SIZE "${CFLAGS} -Os -g0 -fomit-frame-pointer -mfpmath=both -msahf -malign-double -mpc32 -ffast-math -fmerge-all-constants -funsafe-loop-optimizations -fsched-pressure -mstringop-strategy=rep_byte -fno-stack-protector")
+        set(LDFLAGS_SIZE "${LDFLAGS} -s -fwhole-program -flto -fno-stack-protector")
 
         # Speed
-        set(CFLAGS_SPEED "${CFLAGS} -O3 -g0 -fomit-frame-pointer -mfpmath=both -msahf -malign-double -mpc32 -ffast-math -fmerge-all-constants -funsafe-loop-optimizations -fsched-pressure -fmodulo-sched -fmodulo-sched-allow-regmoves -fgcse-sm -fgcse-las -fsched-spec-load -fsched-spec-load-dangerous -fsched-stalled-insns=0 -fsched-stalled-insns-dep -fsched2-use-superblocks -fipa-pta -fipa-matrix-reorg -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block -fgraphite-identity -floop-parallelize-all -ftree-loop-distribution -ftree-loop-im -ftree-loop-ivcanon -fivopts -fvect-cost-model -fvariable-expansion-in-unroller -fbranch-target-load-optimize -maccumulate-outgoing-args -flto")
-        set(LDFLAGS_SPEED "${LDFLAGS} -s -fwhole-program -flto")
+        set(CFLAGS_SPEED "${CFLAGS} -O3 -g0 -fomit-frame-pointer -mfpmath=both -msahf -malign-double -mpc32 -ffast-math -fmerge-all-constants -funsafe-loop-optimizations -fsched-pressure -fno-stack-protector -fmodulo-sched -fmodulo-sched-allow-regmoves -fgcse-sm -fgcse-las -fsched-spec-load -fsched-spec-load-dangerous -fsched-stalled-insns=0 -fsched-stalled-insns-dep -fsched2-use-superblocks -fipa-pta -fipa-matrix-reorg -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block -fgraphite-identity -floop-parallelize-all -ftree-loop-distribution -ftree-loop-im -ftree-loop-ivcanon -fivopts -fvect-cost-model -fvariable-expansion-in-unroller -fbranch-target-load-optimize -maccumulate-outgoing-args -flto")
+        set(LDFLAGS_SPEED "${LDFLAGS} -s -fwhole-program -flto -fno-stack-protector")
     else()
         # Debug
-        set(CFLAGS_DEBUG "${CFLAGS} -O0 -g3")
-        set(LDFLAGS_DEBUG "${LDFLAGS}")
+        set(CFLAGS_DEBUG "${CFLAGS} -O0 -g3 -fstack-protector-all")
+        set(LDFLAGS_DEBUG "${LDFLAGS} -fstack-protector-all")
             set(CFLAGS_SIZE "${CFLAGS_DEBUG}")
             set(LDFLAGS_SIZE "${LDFLAGS_DEBUG}")
             set(CFLAGS_SPEED "${CFLAGS_DEBUG}")

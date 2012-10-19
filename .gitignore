@@ -1,1 +1,131 @@
-$(find -iname "_build/") $(find -iname "_deps/") $(find -iname "_dist/") $(find -iname "*.o") $(find -iname "*.lo") $(find -iname "*.slo") $(find -iname "*.res") $(find -iname "*.obj") $(find -iname "*.pch") $(find -iname "*.gch") $(find -iname "*.a") $(find -iname "*.la") $(find -iname "*.lai") $(find -iname "*.lib") $(find -iname "*.dll") $(find -iname "*.so") $(find -iname "*.so.*") $(find -iname "*.dylib") $(find -iname "*.exe") $(find -iname "*.app") $(find -iname "*.gcno") $(find -iname "*.gcda") $(find -iname "*.gcov") $(find -iname "Makefile.in") $(find -iname "autom4te.cache") $(find -iname "*.am") $(find -iname "*.ac") $(find -iname "*.m4") $(find -iname "*.po") $(find -iname "*.gmo") $(find -iname "*.at") $(find -iname "*.texi") $(find -iname "*.pc") $(find -iname "compile") $(find -iname "configure") $(find -iname "depcomp") $(find -iname "install-sh") $(find -iname "missing") $(find -iname "CMakeCache.txt") $(find -iname "CMakeFiles") $(find -iname "cmake_install.cmake") $(find -iname "install_manifest.txt") $(find -iname "*.sln.*") $(find -iname "*.ncb") $(find -iname "*.user") $(find -iname "*.ilk") $(find -iname "*.pdb") $(find -iname "*.idb") $(find -iname "*.pgc") $(find -iname "*.pgd") $(find -iname "*.rsp") $(find -iname "*.sbr") $(find -iname "*.tlb") $(find -iname "*.tli") $(find -iname "*.tlh") $(find -iname "*.aps") $(find -iname "*.opensdf") $(find -iname "*.sdf") $(find -iname "*.psess") $(find -iname "*.vsp") $(find -iname "*.vspx") $(find -iname "*.vspscc") $(find -iname "*.vssscc") $(find -iname "*.Resources") $(find -iname "*.Cache") $(find -iname "*.gpState") $(find -iname "_ReSharper*") $(find -iname "*.ncrunch*") $(find -iname ".*crunch*.local.xml") $(find -iname "csx") $(find -iname "*.build.csdef") $(find -iname "*.dbmdl") $(find -iname ".builds") $(find -iname "*.scc") $(find -iname "ipch/") $(find -iname "AppPackages/") $(find -iname "_UpgradeReport_Files/") $(find -iname "BuildLog.htm") $(find -iname "UpgradeLog*.XML") $(find -iname "*.pro.user") $(find -iname "*.pro.user.*") $(find -iname "moc_*.cpp") $(find -iname "qrc_*.cpp") $(find -iname "*.dmg") $(find -iname "*.xpi") $(find -iname "*.gem") $(find -iname "*.egg") $(find -iname "*.deb") $(find -iname "*.rpm") $(find -iname "*.apk") $(find -iname "*.ap_") $(find -iname "*.db") $(find -iname "Desktop.ini") $(find -iname "$RECYCLE.BIN/") $(find -iname ".DS_Store") $(find -iname ".AppleDouble") $(find -iname ".LSOverride") $(find -iname "Icon") $(find -iname ".Spotlight-V100") $(find -iname ".Trashes") $(find -iname ".~*")
+# build system
+_build/
+_deps/
+_dist/
+
+# objects
+*.o
+*.lo
+*.slo
+*.res
+*.obj
+*.pch
+*.gch
+
+# libraries
+*.a
+*.la
+*.lai
+*.lib
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# binaries
+*.exe
+*.app
+
+# Autotools
+*.gcno
+*.gcda
+*.gcov
+Makefile.in
+autom4te.cache
+*.am
+*.ac
+*.m4
+*.po
+*.gmo
+*.at
+*.texi
+*.pc
+compile
+configure
+depcomp
+install-sh
+missing
+
+# CMake
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+install_manifest.txt
+
+# Visual Studio
+*.sln.*
+*.ncb
+*.user
+*.ilk
+*.pdb
+*.idb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.aps
+*.opensdf
+*.sdf
+*.psess
+*.vsp
+*.vspx
+*.vspscc
+*.vssscc
+*.Resources
+*.Cache
+*.gpState
+_ReSharper*
+*.ncrunch*
+.*crunch*.local.xml
+csx
+*.build.csdef
+*.dbmdl
+.builds
+*.scc
+ipch/
+AppPackages/
+_UpgradeReport_Files/
+BuildLog.htm
+UpgradeLog*.XML
+
+# Qt
+*.pro.user
+*.pro.user.*
+moc_*.cpp
+qrc_*.cpp
+
+# Redistribution
+*.dmg
+*.xpi
+*.gem
+*.egg
+*.deb
+*.rpm
+*.apk
+*.ap_
+*.tar
+*.tar.*
+*.zip
+*.7z
+*.rar
+*.cab
+*.msi
+
+# Windows
+*.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Mac OS X
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+.Spotlight-V100
+.Trashes
+
+# Linux
+.~*
