@@ -264,8 +264,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         /* Find the timedelta */
         QueryPerformanceCounter(&CurrentTime);
         TimeDelta = (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart;
-        if(TimeDelta < 0) TimeDelta = 0; /* Safe-guard in case of system delay */
         PreviousTime = CurrentTime;
+        if(TimeDelta < 0 || TimeDelta > 5) /* Safe-guard in case of system delay */
+            continue;
 
         /* Draw */
         Demo.DrawScene(TimeDelta, keys);
@@ -275,6 +276,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         QueryPerformanceCounter(&CurrentTime);
         TimeDelta = (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/ClockFreq.QuadPart;
         TimeDelta = (FramePeriod - TimeDelta) * 1000;
-        if(TimeDelta > 1) Sleep((unsigned) TimeDelta);
+        if(TimeDelta > 1 && TimeDelta < 100) Sleep((unsigned) TimeDelta);
     }
 }

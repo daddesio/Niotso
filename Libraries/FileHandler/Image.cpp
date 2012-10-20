@@ -17,8 +17,9 @@
 */
 
 #include "FileHandler.hpp"
-#include <setjmp.h> //Used by libpng
+#include <setjmp.h> //Used for libpng
 #include <jpeglib.h>
+#include <jerror.h>
 #include <png.h>
 #include "bmp/read_bmp.h"
 
@@ -117,13 +118,44 @@ static uint8_t * ReadBMP(Image_t * Image, const uint8_t * InData, size_t FileSiz
     return OutData;
 }
 
+
+// libjpeg-turbo v6 doesn't support jpeg_mem_src, so we have to implement it here
+static void term_source(j_decompress_ptr){}
+static int fill_mem_input_buffer(j_decompress_ptr cinfo){
+    ERREXIT(cinfo, JERR_FILE_READ);
+    return FALSE;
+}
+static void skip_input_data(j_decompress_ptr cinfo, long bytes)
+{
+    struct jpeg_source_mgr * src = cinfo->src;
+
+	if(bytes > (long) src->bytes_in_buffer){
+        ERREXIT(cinfo, JERR_FILE_READ);
+        return;
+	}
+    src->next_input_byte += bytes;
+    src->bytes_in_buffer -= bytes;
+}
 static uint8_t * ReadJPG(Image_t * Image, const uint8_t * InData, size_t FileSize){
     //Initialize
     jpeg_decompress_struct cinfo;
     jpeg_error_mgr jerr;
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&cinfo);
-    jpeg_mem_src(&cinfo, (unsigned char*) InData, FileSize);
+
+    if (cinfo.src == NULL)
+        cinfo.src = (jpeg_source_mgr *)
+            (*cinfo.mem->alloc_small)((j_common_ptr) &cinfo, JPOOL_PERMANENT, sizeof(jpeg_source_mgr));
+
+    jpeg_source_mgr *src = cinfo.src;
+    src->init_source = term_source;
+    src->fill_input_buffer = fill_mem_input_buffer;
+    src->skip_input_data = skip_input_data;
+    src->resync_to_restart = jpeg_resync_to_restart;
+    src->term_source = term_source;
+    src->bytes_in_buffer = FileSize;
+    src->next_input_byte = InData;
+
     if(jpeg_read_header(&cinfo, TRUE) != JPEG_HEADER_OK){
         jpeg_destroy_decompress(&cinfo);
         return NULL;
@@ -174,8 +206,8 @@ struct pngdata_t {
 static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t length){
     pngdata_t *pngdata = (pngdata_t *) png_get_io_ptr(png_ptr);
     if(length > pngdata->size) png_error(png_ptr, "");
-	memcpy(data, pngdata->buffer, length);
-	pngdata->buffer += length;
+    memcpy(data, pngdata->buffer, length);
+    pngdata->buffer += length;
     pngdata->size -= length;
 }
 static uint8_t * ReadPNG(Image_t * Image, const uint8_t * InData, size_t FileSize){

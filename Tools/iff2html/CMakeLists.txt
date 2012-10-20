@@ -9,7 +9,7 @@ set(IFF2HTML_SOURCES
     ../../Libraries/FileHandler/bmp/read_bmp.c
 )
 
-include_directories(${FILEHANDLER_INCLUDE_DIR} ${LIBPNG_INCLUDE_DIR})
+include_directories(${FILEHANDLER_INCLUDE} ${LIBPNG_INCLUDE})
 
 add_executable(iff2html ${IFF2HTML_SOURCES})
-target_link_libraries(iff2html iff_static libpng_static zlib_static m)
+target_link_libraries(iff2html iff_static ${LIBPNG_LINK} ${ZLIB_LINK} m)

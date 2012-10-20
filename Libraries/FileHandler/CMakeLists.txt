@@ -28,7 +28,7 @@ if(WIN32)
     set(FILEHANDLER_SOURCES ${FILEHANDLER_SOURCES} resource.rc)
 endif()
 
-include_directories(${FILEHANDLER_INCLUDE_DIR} ${LIBMPG123_INCLUDE_DIR} ${LIBJPEGTURBO_INCLUDE_DIR} ${LIBPNG_INCLUDE_DIR})
+include_directories(${FILEHANDLER_INCLUDE} ${LIBMPG123_INCLUDE} ${LIBJPEGTURBO_INCLUDE} ${LIBPNG_INCLUDE})
 
 #### Static library (uncomment to build)
 #add_library(FileHandler_static STATIC ${FILEHANDLER_SOURCES})
@@ -38,12 +38,15 @@ include_directories(${FILEHANDLER_INCLUDE_DIR} ${LIBMPG123_INCLUDE_DIR} ${LIBJPE
 #    CLEAN_DIRECT_OUTPUT 1)
 
 add_library(FileHandler_shared SHARED ${FILEHANDLER_SOURCES})
+if(WIN32)
+    set_target_properties(FileHandler_shared PROPERTIES OUTPUT_NAME "FileHandler${FILEHANDLER_SERIES}")
+else()
+    set_target_properties(FileHandler_shared PROPERTIES OUTPUT_NAME "FileHandler")
+endif()
 set_target_properties(FileHandler_shared PROPERTIES
-    OUTPUT_NAME "FileHandler${FILEHANDLER_SERIES}"
-    VERSION ${FILEHANDLER_SERIES}${FILEHANDLER_MAJOR}.${FILEHANDLER_MINOR}.0
-    SOVERSION ${FILEHANDLER_SERIES}${FILEHANDLER_MAJOR}
+    VERSION ${FILEHANDLER_SERIES}.${FILEHANDLER_MAJOR}.${FILEHANDLER_MINOR}
     PREFIX ""
     IMPORT_PREFIX ""
     CLEAN_DIRECT_OUTPUT 1)
 
-target_link_libraries(FileHandler_shared far_static iff_static jpegturbo_static libmpg123_static libpng_static zlib_static m)
+target_link_libraries(FileHandler_shared far_static iff_static ${LIBJPEG_LINK} ${LIBMPG123_LINK} ${LIBPNG_LINK} ${ZLIB_LINK} m)

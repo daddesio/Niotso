@@ -1,9 +1,9 @@
-# build system
+# Build system
 _build/
 _deps/
 _dist/
 
-# objects
+# Objects
 *.o
 *.lo
 *.slo
@@ -12,7 +12,7 @@ _dist/
 *.pch
 *.gch
 
-# libraries
+# Libraries
 *.a
 *.la
 *.lai
@@ -22,7 +22,7 @@ _dist/
 *.so.*
 *.dylib
 
-# binaries
+# Binaries
 *.exe
 *.app
 

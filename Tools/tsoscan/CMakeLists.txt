@@ -7,7 +7,7 @@ set(TSOSCAN_SOURCES
     stats.c
 )
 
-include_directories(${FILEHANDLER_INCLUDE_DIR})
+include_directories(${FILEHANDLER_INCLUDE})
 
 add_executable(tsoscan ${TSOSCAN_SOURCES})
 target_link_libraries(tsoscan iff_static)

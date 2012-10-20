@@ -92,10 +92,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         LARGE_INTEGER CurrentTime;
         QueryPerformanceCounter(&CurrentTime);
         float TimeDelta = (float)(CurrentTime.QuadPart-PreviousTime.QuadPart)/System::ClockFreq.QuadPart;
-        if(TimeDelta < 0 || TimeDelta >= 5){ //Invalid TimeDelta
-            PreviousTime.QuadPart = CurrentTime.QuadPart;
+        PreviousTime = CurrentTime;
+        if(TimeDelta < 0 || TimeDelta >= 5) //Safe-guard in case of system delay
             continue;
-        }
 
         memcpy(&System::UserInput, (const void*) &System::UserInput_v, sizeof(System::UserInput_t));
 
@@ -108,6 +107,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             SwapBuffers(Graphics::hDC);
         }
 
+        //Sleep for the remainder of the frame
         PreviousTime.QuadPart = CurrentTime.QuadPart;
         QueryPerformanceCounter(&CurrentTime);
         float SleepDuration =

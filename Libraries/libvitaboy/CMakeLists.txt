@@ -23,8 +23,7 @@ else()
     add_definitions(-Dstricmp=strcasecmp)
 endif()
 
-include_directories(${LIBGLDEMO_INCLUDE_DIR})
-include_directories(${FILEHANDLER_INCLUDE_DIR})
+include_directories(${LIBGLDEMO_INCLUDE} ${FILEHANDLER_INCLUDE})
 
 #### Static library (uncomment to build)
 #add_library(libvitaboy_static STATIC ${LIBVITABOY_SOURCES})
@@ -33,18 +32,20 @@ include_directories(${FILEHANDLER_INCLUDE_DIR})
 #    CLEAN_DIRECT_OUTPUT 1)
 
 add_library(libvitaboy_shared SHARED ${LIBVITABOY_SOURCES})
+if(WIN32)
+    set_target_properties(libvitaboy_shared PROPERTIES OUTPUT_NAME "vitaboy${LIBVITABOY_SERIES}")
+else()
+    set_target_properties(libvitaboy_shared PROPERTIES OUTPUT_NAME "vitaboy")
+endif()
 set_target_properties(libvitaboy_shared PROPERTIES
     COMPILE_FLAGS "-fvisibility=default"
-    OUTPUT_NAME "vitaboy${LIBVITABOY_SERIES}"
     VERSION ${LIBVITABOY_SERIES}.${LIBVITABOY_MAJOR}.${LIBVITABOY_MINOR}
-    SOVERSION ${LIBVITABOY_SERIES}
-    # msvc does not prepend 'lib' - do it here to have consistent name
-        PREFIX "lib"
-        IMPORT_PREFIX "lib"
+    PREFIX "lib"
+    IMPORT_PREFIX "lib"
     CLEAN_DIRECT_OUTPUT 1)
 
 add_executable(vbparse vbparse.cpp)
 target_link_libraries(vbparse libvitaboy_shared FileHandler_shared)
 
 add_executable(Renderer ${GLDEMO_EXE} Renderer.cpp)
-target_link_libraries(Renderer libvitaboy_shared ${GLDEMO_LIBS} FileHandler_shared m)
+target_link_libraries(Renderer libvitaboy_shared ${GLDEMO_LINK} FileHandler_shared m)

@@ -12,7 +12,7 @@ if(WIN32)
         windows/Dialog/AddToArchive.cpp
         windows/Dialog/NewArchive.cpp
     )
-    include_directories(${LIBPNG_INCLUDE_DIR})
+    include_directories(${LIBPNG_INCLUDE})
     add_executable(FARDive WIN32 ${FARDIVE_SOURCES})
     target_link_libraries(FARDive ole32 uxtheme FileHandler_shared)
 endif()
