@@ -10,7 +10,7 @@ Stable builds and source packages are provided at http://niotso.org/pub/stable/.
 
 ## Compiling instructions
 
-For compiling instructions, please see http://wiki.niotso.org/Niotso_-_Compiling_instructions.
+For compiling instructions, please see http://wiki.niotso.org/Niotso_-_Compile_guide.
 
 ## Documentation
 

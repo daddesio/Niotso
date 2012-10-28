@@ -49,7 +49,7 @@ void ReadBone(Skeleton_t& Skeleton, Bone_t& Bone, unsigned Index){
     }
 
     printf(" | Translation:\n");
-    Bone.Translation.x = VBFile.readfloat();
+    Bone.Translation.x = -VBFile.readfloat();
     printf(" | | x: %g\n", Bone.Translation.x);
     Bone.Translation.y = VBFile.readfloat();
     printf(" | | y: %g\n", Bone.Translation.y);
@@ -58,9 +58,9 @@ void ReadBone(Skeleton_t& Skeleton, Bone_t& Bone, unsigned Index){
     printf(" | Rotation:\n");
     Bone.Rotation.x = VBFile.readfloat();
     printf(" | | x: %g\n", Bone.Rotation.x);
-    Bone.Rotation.y = VBFile.readfloat();
+    Bone.Rotation.y = -VBFile.readfloat();
     printf(" | | y: %g\n", Bone.Rotation.y);
-    Bone.Rotation.z = VBFile.readfloat();
+    Bone.Rotation.z = -VBFile.readfloat();
     printf(" | | z: %g\n", Bone.Rotation.z);
     Bone.Rotation.w = VBFile.readfloat();
     printf(" | | w: %g\n", Bone.Rotation.w);

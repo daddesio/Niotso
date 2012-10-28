@@ -16,6 +16,7 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include <math.h>
 #include "libvitaboy.hpp"
 
 VBFile_t VBFile;
@@ -49,6 +50,17 @@ void ReadPropEntries(Prop_t& Prop){
 
 float DotProduct(Rotation_t * q1, Rotation_t * q2){
     return q1->x*q2->x + q1->y*q2->y + q1->z*q2->z + q1->w*q2->w;
+}
+
+void Normalize(Rotation_t * q){
+    float magnitude = q->x*q->x + q->y*q->y + q->z*q->z + q->w*q->w;
+    if(magnitude != 0){
+        magnitude = 1.0f/sqrt(magnitude);
+        q->x *= magnitude;
+        q->y *= magnitude;
+        q->z *= magnitude;
+        q->w *= magnitude;
+    }
 }
 
 void FindQuaternionMatrix(float * Matrix, Rotation_t * Quaternion){

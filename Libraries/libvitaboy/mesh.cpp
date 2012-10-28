@@ -72,10 +72,10 @@ void ReadMesh(Mesh_t& Mesh){
     Mesh.VertexData = (Vertex_t*) malloc(Mesh.TotalVertexCount * sizeof(Vertex_t));
     Mesh.TransformedVertexData = (Vertex_t*) malloc(Mesh.TotalVertexCount * sizeof(Vertex_t));
     for(unsigned i=0; i<Mesh.TotalVertexCount; i++){
-        Mesh.VertexData[i].Coord.x = VBFile.readfloat();
+        Mesh.VertexData[i].Coord.x = -VBFile.readfloat();
         Mesh.VertexData[i].Coord.y = VBFile.readfloat();
         Mesh.VertexData[i].Coord.z = VBFile.readfloat();
-        Mesh.TransformedVertexData[i].NormalCoord.x = VBFile.readfloat();
+        Mesh.TransformedVertexData[i].NormalCoord.x = -VBFile.readfloat();
         Mesh.TransformedVertexData[i].NormalCoord.y = VBFile.readfloat();
         Mesh.TransformedVertexData[i].NormalCoord.z = VBFile.readfloat();
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(far)
 
 set(FAR_SOURCES
-    libfar.c
+    far.c
     refpack_dec.c
 )
 

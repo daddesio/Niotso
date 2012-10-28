@@ -148,6 +148,7 @@ static int InitGL()
     glDisable(GL_BLEND);
     glDepthFunc(GL_LEQUAL);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    glFrontFace(GL_CW);
     return 1;
 }
 
@@ -160,6 +161,7 @@ static int ResizeScene(uint16_t width, uint16_t height)
 
     // Calculate The Aspect Ratio Of The Window
     gluPerspective(45.0f, (GLfloat)width/(GLfloat)height, 0.1f, 100.0f);
+    // glScalef(-1.0f, 1.0f, 1.0f);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -300,28 +302,17 @@ static void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float Tim
             Rotation_t& Rotation = Animation.Motions[i].Rotations[Frame];
             Rotation_t& NextRotation = Animation.Motions[i].Rotations[NextFrame];
 
-            //Use Slerp to interpolate
-            float w1, w2 = 1;
-            float cosTheta = DotProduct(&Rotation, &NextRotation);
-            if(cosTheta < 0){
-                cosTheta *= -1;
-                w2 *= -1;
-            }
-            float theta    = (float) acos(cosTheta);
-            float sinTheta = (float) sin(theta);
-
-            if(sinTheta > 0.001f){
-                w1 =  (float) sin((1.0f-FractionShown)*theta)/sinTheta;
-                w2 *= (float) sin(FractionShown       *theta)/sinTheta;
-            } else {
-                w1 = 1.0f - FractionShown;
-                w2 = FractionShown;
-            }
+            //Use nlerp to interpolate
+            float w1 = 1.0f - FractionShown, w2 = FractionShown;
+            if(DotProduct(&Rotation, &NextRotation) < 0)
+                w1 *= -1;
 
             Bone.Rotation.x = w1*Rotation.x + w2*NextRotation.x;
             Bone.Rotation.y = w1*Rotation.y + w2*NextRotation.y;
             Bone.Rotation.z = w1*Rotation.z + w2*NextRotation.z;
             Bone.Rotation.w = w1*Rotation.w + w2*NextRotation.w;
+            
+            Normalize(&Bone.Rotation);
         }
     }
 }

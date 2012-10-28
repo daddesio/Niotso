@@ -22,14 +22,14 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "libfar.h"
+#include "far.h"
 
-#if defined(LIBFAR_SUPPORT_PERSIST)
- #define LIBFAR_MINSIZE_ANY MINSIZE_PERSIST
-#elif defined(LIBFAR_SUPPORT_FAR)
- #define LIBFAR_MINSIZE_ANY MINSIZE_FAR
+#if defined(FAR_SUPPORT_PERSIST)
+ #define FAR_MINSIZE_ANY MINSIZE_PERSIST
+#elif defined(FAR_SUPPORT_FAR)
+ #define FAR_MINSIZE_ANY MINSIZE_FAR
 #else
- #define LIBFAR_MINSIZE_ANY MINSIZE_DBPF
+ #define FAR_MINSIZE_ANY MINSIZE_DBPF
 #endif
 
 #ifndef read_int32
@@ -52,10 +52,10 @@
 
 /* These options can be changed during runtime */
 static int libfarOptions[] = {
-    LIBFAR_DEFAULT_1A,
-    LIBFAR_DEFAULT_DBPF_COMPRESSED,
-    LIBFAR_DEFAULT_MAX_FILE_NAME_LENGTH,
-    LIBFAR_DEFAULT_REFPACK_HNSV
+    FAR_DEFAULT_1A,
+    FAR_DEFAULT_DBPF_COMPRESSED,
+    FAR_DEFAULT_MAX_FILE_NAME_LENGTH,
+    FAR_DEFAULT_REFPACK_HNSV
 };
 
 void libfar_set_option(int Option, int Value){
@@ -68,22 +68,22 @@ int libfar_get_option(int Option){
 int far_identify(const uint8_t * Buffer, unsigned FileSize)
 {
     if(!FileSize) FileSize = ~0;
-    else if(FileSize < LIBFAR_MINSIZE_ANY)
+    else if(FileSize < FAR_MINSIZE_ANY)
         return FAR_TYPE_INVALID;
 
-    #ifdef LIBFAR_SUPPORT_FAR
+    #ifdef FAR_SUPPORT_FAR
     if(FileSize >= MINSIZE_FAR)
         if(!memcmp(Buffer, Header_FAR, 8))
             return FAR_TYPE_FAR;
     #endif
 
-    #ifdef LIBFAR_SUPPORT_DBPF
+    #ifdef FAR_SUPPORT_DBPF
     if(FileSize >= MINSIZE_DBPF)
         if(!memcmp(Buffer, Header_DBPF, 4))
             return FAR_TYPE_DBPF;
     #endif
 
-    #ifdef LIBFAR_SUPPORT_PERSIST
+    #ifdef FAR_SUPPORT_PERSIST
     if(FileSize >= MINSIZE_PERSIST)
         if(Buffer[0] == 0x01)
             return FAR_TYPE_PERSIST;
@@ -158,10 +158,10 @@ FAREntryNode * far_add_entry(FARFile * FARFileInfo, int Position)
 int far_read_header(FARFile * FARFileInfo, const uint8_t * Buffer, unsigned FileSize)
 {
     if(!FileSize) FileSize = ~0;
-    else if(FileSize < LIBFAR_MINSIZE_ANY)
+    else if(FileSize < FAR_MINSIZE_ANY)
         return 0;
 
-    #ifdef LIBFAR_SUPPORT_FAR
+    #ifdef FAR_SUPPORT_FAR
     if(FARFileInfo->Type == FAR_TYPE_FAR){
         FARFileInfo->MajorVersion = read_uint32(Buffer+8);
         FARFileInfo->IndexOffset = read_uint32(Buffer+12);
@@ -170,7 +170,7 @@ int far_read_header(FARFile * FARFileInfo, const uint8_t * Buffer, unsigned File
             return 0;
 
         if(FARFileInfo->MajorVersion == 1)
-            FARFileInfo->Revision = !libfarOptions[LIBFAR_CONFIG_DEFAULT_TO_1A];
+            FARFileInfo->Revision = !libfarOptions[FAR_CONFIG_DEFAULT_TO_1A];
 
         if(FARFileInfo->IndexOffset > FileSize-4)
             return 0;
@@ -187,7 +187,7 @@ int far_read_header(FARFile * FARFileInfo, const uint8_t * Buffer, unsigned File
     }
     #endif
 
-    #ifdef LIBFAR_SUPPORT_DBPF
+    #ifdef FAR_SUPPORT_DBPF
     if(FARFileInfo->Type == FAR_TYPE_DBPF){
         int i;
 
@@ -239,7 +239,7 @@ int far_read_entry(const FARFile * FARFileInfo, FAREntry * FAREntryInfo,
     if(MaxEntrySize == 0) MaxEntrySize = ~0;
     if(ArchiveSize == 0) ArchiveSize = ~0;
 
-    #ifdef LIBFAR_SUPPORT_FAR
+    #ifdef FAR_SUPPORT_FAR
     if(FARFileInfo->Type == FAR_TYPE_FAR){
         unsigned MinEntrySize =
             (MajorVersion == 1) ? (
@@ -269,7 +269,7 @@ int far_read_entry(const FARFile * FARFileInfo, FAREntry * FAREntryInfo,
         }
 
         if(FAREntryInfo->FilenameLength > MaxEntrySize - MinEntrySize) return 0;
-        if(FAREntryInfo->FilenameLength > (unsigned)libfarOptions[LIBFAR_CONFIG_MAX_FILE_NAME_LENGTH]) return 0;
+        if(FAREntryInfo->FilenameLength > (unsigned)libfarOptions[FAR_CONFIG_MAX_FILE_NAME_LENGTH]) return 0;
 
         if(FAREntryInfo->CompressedSize > FAREntryInfo->DecompressedSize) return 0;
         if(FAREntryInfo->DecompressedSize != 0){
@@ -286,7 +286,7 @@ int far_read_entry(const FARFile * FARFileInfo, FAREntry * FAREntryInfo,
     }
     #endif
 
-    #ifdef LIBFAR_SUPPORT_DBPF
+    #ifdef FAR_SUPPORT_DBPF
     if(FARFileInfo->Type == FAR_TYPE_DBPF){
         if(MaxEntrySize < SIZEOF_ENTRY_DBPF) return 0;
 
@@ -346,7 +346,7 @@ int far_read_entry_data(const FARFile * FARFileInfo, FAREntry * FAREntryInfo, ui
     int Compressed = (FARFileInfo->Type == FAR_TYPE_FAR) ? (
         (FARFileInfo->MajorVersion == 1) ? (
         FAREntryInfo->DecompressedSize != FAREntryInfo->CompressedSize
-    ) : FAREntryInfo->DataType == 0x80) : libfarOptions[LIBFAR_CONFIG_DBPF_COMPRESSED];
+    ) : FAREntryInfo->DataType == 0x80) : libfarOptions[FAR_CONFIG_DBPF_COMPRESSED];
 
     FAREntryInfo->CompressedData = Buffer+FAREntryInfo->DataOffset;
 
@@ -390,7 +390,7 @@ int far_read_persist_data(PersistFile * PersistData, uint8_t * CompressedData)
 
     if(!RefPackDecompress(PersistData->CompressedData, PersistData->CompressedSize-9,
         PersistData->DecompressedData, PersistData->DecompressedSize,
-        libfarOptions[LIBFAR_CONFIG_REFPACK_HNSV])){
+        libfarOptions[FAR_CONFIG_REFPACK_HNSV])){
         free(PersistData->DecompressedData);
         return 0;
     }

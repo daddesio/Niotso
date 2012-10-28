@@ -21,10 +21,10 @@
 */
 
 /* libfarOptions array members */
-#define LIBFAR_CONFIG_DEFAULT_TO_1A             0
-#define LIBFAR_CONFIG_DBPF_COMPRESSED           1
-#define LIBFAR_CONFIG_MAX_FILE_NAME_LENGTH      2
-#define LIBFAR_CONFIG_REFPACK_HNSV              3
+#define FAR_CONFIG_DEFAULT_TO_1A             0
+#define FAR_CONFIG_DBPF_COMPRESSED           1
+#define FAR_CONFIG_MAX_FILE_NAME_LENGTH      2
+#define FAR_CONFIG_REFPACK_HNSV              3
 
 /* Archive types */
 #define FAR_TYPE_INVALID    0
@@ -33,7 +33,7 @@
 #define FAR_TYPE_PERSIST    3
 
 /* Numerical constants */
-#define LIBFAR_ARCHIVE_MINIMUM_SIZE  14
+#define FAR_ARCHIVE_MINIMUM_SIZE     14
 #define MINSIZE_FAR                  20
 #define MINSIZE_DBPF                 64
 #define MINSIZE_ENTRY_FAR_1A         16

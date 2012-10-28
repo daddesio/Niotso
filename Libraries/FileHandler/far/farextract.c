@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <time.h>
 #include "config.h"
-#include "libfar.h"
+#include "far.h"
 
 enum {
     profile_ts1 = 1,
@@ -100,9 +100,9 @@ int main(int argc, char *argv[]){
     ** Handle profile settings
     */
     if(!profile) profile = profile_tso;
-    libfar_set_option(LIBFAR_CONFIG_DEFAULT_TO_1A, (profile == profile_ts1));
-    libfar_set_option(LIBFAR_CONFIG_DBPF_COMPRESSED, (profile >= profile_sc4));
-    libfar_set_option(LIBFAR_CONFIG_REFPACK_HNSV, 0xFB);
+    libfar_set_option(FAR_CONFIG_DEFAULT_TO_1A, (profile == profile_ts1));
+    libfar_set_option(FAR_CONFIG_DBPF_COMPRESSED, (profile >= profile_sc4));
+    libfar_set_option(FAR_CONFIG_REFPACK_HNSV, 0xFB);
 
     /****
     ** Open the file and read in the entire contents to memory

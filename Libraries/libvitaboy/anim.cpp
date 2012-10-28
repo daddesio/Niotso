@@ -80,7 +80,7 @@ void ReadMotion(Animation_t& Animation, Motion_t& Motion){
         unsigned pos = VBFile.getpos();
         VBFile.seekto(Animation.TranslationsOffset + 12*Motion.FirstTranslation);
         for(unsigned i=0; i<Motion.FrameCount; i++){
-            Motion.Translations[i].x = VBFile.readfloat();
+            Motion.Translations[i].x = -VBFile.readfloat();
             Motion.Translations[i].y = VBFile.readfloat();
             Motion.Translations[i].z = VBFile.readfloat();
         }
@@ -94,8 +94,8 @@ void ReadMotion(Animation_t& Animation, Motion_t& Motion){
         VBFile.seekto(Animation.RotationsOffset + 16*Motion.FirstRotation);
         for(unsigned i=0; i<Motion.FrameCount; i++){
             Motion.Rotations[i].x = VBFile.readfloat();
-            Motion.Rotations[i].y = VBFile.readfloat();
-            Motion.Rotations[i].z = VBFile.readfloat();
+            Motion.Rotations[i].y = -VBFile.readfloat();
+            Motion.Rotations[i].z = -VBFile.readfloat();
             Motion.Rotations[i].w = VBFile.readfloat();
         }
         VBFile.seekto(pos);
