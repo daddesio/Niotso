@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
-#include "config.h"
 #include "far.h"
 
 enum {

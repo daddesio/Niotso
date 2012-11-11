@@ -1,8 +1,9 @@
 LIBS = freetype libjpeg-turbo libmpg123 libpng libpq zlib
-all: .PHONY ../_deps/$(LIBS)
+all: .PHONY $(addprefix ../_deps/, $(LIBS))
 .PHONY: $(LIBS)
-	wget -N http://niotso.org/pub/environment/windows/lib/$<.tar.xz
-../_deps/%: %.tar.xz
+$(LIBS):
+	wget -N http://niotso.org/pub/environment/windows/lib/$@.tar.xz
+../_deps/%: ../_deps/%.tar.xz
 ifdef CMD
 	del /F /S /Q "$@"
 else

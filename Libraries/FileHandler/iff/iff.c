@@ -102,18 +102,16 @@ void (* const iff_free_function[])(void*) = {
 ** API public functions
 */
 
-IFFFile * iff_create()
+int iff_create(IFFFile * IFFFileInfo)
 {
-    IFFFile *ptr = calloc(1, sizeof(IFFFile));
-    if(ptr == NULL) return NULL;
+    memset(IFFFileInfo, 0, sizeof(IFFFile));
 
-    ptr->Chunks = calloc(1, sizeof(IFFChunk));
-    if(ptr->Chunks == NULL){
-        free(ptr);
-        return NULL;
-    }
-    ptr->SizeAllocated = sizeof(IFFChunk);
-    return ptr;
+    IFFFileInfo->Chunks = calloc(1, sizeof(IFFChunk));
+    if(IFFFileInfo->Chunks == NULL)
+        return 0;
+    IFFFileInfo->SizeAllocated = sizeof(IFFChunk);
+
+    return 1;
 }
 
 int iff_read_header(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned FileSize)
@@ -250,7 +248,4 @@ void iff_delete(IFFFile * IFFFileInfo){
         free(IFFFileInfo->ResourceMap->FormattedData);
         free(IFFFileInfo->ResourceMap);
     }
-
-    free(IFFFileInfo);
-    IFFFileInfo = NULL;
 }

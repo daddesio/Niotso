@@ -21,11 +21,9 @@
 #include <iff/iff.h>
 #include "tsoscan.h"
 
-IFFStats* stats_create(){
-    IFFStats *stats = calloc(1, sizeof(IFFStats));
-    if (stats == NULL) return NULL;
+int stats_create(IFFStats *stats){
     stats->AverageChunkCount = -1;
-    return stats;
+    return 0;
 }
 
 int stats_version_increment(IFFStats *stats, char *type, unsigned version){
@@ -107,5 +105,4 @@ void stats_delete(IFFStats *stats){
             free(stats->ChunkTypes[i].Versions);
         free(stats->ChunkTypes);
     }
-    free(stats);
 }

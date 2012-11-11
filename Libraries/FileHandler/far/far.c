@@ -1,6 +1,6 @@
 /*
     FileHandler - General-purpose file handling library for Niotso
-    libfar.c - Copyright (c) 2011 Niotso Project <http://niotso.org/>
+    far.c - Copyright (c) 2011-2012 Niotso Project <http://niotso.org/>
     Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
@@ -72,21 +72,18 @@ int far_identify(const uint8_t * Buffer, unsigned FileSize)
         return FAR_TYPE_INVALID;
 
     #ifdef FAR_SUPPORT_FAR
-    if(FileSize >= MINSIZE_FAR)
-        if(!memcmp(Buffer, Header_FAR, 8))
-            return FAR_TYPE_FAR;
+    if(FileSize >= MINSIZE_FAR && !memcmp(Buffer, Header_FAR, 8))
+        return FAR_TYPE_FAR;
     #endif
 
     #ifdef FAR_SUPPORT_DBPF
-    if(FileSize >= MINSIZE_DBPF)
-        if(!memcmp(Buffer, Header_DBPF, 4))
-            return FAR_TYPE_DBPF;
+    if(FileSize >= MINSIZE_DBPF && !memcmp(Buffer, Header_DBPF, 4))
+        return FAR_TYPE_DBPF;
     #endif
 
     #ifdef FAR_SUPPORT_PERSIST
-    if(FileSize >= MINSIZE_PERSIST)
-        if(Buffer[0] == 0x01)
-            return FAR_TYPE_PERSIST;
+    if(FileSize >= MINSIZE_PERSIST && Buffer[0] == 0x01)
+        return FAR_TYPE_PERSIST;
     #endif
 
     return FAR_TYPE_INVALID;

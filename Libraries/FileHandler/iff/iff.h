@@ -345,7 +345,7 @@ extern "C" {
 ** IFF file functions
 */
 
-IFFFile * iff_create();
+int iff_create(IFFFile * IFFFileInfo);
 int iff_read_header(IFFFile * IFFFileInfo, const uint8_t * Buffer, unsigned FileSize);
 
 IFFChunk * iff_add_chunk(IFFFile * IFFFileInfo);

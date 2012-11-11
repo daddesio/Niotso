@@ -159,5 +159,5 @@ int RefPackDecompress(const uint8_t *__restrict CompressedData, size_t Compresse
         }
     }
 
-    return (!stopflag || CompressedSize || DecompressedSize) ? 0 : 1;
+    return (stopflag && !CompressedSize && !DecompressedSize);
 }

@@ -59,7 +59,7 @@ typedef struct IFFStats_s
 CommandLineArgs* cmd_parse_args(int argc, char *argv[]);
 void cmd_delete(CommandLineArgs *args);
 
-IFFStats* stats_create();
+int stats_create(IFFStats *stats);
 int stats_version_increment(IFFStats *stats, char *type, unsigned version);
 unsigned stats_get_version(char *type, uint8_t *data);
 void stats_delete(IFFStats *stats);

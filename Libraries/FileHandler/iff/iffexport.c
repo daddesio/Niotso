@@ -40,7 +40,7 @@ int main(int argc, char *argv[]){
     clock_t BeginningTime;
     unsigned chunkcount, chunk;
     unsigned exported = 0;
-    IFFFile * IFFFileInfo;
+    IFFFile IFFFileInfo;
     IFFChunk * ChunkData;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
@@ -95,12 +95,11 @@ int main(int argc, char *argv[]){
     ** Load header information
     */
 
-    IFFFileInfo = iff_create();
-    if(IFFFileInfo == NULL){
+    if(!iff_create(&IFFFileInfo)){
         printf("%sMemory for this file could not be allocated.", "iffexport: error: ");
         return -1;
     }
-    if(!iff_read_header(IFFFileInfo, IFFData, FileSize)){
+    if(!iff_read_header(&IFFFileInfo, IFFData, FileSize)){
         printf("%sNot a valid IFF file.", "iffexport: error: ");
         return -1;
     }
@@ -109,19 +108,19 @@ int main(int argc, char *argv[]){
     ** Load entry information
     */
 
-    if(!iff_enumerate_chunks(IFFFileInfo, IFFData+64, FileSize-64)){
+    if(!iff_enumerate_chunks(&IFFFileInfo, IFFData+64, FileSize-64)){
         printf("%sChunk data is corrupt.", "iffexport: error: ");
         return -1;
     }
 
-    chunkcount = IFFFileInfo->ChunkCount;
+    chunkcount = IFFFileInfo.ChunkCount;
     printf("This IFF file contains %u chunks.\n\nExporting\n", chunkcount);
     BeginningTime = clock();
 
     /****
     ** Extract each entry
     */
-    for(chunk = 1, ChunkData = IFFFileInfo->Chunks; chunk <= chunkcount; chunk++, ChunkData++){
+    for(chunk = 1, ChunkData = IFFFileInfo.Chunks; chunk <= chunkcount; chunk++, ChunkData++){
         char name[256], destination[256];
         char filter[] = "\\/:*?\"<>|";
         int i;

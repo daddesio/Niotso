@@ -39,10 +39,10 @@ int main(int argc, char *argv[]){
     CommandLineArgs *CmdArgs;
     unsigned i, version, FileCount = 0;
     char **Files = NULL;
-    IFFStats *Stats = stats_create();
+    IFFStats Stats;
     FILE *OutFile;
 
-    if(Stats == NULL){
+    if(!stats_create(&Stats)){
         printf("%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
         return -1;
     }
@@ -114,13 +114,11 @@ int main(int argc, char *argv[]){
     ** Load and parse IFF files
     */
 
-    Stats->AverageChunkCount = -1;
-
     for(i=0; i<FileCount; i++){
         FILE *file;
         size_t FileSize;
         uint8_t *data;
-        IFFFile *iff;
+        IFFFile iff;
         IFFChunk *ChunkData;
         unsigned ChunkIndex;
 
@@ -148,34 +146,33 @@ int main(int argc, char *argv[]){
         }
         fclose(file);
 
-        iff = iff_create();
-        if(iff == NULL){
+        if(!iff_create(&iff)){
             printf("%sUnable to allocate memory for the specified files.\n", TSOSCAN_ERROR);
             return -1;
         }
-        if(!iff_read_header(iff, data, FileSize) || !iff_enumerate_chunks(iff, data+64, FileSize-64)){
+        if(!iff_read_header(&iff, data, FileSize) || !iff_enumerate_chunks(&iff, data+64, FileSize-64)){
             /* Skip non-IFF files silently */
             free(data);
             continue;
         }
         free(data);
 
-        Stats->FileCount++;
-        if(Stats->AverageChunkCount == -1){
-            Stats->AverageChunkCount = iff->ChunkCount;
+        Stats.FileCount++;
+        if(Stats.AverageChunkCount == -1){
+            Stats.AverageChunkCount = iff.ChunkCount;
         }else{
-            Stats->AverageChunkCount += iff->ChunkCount;
-            Stats->AverageChunkCount /= 2;
+            Stats.AverageChunkCount += iff.ChunkCount;
+            Stats.AverageChunkCount /= 2;
         }
 
-        for(ChunkIndex = 0, ChunkData = iff->Chunks; ChunkIndex < iff->ChunkCount; ChunkIndex++, ChunkData++){
+        for(ChunkIndex = 0, ChunkData = iff.Chunks; ChunkIndex < iff.ChunkCount; ChunkIndex++, ChunkData++){
             unsigned version = stats_get_version(ChunkData->Type, ChunkData->Data);
-            if(!stats_version_increment(Stats, ChunkData->Type, version)){
+            if(!stats_version_increment(&Stats, ChunkData->Type, version)){
                 printf("%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
                 return -1;
             }
         }
-        iff_delete(iff);
+        iff_delete(&iff);
     }
 
     /****
@@ -274,23 +271,23 @@ int main(int argc, char *argv[]){
     fprintf(OutFile, "<h1>IFF Chunk Statistics (tsostats)</h1>\n");
     fprintf(OutFile, "<div id=\"attributes\">\n");
     fprintf(OutFile, "<table>\n");
-    fprintf(OutFile, "<tr><td>Number of IFF files:</td><td>%u</td></tr>\n", Stats->FileCount);
-    fprintf(OutFile, "<tr><td>Average chunk count:</td><td>%.1f</td></tr>\n", Stats->AverageChunkCount);
+    fprintf(OutFile, "<tr><td>Number of IFF files:</td><td>%u</td></tr>\n", Stats.FileCount);
+    fprintf(OutFile, "<tr><td>Average chunk count:</td><td>%.1f</td></tr>\n", Stats.AverageChunkCount);
     fprintf(OutFile, "</table>\n");
     fprintf(OutFile, "</div>\n");
 
-    fprintf(OutFile, "<div id=\"toc\"><div><b>Contents</b> &ndash; %u chunk types</div>\n", Stats->ChunkTypeCount);
+    fprintf(OutFile, "<div id=\"toc\"><div><b>Contents</b> &ndash; %u chunk types</div>\n", Stats.ChunkTypeCount);
     fprintf(OutFile, "<ul>\n");
-    for(i=0; i<Stats->ChunkTypeCount; i++)
-        fprintf(OutFile, "<li><a href=\"#type%u\">%u %s</a></li>\n", i, i+1, Stats->ChunkTypes[i].Type);
+    for(i=0; i<Stats.ChunkTypeCount; i++)
+        fprintf(OutFile, "<li><a href=\"#type%u\">%u %s</a></li>\n", i, i+1, Stats.ChunkTypes[i].Type);
     fprintf(OutFile, "</ul>\n");
     fprintf(OutFile, "</div>\n");
     fprintf(OutFile, "\n");
 
-    for(i=0; i<Stats->ChunkTypeCount; i++){
-        ChunkStats *chunk = Stats->ChunkTypes+i;
+    for(i=0; i<Stats.ChunkTypeCount; i++){
+        ChunkStats *chunk = Stats.ChunkTypes+i;
 
-        fprintf(OutFile, "<h2 id=\"type%u\">%u %s <a href=\"#type%u\">(Jump)</a></h2>\n", i, i+1, Stats->ChunkTypes[i].Type, i);
+        fprintf(OutFile, "<h2 id=\"type%u\">%u %s <a href=\"#type%u\">(Jump)</a></h2>\n", i, i+1, Stats.ChunkTypes[i].Type, i);
         fprintf(OutFile, "<div>\n");
 
         fprintf(OutFile, "<table>\n");
@@ -324,8 +321,8 @@ int main(int argc, char *argv[]){
     fprintf(OutFile, "</html>");
     fclose(OutFile);
 
-    printf("Generated statistics based on %u IFF files.\n", Stats->FileCount);
+    printf("Generated statistics based on %u IFF files.\n", Stats.FileCount);
     cmd_delete(CmdArgs);
-    stats_delete(Stats);
+    stats_delete(&Stats);
     return 0;
 }

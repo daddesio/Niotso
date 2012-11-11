@@ -1,6 +1,6 @@
 /*
     FileHandler - General-purpose file handling library for Niotso
-    libfar.h - Copyright (c) 2011 Niotso Project <http://niotso.org/>
+    far.h - Copyright (c) 2011 Niotso Project <http://niotso.org/>
     Author(s): Fatbag <X-Fi6@phppoll.org>
 
     Permission to use, copy, modify, and/or distribute this software for any
