@@ -34,7 +34,7 @@ enum {
 
 int main(int argc, char *argv[]){
     int profile = 0, overwrite = 0;
-    char infile[256] = "", outdirectory[256] = "";
+    const char * InFile = "", * OutDirectory;
     FILE * hFile;
     size_t ArchiveSize;
     uint8_t * ArchiveData;
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]){
         return 0;
     }
 
-    for(i=1; !infile[0] && i != argc-1; i++){
+    for(i=1; !InFile[0] && i != argc-1; i++){
         /* Match for options */
         if(!profile){
             if(!strcmp(argv[i], "-ts1")){ profile = profile_ts1; continue; }
@@ -82,18 +82,18 @@ int main(int argc, char *argv[]){
         }
         /* Not an option */
         if(!strcmp(argv[i], "-")){
-            printf("%sReading from standard input is not yet implemented.", "farextract: error: ");
+            fprintf(stderr, "%sReading from standard input is not yet implemented.", "farextract: error: ");
             return -1;
         }
-        strcpy(infile, argv[i]);
+        InFile = argv[i];
         continue;
     }
     /* We're left with the out directory */
-    if(!infile[0]){
-        printf("%sReading from standard input is not yet implemented.", "farextract: error: ");
+    if(!InFile[0]){
+        fprintf(stderr, "%sReading from standard input is not yet implemented.", "farextract: error: ");
         return -1;
     }
-    strcpy(outdirectory, argv[i]);
+    OutDirectory = argv[i];
 
     /****
     ** Handle profile settings
@@ -107,26 +107,26 @@ int main(int argc, char *argv[]){
     ** Open the file and read in the entire contents to memory
     */
 
-    hFile = fopen(infile, "rb");
+    hFile = fopen(InFile, "rb");
     if(hFile == NULL){
-        printf("%sThe specified input file does not exist or could not be opened for reading.", "farextract: error: ");
+        fprintf(stderr, "%sThe specified input file does not exist or could not be opened for reading.", "farextract: error: ");
         return -1;
     }
     fseek(hFile, 0, SEEK_END);
     ArchiveSize = ftell(hFile);
     if(ArchiveSize < 24){
-        printf("%sNot a valid archive.", "farextract: error: ");
+        fprintf(stderr, "%sNot a valid archive.", "farextract: error: ");
         return -1;
     }
     fseek(hFile, 0, SEEK_SET);
 
     ArchiveData = malloc(ArchiveSize);
     if(ArchiveData == NULL){
-        printf("%sMemory for this archive could not be allocated.", "farextract: error: ");
+        fprintf(stderr, "%sMemory for this archive could not be allocated.", "farextract: error: ");
         return -1;
     }
-    if(!fread(ArchiveData, ArchiveSize, 1, hFile)){
-        printf("%sThe input file could not be read.", "farextract: error: ");
+    if(fread(ArchiveData, 1, ArchiveSize, hFile) != ArchiveSize){
+        fprintf(stderr, "%sThe input file could not be read.", "farextract: error: ");
         return -1;
     }
     fclose(hFile);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]){
 
     ArchiveType = far_identify(ArchiveData, ArchiveSize);
     if(ArchiveType == FAR_TYPE_INVALID){
-        printf("%sNot a valid archive.", "farextract: error: ");
+        fprintf(stderr, "%sNot a valid archive.", "farextract: error: ");
         return -1;
     }
 
@@ -151,11 +151,11 @@ int main(int argc, char *argv[]){
 
         FARFile * FARFileInfo = far_create_archive(ArchiveType);
         if(FARFileInfo == NULL){
-            printf("%sMemory for this archive could not be allocated.", "farextract: error: ");
+            fprintf(stderr, "%sMemory for this archive could not be allocated.", "farextract: error: ");
             return -1;
         }
         if(!far_read_header(FARFileInfo, ArchiveData, ArchiveSize)){
-            printf("%sNot a valid archive.", "farextract: error: ");
+            fprintf(stderr, "%sNot a valid archive.", "farextract: error: ");
             return -1;
         }
 
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]){
 
         if(!far_enumerate_entries(FARFileInfo, ArchiveData+FARFileInfo->IndexOffset,
             ArchiveSize-FARFileInfo->IndexOffset, ArchiveSize)){
-            printf("%sEntry data is corrupt.", "farextract: error: ");
+            fprintf(stderr, "%sEntry data is corrupt.", "farextract: error: ");
             return -1;
         }
 
@@ -181,9 +181,9 @@ int main(int argc, char *argv[]){
 
             file++;
             if(EntryNode->Entry.Filename)
-                sprintf(destination, "%s/%s", outdirectory, EntryNode->Entry.Filename);
+                sprintf(destination, "%s/%s", OutDirectory, EntryNode->Entry.Filename);
             else
-                sprintf(destination, "%s/%08x-%08x-%08x.dat", outdirectory,
+                sprintf(destination, "%s/%08x-%08x-%08x.dat", OutDirectory,
                     EntryNode->Entry.TypeID, EntryNode->Entry.GroupID, EntryNode->Entry.FileID);
 
             if(!far_read_entry_data(FARFileInfo, &(EntryNode->Entry), ArchiveData)){
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]){
         /* Persist file */
         PersistFile * PersistInfo;
         char destination[256];
-        sprintf(destination, "%s/%s.out", outdirectory, infile);
+        sprintf(destination, "%s/%s.out", OutDirectory, InFile);
 
         /****
         ** Load header information
@@ -241,11 +241,11 @@ int main(int argc, char *argv[]){
 
         PersistInfo = far_create_persist();
         if(PersistInfo == NULL){
-            printf("%sMemory for this archive could not be allocated.", "farextract: error: ");
+            fprintf(stderr, "%sMemory for this archive could not be allocated.", "farextract: error: ");
             return -1;
         }
         if(!far_read_persist_header(PersistInfo, ArchiveData, ArchiveSize)){
-            printf("%sNot a valid archive.", "farextract: error: ");
+            fprintf(stderr, "%sNot a valid archive.", "farextract: error: ");
             return -1;
         }
 
@@ -255,7 +255,7 @@ int main(int argc, char *argv[]){
         printf("Extracting\n");
         BeginningTime = clock();
         if(!far_read_persist_data(PersistInfo, ArchiveData+18)){
-            printf("%sNot a valid archive.", "farextract: error: ");
+            fprintf(stderr, "%sNot a valid archive.", "farextract: error: ");
             return -1;
         }
         EndingTime = clock();
@@ -265,14 +265,14 @@ int main(int argc, char *argv[]){
             if(hFile != NULL){
                 /* File exists */
                 fclose(hFile);
-                printf("%sFile exists.", "farextract: error: ");
+                fprintf(stderr, "%sFile exists.", "farextract: error: ");
                 libfar_free(PersistInfo->DecompressedData);
                 return -1;
             }
         }
         hFile = fopen(destination, "wb");
         if(hFile == NULL){
-            printf("%sCould not open.", "farextract: error: ");
+            fprintf(stderr, "%sCould not open.", "farextract: error: ");
             libfar_free(PersistInfo->DecompressedData);
             return -1;
         }

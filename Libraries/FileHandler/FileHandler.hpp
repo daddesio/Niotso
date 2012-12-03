@@ -68,9 +68,9 @@ struct Sound_t {
 
 namespace File {
 
-inline unsigned GetFileSize(FILE * hFile){
+inline size_t GetFileSize(FILE * hFile){
     fseek(hFile, 0, SEEK_END);
-    unsigned FileSize = ftell(hFile);
+    size_t FileSize = ftell(hFile);
     fseek(hFile, 0, SEEK_SET);
     return FileSize;
 }

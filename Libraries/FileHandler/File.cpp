@@ -45,9 +45,9 @@ uint8_t * ReadFile(const char * Filename){
     }
 
     size_t bytestransferred = fread(InData, 1, FileSize, hFile);
+    fclose(hFile);
     if(bytestransferred != FileSize){
         free(InData);
-        fclose(hFile);
         File::Error = FERR_READ;
         return NULL;
     }

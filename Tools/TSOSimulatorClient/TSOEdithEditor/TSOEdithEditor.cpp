@@ -27,23 +27,23 @@ int main(){
         return -1;
     }
 
-    cEdithEditorCOMDirector * (__stdcall *GZDllGetGZCOMDirector)(void) =
-        (cEdithEditorCOMDirector * (__stdcall *)(void)) GetProcAddress(dllmodule, "GZDllGetGZCOMDirector");
+    cTSOEdithEditorDCOMDirector * (__stdcall *GZDllGetGZCOMDirector)(void) =
+        (cTSOEdithEditorDCOMDirector * (__stdcall *)(void)) GetProcAddress(dllmodule, "GZDllGetGZCOMDirector");
     if(GZDllGetGZCOMDirector == NULL){
         printf("TSOEdithEditor: Error: Failed to find GZDllGetGZCOMDirector() in TSOEdithEditorD.dll.");
         return -1;
     }
 
     printf("TSOEdithEditor: Calling GZDllGetGZCOMDirector() ...\n");
-    cEdithEditorCOMDirector * Edith = GZDllGetGZCOMDirector();
+    cTSOEdithEditorDCOMDirector * Edith = GZDllGetGZCOMDirector();
     printf("TSOEdithEditor: Finished calling GZDllGetGZCOMDirector().\nThe value returned was: %p.\n", (void *) Edith);
 
     while(true){
         char buffer[8];
         printf("\nCall a function (0, 1, 2, ...) or q to exit. ");
-        fgets(buffer, 8, stdin);
-        if(buffer[0] == 'q') break;
-        Edith->Object1.vtable5[atoi(buffer)]();
+        //fgets(buffer, 8, stdin);
+        //if(buffer[0] == 'q') break;
+        //Edith->Object1.vtable5[atoi(buffer)]();
     }
 
     printf("TSOEdithEditor: Exiting.\n");

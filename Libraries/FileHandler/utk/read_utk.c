@@ -26,9 +26,10 @@
  #define read_uint16(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)))
 #endif
 #ifndef write_int32
- #define write_uint16(dest, src) \
+ #define write_uint16(dest, src) do {\
     (dest)[0] = ((src)&0x00FF)>>(8*0); \
-    (dest)[1] = ((src)&0xFF00)>>(8*1)
+    (dest)[1] = ((src)&0xFF00)>>(8*1); \
+    } while(0)
 #endif
 
 #ifndef round

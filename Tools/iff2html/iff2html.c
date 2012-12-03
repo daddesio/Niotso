@@ -119,6 +119,7 @@ int main(int argc, char *argv[]){
     fseek(hFile, 0, SEEK_END);
     FileSize = ftell(hFile);
     if(FileSize < 64){
+        fclose(hFile);
         printf("%sNot a valid IFF file.", "iff2html: error: ");
         return -1;
     }
@@ -126,10 +127,12 @@ int main(int argc, char *argv[]){
 
     IFFData = malloc(FileSize);
     if(IFFData == NULL){
+        fclose(hFile);
         printf("%sMemory for this file could not be allocated.", "iff2html: error: ");
         return -1;
     }
-    if(!fread(IFFData, FileSize, 1, hFile)){
+    if(fread(IFFData, 1, FileSize, hFile) != FileSize){
+        fclose(hFile);
         printf("%sThe input file could not be read.", "iff2html: error: ");
         return -1;
     }

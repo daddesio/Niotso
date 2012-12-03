@@ -22,22 +22,34 @@
 #include "read_xa.h"
 
 #ifndef write_int32
- #define write_uint32(dest, src) \
+ #define write_uint32(dest, src) do {\
     (dest)[0] = ((src)&0x000000FF)>>(8*0); \
     (dest)[1] = ((src)&0x0000FF00)>>(8*1); \
     (dest)[2] = ((src)&0x00FF0000)>>(8*2); \
-    (dest)[3] = ((src)&0xFF000000)>>(8*3)
- #define write_uint16(dest, src) \
+    (dest)[3] = ((src)&0xFF000000)>>(8*3); \
+    } while(0)
+ #define write_uint16(dest, src) do {\
     (dest)[0] = ((src)&0x00FF)>>(8*0); \
-    (dest)[1] = ((src)&0xFF00)>>(8*1)
+    (dest)[1] = ((src)&0xFF00)>>(8*1); \
+    } while(0)
 #endif
+
+static FILE * hFile = NULL;
+static uint8_t * XAData = NULL;
+static uint8_t * WaveData = NULL;
+
+static void Shutdown_M(const char * Message){
+    fprintf(stderr, "xadecode: error: %s.", Message);
+    free(WaveData);
+    free(XAData);
+    fclose(hFile);
+    exit(EXIT_FAILURE);
+}
 
 int main(int argc, char *argv[]){
     int overwrite = 0;
-    char *InFile, *OutFile;
-    FILE * hFile;
+    const char *InFile, *OutFile;
     size_t FileSize;
-    uint8_t * XAData;
     xaheader_t XAHeader;
     clock_t BeginningTime, EndingTime;
 
@@ -67,53 +79,39 @@ int main(int argc, char *argv[]){
     */
 
     hFile = fopen(InFile, "rb");
-    if(hFile == NULL){
-        printf("%sThe specified input file does not exist or could not be opened for reading.", "xadecode: error: ");
-        return -1;
-    }
+    if(hFile == NULL)
+        Shutdown_M("The specified input file does not exist or could not be opened for reading");
     fseek(hFile, 0, SEEK_END);
     FileSize = ftell(hFile);
-    if(FileSize < 24){
-        printf("%sNot a valid XA file.", "xadecode: error: ");
-        return -1;
-    }
+    if(FileSize < 24)
+        Shutdown_M("Not a valid XA file");
     fseek(hFile, 0, SEEK_SET);
 
     XAData = malloc(FileSize);
-    if(XAData == NULL){
-        printf("%sMemory for this file could not be allocated.", "xadecode: error: ");
-        return -1;
-    }
-    if(!fread(XAData, FileSize, 1, hFile)){
-        printf("%sThe input file could not be read.", "xadecode: error: ");
-        return -1;
-    }
-    fclose(hFile);
+    if(XAData == NULL)
+        Shutdown_M("Memory for this file could not be allocated");
+    if(fread(XAData, 1, FileSize, hFile) != FileSize)
+        Shutdown_M("The input file could not be read");
+    fclose(hFile); hFile = NULL;
 
     /****
     ** Transcode the data from XA to LPCM
     */
 
-    if(!xa_read_header(&XAHeader, XAData, FileSize)){
-        printf("%sNot a valid XA file.", "xadecode: error: ");
-        return -1;
-    }
+    if(!xa_read_header(&XAHeader, XAData, FileSize))
+        Shutdown_M("Not a valid XA file");
 
     if(argc >= 3){ /* Transcode */
-        uint8_t * WaveData = malloc(44+XAHeader.dwOutSize);
-        if(WaveData == NULL){
-            printf("%sMemory for this file could not be allocated.", "xadecode: error: ");
-            return -1;
-        }
+        WaveData = malloc(44+XAHeader.dwOutSize);
+        if(WaveData == NULL)
+            Shutdown_M("Memory for this file could not be allocated");
 
         BeginningTime = clock();
-        if(!xa_decode(XAData+24, WaveData+44, XAHeader.Frames, XAHeader.nChannels)){
-            printf("%sMemory for this file could not be allocated.", "xadecode: error: ");
-            return -1;
-        }
+        if(!xa_decode(XAData+24, WaveData+44, XAHeader.Frames, XAHeader.nChannels))
+            Shutdown_M("Memory for this file could not be allocated");
         EndingTime = clock();
 
-        free(XAData);
+        free(XAData); XAData = NULL;
 
         /****
         ** Write the Microsoft WAV header
@@ -142,23 +140,22 @@ int main(int argc, char *argv[]){
             if(hFile != NULL){
                 /* File exists */
                 char c;
-                fclose(hFile);
+                fclose(hFile); hFile = NULL;
                 printf("File \"%s\" exists.\nContinue anyway? (y/n) ", OutFile);
                 c = getchar();
                 if(c != 'y' && c != 'Y'){
-                    printf("\nAborted.\n");
-                    return -1;
+                    printf("\n");
+                    Shutdown_M("Aborted");
                 }
             }
         }
         hFile = fopen(OutFile, "wb");
-        if(hFile == NULL){
-            printf("%sThe output file could not be opened for writing.", "xadecode: error: ");
-            return -1;
-        }
+        if(hFile == NULL)
+            Shutdown_M("The output file could not be opened for writing");
         printf("Extracted %u bytes in %.2f seconds.\n", (unsigned) XAHeader.dwOutSize,
             ((float)(EndingTime - BeginningTime))/CLOCKS_PER_SEC);
         fwrite(WaveData, 1, 44+XAHeader.dwOutSize, hFile);
+        free(WaveData);
         fclose(hFile);
     }
 

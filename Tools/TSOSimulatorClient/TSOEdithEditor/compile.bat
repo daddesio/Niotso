@@ -1,1 +1,1 @@
-gcc -Wall -Wextra -Wabi -pedantic -m32 -o TSOEdithEditor.exe TSOEdithEditor.cpp -mconsole
+gcc -Wall -Wextra -Wabi -pedantic -fno-exceptions -m32 -o TSOEdithEditor.exe TSOEdithEditor.cpp -mconsole

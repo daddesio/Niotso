@@ -152,7 +152,8 @@ int main(int, char **)
         socklen_t addrlen = sizeof(sockaddr_in6);
         ssize_t packetsize = recvfrom(epev[0].data.fd, packetdata, 1500, 0, (sockaddr*) &client_addr, &addrlen);
         if(packetsize < 0){
-            if(errno == EINTR || errno == ECONNRESET || errno == ENOTCONN || errno == ETIMEDOUT)
+            if(errno == EINTR || errno == ECONNRESET || errno == ENOTCONN || errno == ETIMEDOUT ||
+                errno == EAGAIN || errno == EWOULDBLOCK)
                 continue;
 
             SHUTDOWN_M("Socket closed unexpectedly on call to recvfrom", close_epoll);

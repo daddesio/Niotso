@@ -24,7 +24,7 @@
 #include <iff/iff.h>
 #include "tsoscan.h"
 
-void print_usage(){
+static void print_usage(){
     printf("Usage: tsoscan [-f] [-o outfile] indir1 [indir2 [...]]\n"
     "Generate a statistical HTML page based on a number of IFF files.\n"
     "Use -f to force overwriting without confirmation.\n"
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]){
     FILE *OutFile;
 
     if(!stats_create(&Stats)){
-        printf("%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
+        fprintf(stderr, "%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
         return -1;
     }
 
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]){
         unsigned DirStartIndex;
 
         if(dir == NULL){
-            printf("%sUnable to open the specified directory '%s'. Skipping.\n", TSOSCAN_WARNING, CmdArgs->InDirs[i]);
+            fprintf(stderr, "%sUnable to open the specified directory '%s'. Skipping.\n", TSOSCAN_WARNING, CmdArgs->InDirs[i]);
             continue;
         }
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]){
         rewinddir(dir);
         Files = realloc(Files, FileCount*sizeof(char**));
         if(Files == NULL){
-            printf("%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
+            fprintf(stderr, "%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
             return -1;
         }
 
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
                 int pathlen = strlen(entry->d_name);
                 Files[DirStartIndex] = malloc(dirlen+pathlen+2);
                 if(Files[DirStartIndex] == NULL){
-                    printf("%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
+                    fprintf(stderr, "%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
                     return -1;
                 }
 
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]){
 
         file = fopen(Files[i], "rb");
         if(file == NULL){
-            printf("%sUnable to open the specified file '%s'. Skipping.\n", TSOSCAN_WARNING, Files[i]);
+            fprintf(stderr, "%sUnable to open the specified file '%s'. Skipping.\n", TSOSCAN_WARNING, Files[i]);
             continue;
         }
         fseek(file, 0, SEEK_END);
@@ -135,11 +135,11 @@ int main(int argc, char *argv[]){
 
         data = malloc(FileSize);
         if(data == NULL){
-            printf("%sUnable to allocate memory for the specified files.\n", TSOSCAN_ERROR);
+            fprintf(stderr, "%sUnable to allocate memory for the specified files.\n", TSOSCAN_ERROR);
             return -1;
         }
-        if(!fread(data, FileSize, 1, file)){
-            printf("%sUnable to read the specified file '%s'. Skipping.\n", TSOSCAN_WARNING, Files[i]);
+        if(fread(data, 1, FileSize, file) != FileSize){
+            fprintf(stderr, "%sUnable to read the specified file '%s'. Skipping.\n", TSOSCAN_WARNING, Files[i]);
             free(data);
             fclose(file);
             continue;
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]){
         fclose(file);
 
         if(!iff_create(&iff)){
-            printf("%sUnable to allocate memory for the specified files.\n", TSOSCAN_ERROR);
+            fprintf(stderr, "%sUnable to allocate memory for the specified files.\n", TSOSCAN_ERROR);
             return -1;
         }
         if(!iff_read_header(&iff, data, FileSize) || !iff_enumerate_chunks(&iff, data+64, FileSize-64)){
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]){
         for(ChunkIndex = 0, ChunkData = iff.Chunks; ChunkIndex < iff.ChunkCount; ChunkIndex++, ChunkData++){
             unsigned version = stats_get_version(ChunkData->Type, ChunkData->Data);
             if(!stats_version_increment(&Stats, ChunkData->Type, version)){
-                printf("%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
+                fprintf(stderr, "%sUnable to allocate enough memory.\n", TSOSCAN_ERROR);
                 return -1;
             }
         }
@@ -192,7 +192,7 @@ int main(int argc, char *argv[]){
     }
     OutFile = fopen(CmdArgs->OutFile, "wb");
     if(OutFile == NULL){
-        printf("%sThe output file '%s' could not be opened for writing.", TSOSCAN_ERROR, CmdArgs->OutFile);
+        fprintf(stderr, "%sThe output file '%s' could not be opened for writing.", TSOSCAN_ERROR, CmdArgs->OutFile);
         return -1;
     }
 

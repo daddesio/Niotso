@@ -41,7 +41,7 @@ DECLARE_INTERFACE(cUnknownObject1)
     DWORD   Unknown12;
 };
 
-DECLARE_INTERFACE(cEdithEditorCOMDirector)
+DECLARE_INTERFACE(cTSOEdithEditorDCOMDirector)
 {
     void * vtable2;
     void * vtable1;

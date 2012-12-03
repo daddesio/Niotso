@@ -19,8 +19,9 @@
 #include <basetyps.h>
 #pragma pack(0)
 
-DECLARE_INTERFACE(cUnknownObject1)
+DECLARE_INTERFACE(cRZString)
 {
+    //Base classes: cRZString, std::char_traits, ?$_String_base@DV?$__default_alloc_template@$00$0A@@std@@@std, cIGZString, cIGZUnknown
     DWORD   Zero1;
     DWORD   Zero2;
     void *  vtable5;
@@ -43,13 +44,14 @@ DECLARE_INTERFACE(cUnknownObject1)
 
 DECLARE_INTERFACE(cTSOSimulatorClientDCOMDirector)
 {
+    //Base classes: cTSOSimulatorClientDCOMDirector, cRZCOMDllDirector, cIGZCOMDirector, cIGZUnknown, cIGZFrameWorkHooks, cIGZUnknown
     void * vtable2;
     void * vtable1;
-    cUnknownObject1 Object1;
+    cRZString String1;
     void * vtable4;
     void * vtable3;
-    cUnknownObject1 Object2;
-    cUnknownObject1 Object3;
+    cRZString String2;
+    cRZString String3;
     
     DWORD Zero1;
     DWORD Zero2;

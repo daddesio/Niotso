@@ -38,7 +38,7 @@ int main(){
     cTSOSimulatorClientDCOMDirector * Simulator = GZDllGetGZCOMDirector();
     printf("TSOSimulatorClient: Finished calling GZDllGetGZCOMDirector().\nThe value returned was: %p.\n", (void *) Simulator);
 
-    printf("%s\n%s\n%s\n", Simulator->Object1.Strings1[0], Simulator->Object1.Strings2[0], Simulator->Object1.Strings3[0]);
+    printf("%s\n%s\n%s\n", Simulator->String1.Strings1[0], Simulator->String1.Strings2[0], Simulator->String1.Strings3[0]);
 
     printf("TSOSimulatorClient: Exiting.\n");
     FreeLibrary(dllmodule);

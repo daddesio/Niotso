@@ -127,7 +127,7 @@ static int fill_mem_input_buffer(j_decompress_ptr cinfo){
 }
 static void skip_input_data(j_decompress_ptr cinfo, long bytes)
 {
-    struct jpeg_source_mgr * src = cinfo->src;
+    jpeg_source_mgr * src = cinfo->src;
 
 	if(bytes > (long) src->bytes_in_buffer){
         ERREXIT(cinfo, JERR_FILE_READ);
