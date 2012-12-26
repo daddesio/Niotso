@@ -193,8 +193,7 @@ struct PEFile {
     ~PEFile(){
         if(hFile)
             fclose(hFile);
-        if(Data)
-            free(Data);
+        free(Data);
     }
 
     inline bool seek(size_t pos, int offset = 0){
@@ -305,7 +304,7 @@ struct PEFile {
 PEFile * PEFile::ptr;
 
 static void Shutdown_M(const char * Message){
-    fprintf(stderr, "rtti-reader: error: %s.", Message);
+    fprintf(stderr, "rtti-reader: error: %s.\n", Message);
     if(PEFile::ptr)
         PEFile::ptr->~PEFile();
     exit(EXIT_FAILURE);
@@ -344,13 +343,13 @@ int main(int argc, char *argv[]){
 
     for(i=0; i<SegmentCount; i++){
         if(!DLL.strcmp(".rdata")){
-            DLL.skip(8); DLL.rdata.size = DLL.read32();
-                         DLL.rdata.offset = DLL.read32();
-            DLL.skip(24);
+            DLL.skip(16); DLL.rdata.size = DLL.read32();
+                          DLL.rdata.offset = DLL.read32();
+            DLL.skip(16);
         } else if(!DLL.strcmp(".data")){
-            DLL.skip(8); DLL.data.size = DLL.read32();
-                         DLL.data.offset = DLL.read32();
-            DLL.skip(24);
+            DLL.skip(16); DLL.data.size = DLL.read32();
+                          DLL.data.offset = DLL.read32();
+            DLL.skip(16);
         } else DLL.skip(40);
     }
     if(DLL.rdata.size == 0)
@@ -409,7 +408,7 @@ int main(int argc, char *argv[]){
                 Shutdown_M("Unexpectedly reached end of binary");
 
             DLL.lookat(DLL.rdata);
-            COL.VTableAddress = (DLL.find32(COLAddress)) ? DLL.brc.position + ImageBase : (uint32_t)-1;
+            COL.VTableAddress = (DLL.find32(COLAddress)) ? DLL.brc.position + ImageBase + 4: (uint32_t)-1;
 
             if(newclass){
                 if(!DLL.seek(COL.Fields.ClassDescriptorAddress - ImageBase))

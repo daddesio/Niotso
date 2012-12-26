@@ -29,11 +29,12 @@ static IFFFile IFFFileInfo;
 static int iffcreated = 0;
 
 static void Shutdown_M(const char * Message){
-    fprintf(stderr, "iffexport: error: %s.", Message);
+    fprintf(stderr, "iffexport: error: %s.\n", Message);
     if(iffcreated)
         iff_delete(&IFFFileInfo);
     free(IFFData);
-    fclose(hFile);
+    if(hFile)
+        fclose(hFile);
     exit(EXIT_FAILURE);
 }
 

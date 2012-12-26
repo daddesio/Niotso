@@ -110,6 +110,9 @@ qrc_*.cpp
 *.tar.*
 *.zip
 *.7z
+*.gz
+*.bz2
+*.xz
 *.rar
 *.cab
 *.msi

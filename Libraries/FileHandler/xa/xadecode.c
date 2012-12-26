@@ -39,10 +39,11 @@ static uint8_t * XAData = NULL;
 static uint8_t * WaveData = NULL;
 
 static void Shutdown_M(const char * Message){
-    fprintf(stderr, "xadecode: error: %s.", Message);
+    fprintf(stderr, "xadecode: error: %s.\n", Message);
     free(WaveData);
     free(XAData);
-    fclose(hFile);
+    if(hFile)
+        fclose(hFile);
     exit(EXIT_FAILURE);
 }
 

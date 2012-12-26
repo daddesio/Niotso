@@ -53,7 +53,7 @@ static void KillGLWindow()
 
 static int CreateGLWindow(const char *__restrict title, uint16_t width, uint16_t height)
 {
-    PIXELFORMATDESCRIPTOR pfd = {
+    const PIXELFORMATDESCRIPTOR pfd = {
         sizeof(PIXELFORMATDESCRIPTOR), 1, /* Size and version */
         PFD_DRAW_TO_WINDOW |              /* dwFlags */
         PFD_SUPPORT_OPENGL |

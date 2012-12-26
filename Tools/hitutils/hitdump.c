@@ -16,6 +16,7 @@
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,6 +33,8 @@
  #define read_uint32(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)) | ((x)[2]<<(8*2)) | ((x)[3]<<(8*3)))
  #define read_uint16(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)))
 #endif
+
+static void Shutdown_M(const char * Message, ...);
 
 enum {
     hsm, hot, evt, hit, out, filecount
@@ -334,6 +337,55 @@ static __inline const char * find_global(uint32_t x, const global_t * Globals, s
 }
 
 typedef struct {
+    uint8_t * Data;
+    size_t Size;
+} ByteReaderContext;
+
+enum TokenizeType {
+    TK_STRING,
+    TK_ID
+};
+
+static int parser_find(ByteReaderContext *brc, ...){
+    va_list args;
+    va_start(args, brc);
+
+    while(1){
+        uint8_t * Start = brc->Data;
+        const char * Pattern;
+        size_t Length;
+        void * Destination;
+        enum TokenizeType Type;
+
+        Pattern = va_arg(args, const char *);
+        if(Pattern == NULL){
+            va_end(args);
+            return 1;
+        }
+
+        for(Length = strlen(Pattern); ; brc->Data++, brc->Size--){
+            if(brc->Size < Length){
+                va_end(args);
+                return 0;
+            }
+            if(!memcmp(brc->Data, Pattern, Length)) break;
+        }
+        *brc->Data = '\0';
+        brc->Data += Length; brc->Size -= Length;
+
+        Destination = va_arg(args, void *);
+        if(Destination == NULL)
+            continue;
+
+        Type = va_arg(args, enum TokenizeType);
+        if(Type == TK_STRING)
+            *((char**)Destination) = (char*)Start;
+        else
+            *((uint32_t*)Destination) = strtoul((char*)Start, NULL, 0);
+    }
+}
+
+typedef struct {
     uint32_t LogicalAddress;
     uint32_t TrackID;
     uint32_t SoundID;
@@ -348,8 +400,11 @@ typedef struct {
 } addresslist_t;
 
 static address_t * add_address(addresslist_t * List){
-    if(List->Count == List->Size)
+    if(List->Count == List->Size){
         List->Entries = realloc(List->Entries, (List->Size <<= 1) * sizeof(address_t));
+        if(!List->Entries)
+            Shutdown_M("%sCould not allocate memory for address list.\n", "hitdump: Error: ");
+    }
     return memset(List->Entries + List->Count++, 0, sizeof(address_t));
 }
 
@@ -390,34 +445,20 @@ static __inline address_t * find_address_by_name(addresslist_t * List, const cha
 }
 
 static __inline void read_hit_addresses(uint8_t * Data, size_t Size, addresslist_t * AddressList, uint32_t * SymbolTable){
-    uint8_t * Start = Data, * TableData;
+    uint8_t * TableData;
     unsigned i, count = 0;
+    ByteReaderContext brc;
+    brc.Data = Data; brc.Size = Size;
 
-    if(Size < 32) return;
-    Data += 16;
-    Size -= 16;
+    if(!parser_find(&brc, "ENTP", NULL, NULL) || brc.Size < 4) return;
+    TableData = brc.Data;
+    *SymbolTable = TableData - 4 - Data;
 
-    /* Find the table start */
-    while(memcmp(Data, "ENTP", 4)){
-        if(Size < 17) return;
-        Data++; Size--;
-    }
-
-    TableData = Data;
-    Data += 4;
-    Size -= 4;
-
-    /* Find the table end */
     while(memcmp(Data, "EENT", 4)){
         if(Size < 12) return;
         Data+=8; Size-=8;
         count++;
     }
-
-    *SymbolTable = TableData - Start;
-
-    if(count == 0) return;
-    TableData += 4;
 
     for(i=0; i<count; i++){
         address_t * Address = add_address(AddressList);
@@ -428,106 +469,45 @@ static __inline void read_hit_addresses(uint8_t * Data, size_t Size, addresslist
 }
 
 static __inline void read_evt_addresses(uint8_t * Data, size_t Size, addresslist_t * AddressList){
-    if(Size < 13) return;
+    ByteReaderContext brc;
+    brc.Data = Data; brc.Size = Size;
 
     while(1){
-        uint8_t * Name = Data, * TrackIDPos;
         address_t * Address;
+        char *Name;
         uint32_t TrackID;
+        if(!parser_find(&brc,
+            ",", &Name, TK_STRING,
+            ",", NULL,
+            ",", &TrackID, TK_ID,
+        NULL)) return;
 
-        Data++; Size--;
-
-        /* End of first field: address name */
-        while(*Data != ','){
-            if(Size < 13) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
-        Data++; Size--;
-
-        /* End of second field: unneeded */
-        while(*Data != ','){
-            if(Size < 11) return;
-            Data++; Size--;
-        }
-        Data++; Size--;
-        TrackIDPos = Data;
-
-        /* End of third field: Track ID */
-        while(*Data != ','){
-            if(Size < 9) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
-        Data++; Size--;
-
-        TrackID = atoi((char*)TrackIDPos);
         Address = find_address_by_track_id(AddressList, TrackID);
         if(!Address){
             Address = add_address(AddressList);
             Address->Exported = 1;
             Address->TrackID = TrackID;
         }
-        Address->Name = (char*)Name;
-
-        while(*Data != '\n'){
-            if(Size < 15) return;
-            Data++; Size--;
-        }
-        Data++; Size--;
+        Address->Name = Name;
+        if(!parser_find(&brc, "\n", NULL, NULL)) return;
     }
 }
 
 static __inline void read_hsm_addresses(uint8_t * Data, size_t Size, addresslist_t * AddressList){
-    if(Size < 24) return;
+    ByteReaderContext brc;
+    brc.Data = Data; brc.Size = Size;
 
     while(1){
-        uint8_t * Name, * IDPos;
         address_t * Address;
+        char * Name;
         uint32_t SoundID, LogicalAddress;
-
-        /* Find the next constant that begins with "tkd_" */
-        while(memcmp(Data, "\ntkd_", 5)){
-            if(Size < 25) return;
-            Data++; Size--;
-        }
-        Name = Data += 5;
-        Size -= 5;
-
-        /* End of tkd constant name */
-        while(*Data != ' '){
-            if(Size < 19) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
-        Data++; Size--;
-        IDPos = Data;
-
-        /* End of tkd constant value */
-        while(*Data != ' '){
-            if(Size < 17) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
-        Data++; Size--;
-        SoundID = atoi((char*)IDPos);
-
-        /* End of address constant name */
-        while(*Data != ' '){
-            if(Size < 9) return;
-            Data++; Size--;
-        }
-        Data++; Size--;
-        IDPos = Data;
-
-        /* End of address constant value */
-        while(*Data != ' '){
-            if(Size < 7) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
-        Data++; Data--;
-        LogicalAddress = atoi((char*)IDPos);
+        if(!parser_find(&brc,
+            "\ntkd_", NULL,
+            " ", &Name, TK_STRING,
+            " ", &SoundID, TK_ID,
+            " ", NULL,
+            " ", &LogicalAddress, TK_ID,
+        NULL)) return;
 
         Address = find_address_by_logical_address(AddressList, LogicalAddress);
         if(!Address){
@@ -537,52 +517,25 @@ static __inline void read_hsm_addresses(uint8_t * Data, size_t Size, addresslist
                 Address->Name = (char*)Name;
             }
             Address->LogicalAddress = LogicalAddress;
-        } else Address->Name = (char*)Name;
+        } else Address->Name = Name;
         Address->SoundID = SoundID;
-
-        while(*Data != '\n'){
-            if(Size < 25) return;
-            Data++; Size--;
-        }
     }
 }
 
 static __inline void read_hot_trackdata(uint8_t * Data, size_t Size, addresslist_t * AddressList){
-    if(Size < 19) return;
+    ByteReaderContext brc;
+    brc.Data = Data; brc.Size = Size;
 
-    while(memcmp(Data, "[TrackData]", 11)){
-        if(Size < 20) return;
-        Data++; Size--;
-    }
-
-    Data += 12;
-    Size -= 12;
-    if(*Data == '\n'){
-        Data++; Size--;
-    }
+    if(!parser_find(&brc, "[TrackData]", NULL, NULL)) return;
 
     while(1){
-        uint8_t * IDPos = Data;
         address_t * Address;
         uint32_t SoundID, LogicalAddress;
-
-        /* End of key: Sound ID */
-        while(*Data != '='){
-            if(Size < 5) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
-        SoundID = strtol((char*)IDPos, NULL, 0);
-        Data++; Size--;
-        IDPos = Data;
-
-        while(*Data != '\n'){
-            if(Size < 2) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
-        LogicalAddress = strtol((char*)IDPos, NULL, 0);
-        Data++; Size--;
+        if(!brc.Size || *brc.Data == '\n' || *brc.Data == '[') return;
+        if(!parser_find(&brc,
+            "=", &SoundID, TK_ID,
+            "\n", &LogicalAddress, TK_ID,
+        NULL)) return;
 
         Address = find_address_by_logical_address(AddressList, LogicalAddress);
         if(!Address){
@@ -593,59 +546,25 @@ static __inline void read_hot_trackdata(uint8_t * Data, size_t Size, addresslist
             }
             Address->LogicalAddress = LogicalAddress;
         } else Address->SoundID = SoundID;
-
-        if(Size < 8) return;
-        while(*Data == '\r' || *Data == '\n' || *Data == ' ' || *Data == '\t'){
-            if(Size < 8) return;
-            Data++; Size--;
-        }
-
-        if(*Data == '[') return;
     }
 }
 
 static __inline void read_hot_track(uint8_t * Data, size_t Size, addresslist_t * AddressList){
-    if(Size < 28) return;
+    ByteReaderContext brc;
+    brc.Data = Data; brc.Size = Size;
 
-    while(memcmp(Data, "[Track]", 7)){
-        if(Size < 29) return;
-        Data++; Size--;
-    }
-
-    Data += 8;
-    Size -= 8;
-    if(*Data == '\n'){
-        Data++; Size--;
-    }
+    if(!parser_find(&brc, "[Track]", NULL, NULL)) return;
 
     while(1){
-        uint8_t * IDPos = Data, * Name;
         address_t * Address;
+        char * Name;
         uint32_t TrackID;
-
-        /* End of key: Track ID */
-        while(*Data != '='){
-            if(Size < 20) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
-        TrackID = strtol((char*)IDPos, NULL, 0);
-        Data++; Size--;
-
-        /* End of first field: Unknown */
-        while(*Data != ','){
-            if(Size < 18) return;
-            Data++; Size--;
-        }
-        Data++; Size--;
-        Name = Data;
-
-        /* End of second field: Name */
-        while(*Data != ','){
-            if(Size < 16) return;
-            Data++; Size--;
-        }
-        *Data = '\0';
+        if(!brc.Size || *brc.Data == '\n' || *brc.Data == '[') return;
+        if(!parser_find(&brc,
+            "=", &TrackID, TK_ID,
+            ",", NULL,
+            ",", &Name, TK_STRING,
+        NULL)) return;
 
         Address = find_address_by_name(AddressList, (char*)Name);
         if(!Address){
@@ -654,17 +573,11 @@ static __inline void read_hot_track(uint8_t * Data, size_t Size, addresslist_t *
                 Address = add_address(AddressList);
                 Address->TrackID = TrackID;
             }
-            Address->Name = (char*)Name;
+            Address->Name = Name;
         } else Address->TrackID = TrackID;
         Address->Exported = 1;
 
-        if(Size < 36) return;
-        while(*Data == '\r' || *Data == '\n' || *Data == ' ' || *Data == '\t'){
-            if(Size < 22) return;
-            Data++; Size--;
-        }
-
-        if(*Data == '[') return;
+        if(!parser_find(&brc, "\n", NULL, NULL)) return;
     }
 }
 
@@ -673,24 +586,45 @@ static __inline void read_hot_addresses(uint8_t * Data, size_t Size, addresslist
     read_hot_track(Data, Size, AddressList);
 }
 
+static FILE *hFile = NULL;
+static char *path[filecount] = {NULL};
+static uint8_t *data[filecount] = {NULL};
+static char *basename = NULL;
+static addresslist_t AddressList = {0};
+
+static void Shutdown(){
+    unsigned i;
+    for(i=0; i<filecount; i++){
+        free(path[i]);
+        free(data[i]);
+    }
+    free(basename);
+    free(AddressList.Entries);
+    if(hFile)
+        fclose(hFile);
+}
+
+static void Shutdown_M(const char * Message, ...){
+    va_list args;
+    va_start(args, Message);
+    vfprintf(stderr, Message, args);
+    va_end(args);
+
+    Shutdown();
+    exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[]){
-    unsigned i, addr;
+    unsigned i, j, addr;
     int SimsVersion = 0;
     int overwrite = 0;
     int ShowAddresses = 0;
     int length;
-    char *basename;
-    char *path[filecount] = {NULL};
-    uint8_t *data[filecount-1] = {NULL};
     size_t filesize[filecount-1];
-    FILE * hFile;
     const global_t * Globals;
     size_t GlobalCount;
     uint32_t SymbolTable = 0;
     uint32_t BaseSoundID = 0, BaseSoundIDSet = 0;
-
-    /* collected data */
-    addresslist_t AddressList;
 
     /****
     ** Parse the command-line arguments
@@ -718,7 +652,7 @@ int main(int argc, char *argv[]){
         else if(!strcmp(argv[i], "-f"))   overwrite = 1;
         else if(!strcmp(argv[i], "-a"))   ShowAddresses = 1;
         else if(i != (unsigned)argc-2){
-            if(!strcmp(argv[i], "-out"))      path[out] = argv[++i];
+            if(!strcmp(argv[i], "-o"))        path[out] = argv[++i];
             else if(!strcmp(argv[i], "-hsm")) path[hsm] = argv[++i];
             else if(!strcmp(argv[i], "-hot")) path[hot] = argv[++i];
             else if(!strcmp(argv[i], "-evt")) path[evt] = argv[++i];
@@ -726,11 +660,13 @@ int main(int argc, char *argv[]){
         }
         else break;
     }
+    path[hit] = argv[i];
+    for(j=0; j<filecount; j++)
+        if(path[j])
+            path[j] = strdup(path[j]); /* necessary for free(path[i]) in Shutdown_M */
 
-    if(!SimsVersion){
-        fprintf(stderr, "%sSims version not specified. (Use -ts1 or -tso.)\n", "hitdump: Error: ");
-        return -1;
-    }
+    if(!SimsVersion)
+        Shutdown_M("%sSims version not specified. (Use -ts1 or -tso.)\n", "hitdump: Error: ");
 
     if(SimsVersion == VERSION_TS1){
         Globals = TS1Globals;
@@ -740,7 +676,6 @@ int main(int argc, char *argv[]){
         GlobalCount = TSOGlobalCount;
     }
 
-    path[hit] = argv[i];
     length = strlen(path[hit]);
     if(path[out] == NULL){
         path[out] = malloc(max(length+1, 5));
@@ -757,57 +692,50 @@ int main(int argc, char *argv[]){
     */
 
     for(i=0; i<filecount-1; i++){
+        size_t bytestransferred;
         if(!path[i]) continue;
 
         hFile = fopen(path[i], "rb");
         if(hFile == NULL){
             if(i != hit){
-                fprintf(stderr, "%sCould not open file: %s\n", "hitdump: Warning: ", path[i]);
+                fprintf(stderr, "%sCould not open file: %s.\n", "hitdump: Warning: ", path[i]);
                 continue;
-            }else{
-                fprintf(stderr, "%sCould not open file: %s\n", "hitdump: Error: ", path[i]);
-                return -1;
-            }
+            }else
+                Shutdown_M("%sCould not open file: %s.\n", "hitdump: Error: ", path[i]);
         }
 
         fseek(hFile, 0, SEEK_END);
         filesize[i] = ftell(hFile);
         if(filesize[i] == 0){
-            fclose(hFile);
+            fclose(hFile); hFile = NULL;
             if(i != hit){
-                fprintf(stderr, "%sFile is invalid: %s\n", "hitdump: Warning: ", path[i]);
+                fprintf(stderr, "%sFile is invalid: %s.\n", "hitdump: Warning: ", path[i]);
                 continue;
-            }else{
-                fprintf(stderr, "%sFile is invalid: %s\n", "hitdump: Error: ", path[i]);
-                return -1;
-            }
+            }else
+                Shutdown_M("%sFile is invalid: %s.\n", "hitdump: Error: ", path[i]);
         }
 
         data[i] = malloc(filesize[i]);
         if(data[i] == NULL){
-            fclose(hFile);
+            fclose(hFile); hFile = NULL;
             if(i != hit){
-                fprintf(stderr, "%sCould not allocate memory for file: %s\n", "hitdump: Warning: ", path[i]);
+                fprintf(stderr, "%sCould not allocate memory for file: %s.\n", "hitdump: Warning: ", path[i]);
                 continue;
-            }else{
-                fprintf(stderr, "%sCould not allocate memory for file: %s\n", "hitdump: Error: ", path[i]);
-                return -1;
-            }
+            }else
+                Shutdown_M("%sCould not allocate memory for file: %s.\n", "hitdump: Error: ", path[i]);
         }
 
         fseek(hFile, 0, SEEK_SET);
-        if(fread(data[i], 1, filesize[i], hFile) != filesize[i]){
-            fclose(hFile);
+        bytestransferred = fread(data[i], 1, filesize[i], hFile);
+        fclose(hFile); hFile = NULL;
+        if(bytestransferred != filesize[i]){
+            free(data[i]); data[i] = NULL;
             if(i != hit){
-                fprintf(stderr, "%sCould not read file: %s\n", "hitdump: Warning: ", path[i]);
+                fprintf(stderr, "%sCould not read file: %s.\n", "hitdump: Warning: ", path[i]);
                 continue;
-            }else{
-                fprintf(stderr, "%sCould not read file: %s\n", "hitdump: Error: ", path[i]);
-                return -1;
-            }
+            }else
+                Shutdown_M("%sCould not read file: %s.\n", "hitdump: Error: ", path[i]);
         }
-
-        fclose(hFile);
     }
 
     /****
@@ -819,29 +747,23 @@ int main(int argc, char *argv[]){
         if(hFile != NULL){
             /* File exists */
             char c;
-            fclose(hFile);
-            fprintf(stderr, "hitdump: File \"%s\" exists.\nContinue anyway? (y/n) ", path[out]);
+            fclose(hFile); hFile = NULL;
+            fprintf(stderr, "%sFile \"%s\" exists.\nContinue anyway? (y/n) ", "hitdump: ", path[out]);
             c = getchar();
-            if(c != 'y' && c != 'Y'){
-                printf("\nAborted.\n");
-                return -1;
-            }
+            if(c != 'y' && c != 'Y')
+                Shutdown_M("\nAborted.\n");
         }
     }
     hFile = fopen(path[out], "wb");
-    if(hFile == NULL){
-        fprintf(stderr, "%sCould not open file: %s\n", "hitdump: Error: ", path[out]);
-        return -1;
-    }
+    if(hFile == NULL)
+        Shutdown_M("%sCould not open file: %s.\n", "hitdump: Error: ", path[out]);
 
     /****
     ** Verify the header of the HIT file
     */
 
-    if(filesize[hit] < 16 || memcmp(data[hit], HITHeader, 16)){
-        fprintf(stderr, "%sFile is invalid: %s\n", "hitdump: Error: ", path[hit]);
-        return -1;
-    }
+    if(filesize[hit] < 16 || memcmp(data[hit], HITHeader, 16))
+        Shutdown_M("%sFile is invalid: %s.\n", "hitdump: Error: ", path[hit]);
 
     /****
     ** Build up the address list
@@ -868,7 +790,7 @@ int main(int argc, char *argv[]){
                 AddressList.Entries[i].Exported,
                 AddressList.Entries[i].TrackID,
                 AddressList.Entries[i].SoundID,
-                AddressList.Entries[i].Name,
+                AddressList.Entries[i].Name ? AddressList.Entries[i].Name : "",
                 AddressList.Entries[i].LogicalAddress
             );
         }
@@ -956,26 +878,19 @@ int main(int argc, char *argv[]){
         }
 
         opcode = data[hit][addr];
-        if(opcode == 0 || opcode > 96){
-            fprintf(stderr, "%sIllegal opcode 0x%02X at address 0x%08X.\n", "hitdump: Error: ", opcode, addr);
-            return -1;
-        }
+        if(opcode == 0 || opcode > 96)
+            Shutdown_M("%sIllegal opcode 0x%02X at address 0x%08X.\n", "hitdump: Error: ", opcode, addr);
 
         instruction = Instructions + opcode - 1;
         operands = instruction->Operands;
-        if(operands == UNIMPLEMENTED){
-            fprintf(stderr, "%sUnimplemented instruction '%s' at address 0x%08X.\n", "hitdump: Error: ",
-                instruction->Name, addr);
-            return -1;
-        }
+        if(operands == UNIMPLEMENTED)
+            Shutdown_M("%sUnimplemented instruction '%s' at address 0x%08X.\n", "hitdump: Error: ", instruction->Name, addr);
 
         addr++;
 
-        if(filesize[hit] - addr < (operands & 15)){
-            fprintf(stderr, "%sInsufficient operand bytes for '%s' instruction at address 0x%08X (%u of %u supplied).\n",
+        if(filesize[hit] - addr < (operands & 15))
+            Shutdown_M("%sInsufficient operand bytes for '%s' instruction at address 0x%08X (%u of %u supplied).\n",
                 "hitdump: Error: ", instruction->Name, addr, filesize[hit] - addr, instruction->Operands);
-            return -1;
-        }
 
         fprintf(hFile, "\r\n\t\t%s", instruction->Name);
         for(i=0; (operands >>= 4) != 0; i++){
@@ -998,11 +913,9 @@ int main(int argc, char *argv[]){
                 int x = data[hit][addr];
                 if(x > 16){
                     const char * Global = find_global(x, Globals, GlobalCount);
-                    if(Global == NULL){
-                        fprintf(stderr, "%sInvalid %s operand 0x%02X for '%s' instruction at address 0x%08X (expected %s).\n",
+                    if(Global == NULL)
+                        Shutdown_M("%sInvalid %s operand 0x%02X for '%s' instruction at address 0x%08X (expected %s).\n",
                             "hitdump: Error: ", position[i], x, instruction->Name, addr, "argument, register, or global");
-                        return -1;
-                    }
                     fprintf(hFile, " %s", Global);
                 } else fprintf(hFile, " %s", Registers[x]);
                 addr += 1;
@@ -1011,12 +924,9 @@ int main(int argc, char *argv[]){
 
                 if(filesize[hit]-addr >= 4)
                     x = read_uint32(data[hit]+addr);
-                else if(data[hit][addr] != 0x05 && data[hit][addr] != 0x06){
-                    fprintf(stderr,
-                        "%sInsufficient operand bytes for '%s' instruction at address 0x%08X (%u of %u supplied).\n",
+                else if(data[hit][addr] != 0x05 && data[hit][addr] != 0x06)
+                    Shutdown_M("%sInsufficient operand bytes for '%s' instruction at address 0x%08X (%u of %u supplied).\n",
                         "hitdump: Error: ", instruction->Name, addr, filesize[hit] - addr, 4);
-                    return -1;
-                }
 
                 if(x >= 16 && x < filesize[hit]){
                     Address = find_address_by_logical_address(&AddressList, x);
@@ -1027,12 +937,9 @@ int main(int argc, char *argv[]){
                     x = data[hit][addr];
                     if(x > 16){
                         const char * Global = find_global(x, Globals, GlobalCount);
-                        if(Global == NULL){
-                            fprintf(stderr,
-                                "%sInvalid %s operand 0x%02X for '%s' instruction at address 0x%08X (expected %s).\n",
+                        if(Global == NULL)
+                            Shutdown_M("%sInvalid %s operand 0x%02X for '%s' instruction at address 0x%08X (expected %s).\n",
                                 "hitdump: Error: ", position[i], x, instruction->Name, addr, "argument, register, or global");
-                            return -1;
-                        }
                         fprintf(hFile, " %s", Global);
                     } else fprintf(hFile, " %s", Registers[x]);
                     addr += (data[hit][addr] != 0x05 && data[hit][addr] != 0x06) ? 4 : 1;
@@ -1043,7 +950,7 @@ int main(int argc, char *argv[]){
 
     fprintf(hFile, "\r\n]\r\n\r\n");
 
-    fclose(hFile);
+    Shutdown();
 
     return 0;
 }

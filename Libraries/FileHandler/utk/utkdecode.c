@@ -39,10 +39,11 @@ static uint8_t * UTKData = NULL;
 static uint8_t * WaveData = NULL;
 
 static void Shutdown_M(const char * Message){
-    fprintf(stderr, "utkdecode: error: %s.", Message);
+    fprintf(stderr, "utkdecode: error: %s.\n", Message);
     free(WaveData);
     free(UTKData);
-    fclose(hFile);
+    if(hFile)
+        fclose(hFile);
     exit(EXIT_FAILURE);
 }
 
