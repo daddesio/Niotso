@@ -26,8 +26,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <limits.h>
 
 #ifndef read_int32
  #define read_uint32(x) (unsigned)(((x)[0]<<(8*0)) | ((x)[1]<<(8*1)) | ((x)[2]<<(8*2)) | ((x)[3]<<(8*3)))
@@ -408,7 +409,7 @@ int main(int argc, char *argv[]){
                 Shutdown_M("Unexpectedly reached end of binary");
 
             DLL.lookat(DLL.rdata);
-            COL.VTableAddress = (DLL.find32(COLAddress)) ? DLL.brc.position + ImageBase + 4: (uint32_t)-1;
+            COL.VTableAddress = (DLL.find32(COLAddress)) ? DLL.brc.position + ImageBase + 4 : (uint32_t)-1;
 
             if(newclass){
                 if(!DLL.seek(COL.Fields.ClassDescriptorAddress - ImageBase))
@@ -517,7 +518,7 @@ int main(int argc, char *argv[]){
         printf(";");
     }
 
-    printf("\n\nCompleted RTTI report.\nDependencies provided for %u of %u classes.\n", RCL.Count, TotalClassCount);
+    printf("\n\nCompleted RTTI report.\nDependencies provided for %u of %u classes.\n", (unsigned)RCL.Count, TotalClassCount);
 
     return 0;
 }

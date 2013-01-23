@@ -17,10 +17,10 @@
 */
 
 #include "FileHandler.hpp"
-#include <setjmp.h> //Used for libpng
 #include <jpeglib.h>
 #include <jerror.h>
 #include <png.h>
+#include <setjmp.h> //Used for libpng
 #include "bmp/read_bmp.h"
 
 namespace File {

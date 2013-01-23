@@ -1,0 +1,93 @@
+* Elf32_Word sh_name: 
+* Elf32_Word sh_type: 
+* Elf32_Word sh_flags: 
+* Elf32_Addr sh_addr: 
+* Elf32_Off sh_offset: (?? ?? ?? ??)
+* Elf32_Word sh_size: (?? ?? ?? ??)
+* Elf32_Word sh_link: 
+* Elf32_Word sh_info: 
+* Elf32_Word sh_addralign: 1 (01 00 00 00)
+* Elf32_Word sh_entsize: 
+
+ELF Header:
+* e_ident:
+  * Elf32_Word EI_MAG0: (7F 45 4C 46)
+  * unsigned char EI_CLASS: ELFCLASS32 (01)
+  * unsigned char EI_DATA: ELFDATA2LSB (01)
+  * unsigned char EI_VERSION: EV_CURRENT (01)
+  * unsigned char EI_PAD[9]: (00 00 00 00 00 00 00 00 00)
+* Elf32_Half e_type: ET_REL (01 00)
+* Elf32_Half e_machine: EM_NONE (00 00)
+* Elf32_Word e_version: EV_CURRENT (01 00 00 00)
+* Elf32_Addr e_entry: 0 (00 00 00 00)
+* Elf32_Off e_phoff: 0 (00 00 00 00)
+* Elf32_Off e_shoff: 64 (40 00 00 00)
+* Elf32_Word e_flags: 0x00000001 (01 00 00 00)
+* Elf32_Half e_ehsize: 52 (34 00)
+* Elf32_Half e_phentsize: 0 (00 00)
+* Elf32_Half e_phnum: 0 (00 00)
+* Elf32_Half e_shentsize: 40 (28 00)
+* Elf32_Half e_shnum: 6 (06 00)
+* Elf32_Half e_shstrndx: 2 (02 00)
+* unsigned char padding[12] = (00 00 00 00 00 00 00 00 00 00 00 00)
+
+Section headers
+0 (""): All 0s
+1 (".text"):
+* Elf32_Word sh_name: 1 (01 00 00 00)
+* Elf32_Word sh_type: SHT_PROGBITS (01 00 00 00)
+* Elf32_Word sh_flags: SHF_ALLOC | SHF_EXECINSTR (06 00 00 00)
+* Elf32_Addr sh_addr: 0x00000010 (10 00 00 00)
+* Elf32_Off sh_offset: (?? ?? ?? ??)
+* Elf32_Word sh_size: (?? ?? ?? ??)
+* Elf32_Word sh_link: 0 (00 00 00 00)
+* Elf32_Word sh_info: 0 (00 00 00 00)
+* Elf32_Word sh_addralign: 1 (01 00 00 00)
+* Elf32_Word sh_entsize: 0 (00 00 00 00)
+2 (".shstrtab"):
+* Elf32_Word sh_name: 7 (07 00 00 00)
+* Elf32_Word sh_type: SHT_STRTAB (03 00 00 00)
+* Elf32_Word sh_flags: 0 (00 00 00 00)
+* Elf32_Addr sh_addr: 0 (00 00 00 00)
+* Elf32_Off sh_offset: (?? ?? ?? ??)
+* Elf32_Word sh_size: (?? ?? ?? ??)
+* Elf32_Word sh_link: 0 (00 00 00 00)
+* Elf32_Word sh_info: 0 (00 00 00 00)
+* Elf32_Word sh_addralign: 1 (01 00 00 00)
+* Elf32_Word sh_entsize: 0 (00 00 00 00)
+3 (".symtab"):
+* Elf32_Word sh_name: 17 (11 00 00 00)
+* Elf32_Word sh_type: SHT_SYMTAB (02 00 00 00)
+* Elf32_Word sh_flags: 0 (00 00 00 00)
+* Elf32_Addr sh_addr: 0 (00 00 00 00)
+* Elf32_Off sh_offset: (?? ?? ?? ??)
+* Elf32_Word sh_size: (?? ?? ?? ??)
+* Elf32_Word sh_link: 4 (04 00 00 00)
+* Elf32_Word sh_info: 5 (05 00 00 00)
+* Elf32_Word sh_addralign: 1 (01 00 00 00)
+* Elf32_Word sh_entsize: 16 (10 00 00 00)
+4 (".strtab"):
+* Elf32_Word sh_name: 25 (19 00 00 00)
+* Elf32_Word sh_type: SHT_STRTAB (03 00 00 00)
+* Elf32_Word sh_flags: 0 (00 00 00 00)
+* Elf32_Addr sh_addr: 0 (00 00 00 00)
+* Elf32_Off sh_offset: (?? ?? ?? ??)
+* Elf32_Word sh_size: (?? ?? ?? ??)
+* Elf32_Word sh_link: 0 (00 00 00 00)
+* Elf32_Word sh_info: 0 (00 00 00 00)
+* Elf32_Word sh_addralign: 1 (01 00 00 00)
+* Elf32_Word sh_entsize: 0 (00 00 00 00)
+5 (".rel.text"):
+* Elf32_Word sh_name: 33 (21 00 00 00)
+* Elf32_Word sh_type: SHT_REL (09 00 00 00)
+* Elf32_Word sh_flags: 0 (00 00 00 00)
+* Elf32_Addr sh_addr: 0 (00 00 00 00)
+* Elf32_Off sh_offset: (?? ?? ?? ??)
+* Elf32_Word sh_size: (?? ?? ?? ??)
+* Elf32_Word sh_link: 3 (03 00 00 00)
+* Elf32_Word sh_info: 1 (01 00 00 00)
+* Elf32_Word sh_addralign: 1 (01 00 00 00)
+* Elf32_Word sh_entsize: 8 (08 00 00 00)
+
+Symbols:
+0: All 0s

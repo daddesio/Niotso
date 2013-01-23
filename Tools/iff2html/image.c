@@ -19,8 +19,8 @@
 #include <stdio.h>
 #include <iff/iff.h>
 #include <bmp/read_bmp.h>
-#include <setjmp.h>
 #include <png.h>
+#include <setjmp.h> /* Used for libpng */
 #include "opngreduc.h"
 
 int WritePNG(const char * OutName, const IFFChunk * ChunkData, int ZBuffer,

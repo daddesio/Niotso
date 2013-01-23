@@ -38,7 +38,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     set(RCFLAGS "")
 
     set(CFLAGS_LANG_C   "-ansi")
-    set(CFLAGS_LANG_CPP "-fvisibility-inlines-hidden -fno-exceptions -fno-rtti -fno-threadsafe-statics")
+    set(CFLAGS_LANG_CPP "-fvisibility-inlines-hidden -fno-exceptions -fno-rtti -fno-threadsafe-statics -D__STDC_LIMIT_MACROS")
 
     if(64BIT)
         set(CFLAGS "-m64 ${CFLAGS}")
@@ -70,7 +70,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
         set(LDFLAGS_SPEED "${LDFLAGS} -s -fwhole-program -flto -fno-stack-protector")
     else()
         # Debug
-        set(CFLAGS_DEBUG "${CFLAGS} -O0 -g3 -fstack-protector-all")
+        set(CFLAGS_DEBUG "${CFLAGS} -O0 -g3 -fstack-protector-all -D_FORTIFY_SOURCE=2 -DDEBUG")
         set(LDFLAGS_DEBUG "${LDFLAGS} -fstack-protector-all")
             set(CFLAGS_SIZE "${CFLAGS_DEBUG}")
             set(LDFLAGS_SIZE "${LDFLAGS_DEBUG}")
