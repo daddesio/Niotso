@@ -82,9 +82,12 @@ struct RTTIVector {
             Shutdown_M("Failed to allocate memory");
     }
     T& add(){
-        if((Count+1)*sizeof(T) > SizeAllocated)
-            if(SizeAllocated > SIZE_MAX/2 || !(Buffer = (T*) realloc(Buffer, SizeAllocated<<=1)))
+        if((Count+1)*sizeof(T) > SizeAllocated){
+            void * ptr;
+            if(SizeAllocated > SIZE_MAX/2 || !(ptr = (T*) realloc(Buffer, SizeAllocated<<=1)))
                 Shutdown_M("Failed to allocate memory");
+            Buffer = (T *) ptr;
+        }
 
         return Buffer[Count++];
     }

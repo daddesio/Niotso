@@ -88,16 +88,17 @@ typedef struct {
 } address_t;
 
 typedef struct {
-    size_t Size;
+    size_t SizeAllocated;
     size_t Count;
     address_t * Entries;
 } addresslist_t;
 
 static address_t * add_address(addresslist_t * List){
-    if(List->Count == List->Size){
-        List->Entries = realloc(List->Entries, (List->Size <<= 1) * sizeof(address_t));
-        if(!List->Entries)
+    if(List->Count*sizeof(address_t) == List->SizeAllocated){
+        void * ptr;
+        if(List->SizeAllocated > SIZE_MAX/2 || !(ptr = realloc(List->Entries, (List->SizeAllocated <<= 1))))
             Shutdown_M("%sCould not allocate memory for address list.\n", "hitdump: Error: ");
+        List->Entries = ptr;
     }
     return memset(List->Entries + List->Count++, 0, sizeof(address_t));
 }
@@ -453,7 +454,7 @@ int main(int argc, char *argv[]){
     ** Build up the address list
     */
 
-    AddressList.Size = 32;
+    AddressList.SizeAllocated = 32 * sizeof(address_t);
     AddressList.Count = 0;
     AddressList.Entries = malloc(32 * sizeof(address_t));
 

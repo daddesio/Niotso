@@ -58,9 +58,10 @@ typedef struct {
 } ByteWriterContext;
 
 static void bw_expand(ByteWriterContext *bwc){
-    bwc->Data = realloc(bwc->Data, (bwc->Size <<= 1));
-    if(!bwc->Data)
+    void * ptr;
+    if(bwc->Size > SIZE_MAX/2 || !(ptr = realloc(bwc->Data, bwc->Size<<=1)))
         Shutdown_M("%sCould not allocate memory for %s section.\n", "hitasm: Error: ", bwc->Name);
+    bwc->Data = ptr;
 }
 
 static void bw_write32(ByteWriterContext *bwc, uint32_t value){
