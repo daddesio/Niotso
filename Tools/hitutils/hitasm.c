@@ -22,12 +22,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
+#define HITASM_HEADERS
 #include "hitutils.h"
 
 static uint8_t ObjectHeader[] = {
     0x7F, 0x45, 0x4C, 0x46, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x40, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x28, 0x00,
+    0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x28, 0x00,
     0x06, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -103,29 +104,35 @@ enum {
     CN_LABELONLY = 1
 };
 
+enum Sections {
+    Text, SymbolTable, StringTable, RelocationTable, SectionCount
+};
+
 static FILE *hFile = NULL;
 static char *path[filecount] = {NULL};
 static uint8_t *data[filecount] = {NULL};
-static ByteWriterContext TextSection = {0,0,1024,"text"};
-static ByteWriterContext SymbolTable = {0,0,1024,"symtab"};
-static ByteWriterContext StringTable = {0,0,1024,"strtab"};
-static ByteWriterContext RelocationTable = {0,0,1024,".rel.text"};
+static ByteWriterContext Section[] = {
+    {0,0,1024,"text"},
+    {0,0,1024,"symtab"},
+    {0,0,1024,"strtab"},
+    {0,0,1024,".rel.text"}
+};
 
 static uint8_t * add_symbol(const char * Name){
-    bw_write32(&SymbolTable, StringTable.Position);
-    bw_write32(&SymbolTable, 0);
-    bw_write32(&SymbolTable, 0);
-    bw_write32(&SymbolTable, 18);
-    bw_write_string(&StringTable, Name);
-    return SymbolTable.Data + SymbolTable.Position - 16;
+    bw_write32(&Section[SymbolTable], Section[StringTable].Position);
+    bw_write32(&Section[SymbolTable], 0);
+    bw_write32(&Section[SymbolTable], 0);
+    bw_write32(&Section[SymbolTable], 18);
+    bw_write_string(&Section[StringTable], Name);
+    return Section[SymbolTable].Data + Section[SymbolTable].Position - 16;
 }
 
 static uint8_t * find_symbol_by_name(const char * Name, uint32_t * SymbolIndex){
     uint32_t p;
-    for(p=48; p<SymbolTable.Position; p+=16){
-        if(!strcmp((char*) StringTable.Data + read_uint32(SymbolTable.Data + p), Name)){
+    for(p=48; p<Section[SymbolTable].Position; p+=16){
+        if(!strcmp((char*) Section[StringTable].Data + read_uint32(Section[SymbolTable].Data + p), Name)){
             if(SymbolIndex) *SymbolIndex = p>>4;
-            return SymbolTable.Data + p;
+            return Section[SymbolTable].Data + p;
         }
     }
 
@@ -233,7 +240,7 @@ static __inline void parser_add_symbol(const ParserContext *pc){
                 path[txt], pc->Line, pc->Col, pc->Token, path[txt], read_uint32(Symbol+8));
     }else Symbol = add_symbol(pc->Token);
 
-    write_uint32(Symbol+4, TextSection.Position);
+    write_uint32(Symbol+4, Section[Text].Position);
     write_uint32(Symbol+8, pc->Line);
 }
 
@@ -244,8 +251,8 @@ static __inline void parser_add_reference(const ParserContext *pc){
     if(!find_symbol_by_name(pc->Token, &SymbolIndex))
         add_symbol(pc->Token);
 
-    bw_write32(&RelocationTable, TextSection.Position);
-    bw_write32(&RelocationTable, (SymbolIndex<<8)|0x02);
+    bw_write32(&Section[RelocationTable], Section[Text].Position);
+    bw_write32(&Section[RelocationTable], (SymbolIndex<<8)|0x02);
 }
 
 static uint32_t read_integer(const ParserContext *pc, uint32_t maxval){
@@ -339,10 +346,8 @@ static void Shutdown(){
         free(path[i]);
         free(data[i]);
     }
-    free(TextSection.Data);
-    free(SymbolTable.Data);
-    free(StringTable.Data);
-    free(RelocationTable.Data);
+    for(i=0; i<SectionCount; i++)
+        free(Section[i].Data);
     if(hFile)
         fclose(hFile);
 }
@@ -351,12 +356,14 @@ int main(int argc, char *argv[]){
     unsigned i;
     int SimsVersion = 0;
     int overwrite = 0;
-    size_t filesize[filecount-1] = {0};
+    size_t filesize[filecount-1];
     unsigned slash;
     const variable_t * Variables;
     size_t VariableCount;
     ParserContext pc;
     int InBinary = 0;
+    uint8_t * SectionHeader;
+    size_t SectionOffset;
 
     if(argc == 1 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")){
         printf("Usage: hitasm [-ts1|-tso] [-f] [-o outfile.o] infile.txt\n"
@@ -398,7 +405,7 @@ int main(int argc, char *argv[]){
 
     if(path[out] == NULL){
         int length = strlen(path[txt]);
-        path[out] = malloc(max(length+1, 5));
+        path[out] = malloc(max(length+1, 3));
         strcpy(path[out], path[txt]);
         strcpy(path[out] + max(length-4, 0), ".o");
     }
@@ -409,52 +416,27 @@ int main(int argc, char *argv[]){
 
     for(i=0; i<filecount-1; i++){
         size_t bytestransferred;
-        if(!path[i]) continue;
 
         hFile = fopen(path[i], "rb");
-        if(hFile == NULL){
-            if(i != txt){
-                fprintf(stderr, "%sCould not open file: %s.\n", "hitasm: Warning: ", path[i]);
-                continue;
-            }else
-                Shutdown_M("%sCould not open file: %s.\n", "hitasm: Error: ", path[i]);
-        }
+        if(hFile == NULL)
+            Shutdown_M("%sCould not open file: %s.\n", "hitasm: Error: ", path[i]);
 
         fseek(hFile, 0, SEEK_END);
         filesize[i] = ftell(hFile);
-        if(filesize[i] == 0 || filesize[i] == SIZE_MAX){
-            fclose(hFile); hFile = NULL;
-            if(i != txt){
-                fprintf(stderr, "%sFile is invalid: %s.\n", "hitasm: Warning: ", path[i]);
-                continue;
-            }else
-                Shutdown_M("%sFile is invalid: %s.\n", "hitasm: Error: ", path[i]);
-        }
+        if(filesize[i] == 0 || filesize[i] == SIZE_MAX)
+            Shutdown_M("%sFile is invalid: %s.\n", "hitasm: Error: ", path[i]);
 
         data[i] = malloc(filesize[i]+1);
-        if(data[i] == NULL){
-            fclose(hFile); hFile = NULL;
-            if(i != txt){
-                fprintf(stderr, "%sCould not allocate memory for file: %s.\n", "hitasm: Warning: ", path[i]);
-                continue;
-            }else
-                Shutdown_M("%sCould not allocate memory for file: %s.\n", "hitasm: Error: ", path[i]);
-        }
+        if(data[i] == NULL)
+            Shutdown_M("%sCould not allocate memory for file: %s.\n", "hitasm: Error: ", path[i]);
 
         fseek(hFile, 0, SEEK_SET);
         bytestransferred = fread(data[i], 1, filesize[i], hFile);
         fclose(hFile); hFile = NULL;
-        if(bytestransferred != filesize[i]){
-            free(data[i]); data[i] = NULL;
-            if(i != txt){
-                fprintf(stderr, "%sCould not read file: %s.\n", "hitasm: Warning: ", path[i]);
-                continue;
-            }else
-                Shutdown_M("%sCould not read file: %s.\n", "hitasm: Error: ", path[i]);
-        }
+        if(bytestransferred != filesize[i])
+            Shutdown_M("%sCould not read file: %s.\n", "hitasm: Error: ", path[i]);
         data[i][filesize[i]++] = '\0'; /* add a null character to the end of the file */
     }
-
 
     /****
     ** Open the output file for writing
@@ -480,26 +462,25 @@ int main(int argc, char *argv[]){
     ** Perform the assembly
     */
 
-    TextSection.Data = malloc(TextSection.Size);
-    SymbolTable.Data = malloc(SymbolTable.Size);
-    StringTable.Data = malloc(StringTable.Size);
-    RelocationTable.Data = malloc(RelocationTable.Size);
+    for(i=0; i<SectionCount; i++){
+        Section[i].Data = malloc(Section[Text].Size);
+        if(!Section[i].Data)
+            Shutdown_M("%sCould not allocate memory for %s section.\n", "hitasm: Error: ", Section[i].Name);
+    }
     pc.NextLine = 1;
     pc.NextCol = 1;
     pc.GaveLastToken = 1;
     pc.brc.Data = data[txt];
     pc.brc.Size = filesize[txt];
 
-    bw_write_memory(&SymbolTable, SymbolTableHeader, sizeof(SymbolTableHeader));
+    bw_write_memory(&Section[SymbolTable], SymbolTableHeader, sizeof(SymbolTableHeader));
 
     for(i=slash=0; path[txt][i]; i++)
         if(path[txt][i] == '/' || path[txt][i] == '\\') slash = i+1;
-    bw_write8(&StringTable, '\0');
-    bw_write_string(&StringTable, path[txt] + slash);
+    bw_write8(&Section[StringTable], '\0');
+    bw_write_string(&Section[StringTable], path[txt] + slash);
 
     while(parser_next_token(&pc, TK_CROSSLINES)){
-        printf("Token: %s\n", pc.Token);
-
         /* Unimplemented commands */
         if(!strcmp(pc.Token, "BASEID_TRACKDATA") || !strcmp(pc.Token, "INCLUDE")
             || !strcmp(pc.Token, "include") || !strcmp(pc.Token, "INIFILE")
@@ -542,16 +523,14 @@ int main(int argc, char *argv[]){
                 /* declare bytes (db and dd pseudo-instructions) */
                 do {
                     if(pc.Token[0] != '#')
-                        bw_write8(&TextSection, read_integer(&pc, 0x000000FF));
+                        bw_write8(&Section[Text], read_integer(&pc, 0x000000FF));
                     else
-                        bw_write32(&TextSection, read_constant(&pc, 0, 0xFFFFFFFF));
+                        bw_write32(&Section[Text], read_constant(&pc, 0, 0xFFFFFFFF));
                 } while(parser_next_token(&pc, 0));
                 continue;
             }else{
                 const char * InstructionName = pc.Token;
-
-                printf("Instruction: %s\n", pc.Token);
-                bw_write8(&TextSection, opcode);
+                bw_write8(&Section[Text], opcode);
 
                 for(i=0; (operands >>= 4) != 0; i++){
                     int type = operands & 15;
@@ -564,19 +543,17 @@ int main(int argc, char *argv[]){
                             path[txt], pc.Line, pc.Col, pc.Token, InstructionName, position[j], position[i]);
                     }
 
-                    printf("Operand: %s\n", pc.Token);
-
                     if(type == o_byte)
-                        bw_write8(&TextSection, read_constant(&pc, 0, 0x000000FF));
+                        bw_write8(&Section[Text], read_constant(&pc, 0, 0x000000FF));
                     else if(type == o_dword)
-                        bw_write32(&TextSection, read_constant(&pc, 0, 0xFFFFFFFF));
+                        bw_write32(&Section[Text], read_constant(&pc, 0, 0xFFFFFFFF));
                     else if(type == o_address)
-                        bw_write32(&TextSection, read_constant(&pc, CN_LABELONLY, 0xFFFFFFFF));
+                        bw_write32(&Section[Text], read_constant(&pc, CN_LABELONLY, 0xFFFFFFFF));
                     else if(type == o_variable)
-                        bw_write8(&TextSection, read_variable(&pc, Variables, VariableCount));
+                        bw_write8(&Section[Text], read_variable(&pc, Variables, VariableCount));
                     else if(type == o_jump){
                         /* TODO: Change this */
-                        bw_write32(&TextSection, read_constant(&pc, CN_LABELONLY, 0xFFFFFFFF));
+                        bw_write32(&Section[Text], read_constant(&pc, CN_LABELONLY, 0xFFFFFFFF));
                     }
                 }
             }
@@ -589,31 +566,35 @@ int main(int argc, char *argv[]){
         Shutdown_M("%s:%u:%u: error: expected ']' for end of BINARY section before end of file\n",
             path[txt], pc.Line, pc.Col);
 
-    for(i=48+8; i<SymbolTable.Position; i+=16)
-        write_uint32(SymbolTable.Data + i, 0);
+    /****
+    ** Prepare and write out the ELF object header and all sections
+    */
 
-    i = 304;
-    write_uint32(ObjectHeader + 120, i);
-    write_uint32(ObjectHeader + 124, TextSection.Position);
-    i += TextSection.Position;
-    write_uint32(ObjectHeader + 160, i);
-    write_uint32(ObjectHeader + 164, sizeof(SHStringTable));
-    i += sizeof(SHStringTable);
-    write_uint32(ObjectHeader + 200, i);
-    write_uint32(ObjectHeader + 204, SymbolTable.Position);
-    i += SymbolTable.Position;
-    write_uint32(ObjectHeader + 240, i);
-    write_uint32(ObjectHeader + 244, StringTable.Position);
-    i += StringTable.Position;
-    write_uint32(ObjectHeader + 280, i);
-    write_uint32(ObjectHeader + 284, RelocationTable.Position);
+    for(i=48+8; i<Section[SymbolTable].Position; i+=16)
+        write_uint32(Section[SymbolTable].Data + i, 0); /* clear the st_size field we used temporarily */
+
+    if(SimsVersion == VERSION_TSO)
+        ObjectHeader[36]++; /* set the lsb of the processor flags to indicate that this code is for TSO */
+
+    for(i = 0, SectionHeader = ObjectHeader + 120, SectionOffset = 304; i < SectionCount; i++){
+        write_uint32(SectionHeader + 0, SectionOffset);
+        write_uint32(SectionHeader + 4, Section[i].Position);
+        SectionHeader += 40;
+        SectionOffset += Section[i].Position;
+
+        if(i == 0){
+            write_uint32(SectionHeader + 0, SectionOffset);
+            write_uint32(SectionHeader + 4, sizeof(SHStringTable));
+            SectionHeader += 40;
+            SectionOffset += sizeof(SHStringTable);
+        }
+    }
 
     fwrite(ObjectHeader, 1, sizeof(ObjectHeader), hFile);
-    fwrite(TextSection.Data, 1, TextSection.Position, hFile);
+    fwrite(Section[Text].Data, 1, Section[Text].Position, hFile);
     fwrite(SHStringTable, 1, sizeof(SHStringTable), hFile);
-    fwrite(SymbolTable.Data, 1, SymbolTable.Position, hFile);
-    fwrite(StringTable.Data, 1, StringTable.Position, hFile);
-    fwrite(RelocationTable.Data, 1, RelocationTable.Position, hFile);
+    for(i=1; i<SectionCount; i++)
+        fwrite(Section[i].Data, 1, Section[i].Position, hFile);
 
     Shutdown();
 

@@ -311,7 +311,7 @@ static void AdvanceFrame(Skeleton_t& Skeleton, Animation_t& Animation, float Tim
             Bone.Rotation.y = w1*Rotation.y + w2*NextRotation.y;
             Bone.Rotation.z = w1*Rotation.z + w2*NextRotation.z;
             Bone.Rotation.w = w1*Rotation.w + w2*NextRotation.w;
-            
+
             Normalize(&Bone.Rotation);
         }
     }

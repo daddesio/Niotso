@@ -35,21 +35,75 @@
 #ifndef round
  #define round(x) ((x) >= 0 ? (x)+0.5 : (x)-0.5)
 #endif
+#ifndef clamp
+ #define clamp(x, low, high) ((x) < low ? low : (x) > high ? high : (x))
+#endif
 #ifndef min
  #define min(x, y) ((x) < (y) ? (x) : (y))
 #endif
 
-static uint8_t ReadBits(utkparams_t *p, uint8_t bits);
-static void SetUTKParameters(utkparams_t *p);
-static void DecompressBlock(utkparams_t *p);
-static void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval);
-static void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks);
-static void PredictionFilter(const float *__restrict ImpulseTrain, float *__restrict Residual);
+static uint8_t ReadBits(utkcontext_t *ctx, uint8_t bits);
+static void InitUTKParameters(utkcontext_t *ctx);
+static void DecodeFrame(utkcontext_t *ctx);
+static void GenerateExcitation(utkcontext_t *ctx, int Voiced, float * Window, int Interval);
+static void Synthesize(utkcontext_t *ctx, unsigned Sample, unsigned Blocks);
+static void RCtoLPC(const float *__restrict RC, float *__restrict LPC);
 
-float         UTKTable1[64];
-uint8_t       UTKTable2[512];
-const uint8_t UTKTable3[29] = {8,7,8,7,2,2,2,3,3,4,4,3,3,5,5,4,4,6,6,5,5,7,7,6,6,8,8,7,7};
-float         UTKTable4[29];
+static const float UTKCosine[64] = {
+    0,
+    -.99677598476409912109375, -.99032700061798095703125, -.983879029750823974609375, -.977430999279022216796875,
+    -.970982015132904052734375, -.964533984661102294921875, -.958085000514984130859375, -.9516370296478271484375,
+    -.930754005908966064453125, -.904959976673126220703125, -.879167020320892333984375, -.853372991085052490234375,
+    -.827579021453857421875, -.801786005496978759765625, -.775991976261138916015625, -.75019800662994384765625,
+    -.724404990673065185546875, -.6986110210418701171875, -.6706349849700927734375, -.61904799938201904296875,
+    -.567460000514984130859375, -.515873014926910400390625, -.4642859995365142822265625, -.4126980006694793701171875,
+    -.361110985279083251953125, -.309523999691009521484375, -.257937014102935791015625, -.20634900033473968505859375,
+    -.1547619998455047607421875, -.10317499935626983642578125, -.05158700048923492431640625,
+    0,
+    +.05158700048923492431640625, +.10317499935626983642578125, +.1547619998455047607421875, +.20634900033473968505859375,
+    +.257937014102935791015625, +.309523999691009521484375, +.361110985279083251953125, +.4126980006694793701171875,
+    +.4642859995365142822265625, +.515873014926910400390625, +.567460000514984130859375, +.61904799938201904296875,
+    +.6706349849700927734375, +.6986110210418701171875, +.724404990673065185546875, +.75019800662994384765625,
+    +.775991976261138916015625, +.801786005496978759765625, +.827579021453857421875, +.853372991085052490234375,
+    +.879167020320892333984375, +.904959976673126220703125, +.930754005908966064453125, +.9516370296478271484375,
+    +.958085000514984130859375, +.964533984661102294921875, +.970982015132904052734375, +.977430999279022216796875,
+    +.983879029750823974609375, +.99032700061798095703125, +.99677598476409912109375
+};
+static const uint8_t UTKCodebook[512] = {
+    4,  6,  5,  9,  4,  6,  5, 13,  4,  6,  5, 10,  4,  6,  5, 17,
+    4,  6,  5,  9,  4,  6,  5, 14,  4,  6,  5, 10,  4,  6,  5, 21,
+    4,  6,  5,  9,  4,  6,  5, 13,  4,  6,  5, 10,  4,  6,  5, 18,
+    4,  6,  5,  9,  4,  6,  5, 14,  4,  6,  5, 10,  4,  6,  5, 25,
+    4,  6,  5,  9,  4,  6,  5, 13,  4,  6,  5, 10,  4,  6,  5, 17,
+    4,  6,  5,  9,  4,  6,  5, 14,  4,  6,  5, 10,  4,  6,  5, 22,
+    4,  6,  5,  9,  4,  6,  5, 13,  4,  6,  5, 10,  4,  6,  5, 18,
+    4,  6,  5,  9,  4,  6,  5, 14,  4,  6,  5, 10,  4,  6,  5,  0,
+    4,  6,  5,  9,  4,  6,  5, 13,  4,  6,  5, 10,  4,  6,  5, 17,
+    4,  6,  5,  9,  4,  6,  5, 14,  4,  6,  5, 10,  4,  6,  5, 21,
+    4,  6,  5,  9,  4,  6,  5, 13,  4,  6,  5, 10,  4,  6,  5, 18,
+    4,  6,  5,  9,  4,  6,  5, 14,  4,  6,  5, 10,  4,  6,  5, 26,
+    4,  6,  5,  9,  4,  6,  5, 13,  4,  6,  5, 10,  4,  6,  5, 17,
+    4,  6,  5,  9,  4,  6,  5, 14,  4,  6,  5, 10,  4,  6,  5, 22,
+    4,  6,  5,  9,  4,  6,  5, 13,  4,  6,  5, 10,  4,  6,  5, 18,
+    4,  6,  5,  9,  4,  6,  5, 14,  4,  6,  5, 10,  4,  6,  5,  2,
+    4, 11,  7, 15,  4, 12,  8, 19,  4, 11,  7, 16,  4, 12,  8, 23,
+    4, 11,  7, 15,  4, 12,  8, 20,  4, 11,  7, 16,  4, 12,  8, 27,
+    4, 11,  7, 15,  4, 12,  8, 19,  4, 11,  7, 16,  4, 12,  8, 24,
+    4, 11,  7, 15,  4, 12,  8, 20,  4, 11,  7, 16,  4, 12,  8,  1,
+    4, 11,  7, 15,  4, 12,  8, 19,  4, 11,  7, 16,  4, 12,  8, 23,
+    4, 11,  7, 15,  4, 12,  8, 20,  4, 11,  7, 16,  4, 12,  8, 28,
+    4, 11,  7, 15,  4, 12,  8, 19,  4, 11,  7, 16,  4, 12,  8, 24,
+    4, 11,  7, 15,  4, 12,  8, 20,  4, 11,  7, 16,  4, 12,  8,  3,
+    4, 11,  7, 15,  4, 12,  8, 19,  4, 11,  7, 16,  4, 12,  8, 23,
+    4, 11,  7, 15,  4, 12,  8, 20,  4, 11,  7, 16,  4, 12,  8, 27,
+    4, 11,  7, 15,  4, 12,  8, 19,  4, 11,  7, 16,  4, 12,  8, 24,
+    4, 11,  7, 15,  4, 12,  8, 20,  4, 11,  7, 16,  4, 12,  8,  1,
+    4, 11,  7, 15,  4, 12,  8, 19,  4, 11,  7, 16,  4, 12,  8, 23,
+    4, 11,  7, 15,  4, 12,  8, 20,  4, 11,  7, 16,  4, 12,  8, 28,
+    4, 11,  7, 15,  4, 12,  8, 19,  4, 11,  7, 16,  4, 12,  8, 24,
+    4, 11,  7, 15,  4, 12,  8, 20,  4, 11,  7, 16,  4, 12,  8,  3
+};
+static const uint8_t UTKCodeSkips[29] = {8,7,8,7,2,2,2,3,3,4,4,3,3,5,5,4,4,6,6,5,5,7,7,6,6,8,8,7,7};
 
 int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, size_t FileSize)
 {
@@ -83,258 +137,199 @@ int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, size_t File
     return 1;
 }
 
-int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, size_t Frames){
-    utkparams_t p;
+int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, size_t InSize, size_t Samples){
+    utkcontext_t p;
     p.InData = InBuffer;
-    SetUTKParameters(&p);
+    p.InDataEnd = InBuffer + InSize;
+    InitUTKParameters(&p);
 
-    while(Frames){
-        int i, BlockSize = min(Frames, 432);
-        DecompressBlock(&p);
+    while(Samples){
+        int i, BlockSize = min(Samples, 432);
+        DecodeFrame(&p);
 
         for(i=0; i<BlockSize; i++){
-            int value = round(p.DecompressedBlock[i]);
-
-            if(value < -32768)
-                value = -32768;
-            else if(value > 32767)
-                value = 32767;
-
+            int value = round(p.DecompressedFrame[i]);
+            value = clamp(value, -32768, 32767);
             write_uint16(OutBuffer, value);
             OutBuffer += 2;
         }
-        Frames -= BlockSize;
+        Samples -= BlockSize;
     }
     return 1;
 }
 
-void UTKGenerateTables(void){
-    /* Call once per runtime */
-    int i;
+static uint8_t ReadBits(utkcontext_t *ctx, uint8_t bits){
+    unsigned value = ctx->UnreadBitsValue & (255>>(8-bits));
+    ctx->UnreadBitsValue >>= bits;
+    ctx->UnreadBitsCount -= bits;
 
-    /* UTKTable1 */
-    UTKTable1[0] = 0;
-    for(i=-31; i<32; i++){
-        int s = (i>=0) ? 1 : -1;
-        if     (s*i<14) UTKTable1[i+32] = i*.051587f;
-        else if(s*i<25) UTKTable1[i+32] = i*.051587f/2 + s*.337503f;
-        else            UTKTable1[i+32] = i*.051587f/8 + s*.796876f;
-    }
-
-    /* UTKTable2 */
-    for(i=0; i<512; i++){
-        switch(i%4){
-        case 0: UTKTable2[i] = 4; break;
-        case 1: UTKTable2[i] = (i<256) ? 6 : (11 + (i%8 > 4)); break;
-        case 2: UTKTable2[i] = (i<256) ? 5 : (7 + (i%8 > 4)); break;
-        case 3: {
-            const uint8_t l1[] = {9,15,13,19,10,16},
-                  l2[] = {17,21,18,25,17,22,18,00,17,21,18,26,17,22,18,02,
-                          23,27,24,01,23,28,24,03,23,27,24,01,23,28,24,03};
-            if(i%16 < 4)       UTKTable2[i] = l1[0 + (i>256)];
-            else if(i%16 < 8)  UTKTable2[i] = l1[2 + (i>256)] + (i%32 > 16);
-            else if(i%16 < 12) UTKTable2[i] = l1[4 + (i>256)];
-            else UTKTable2[i] = l2[i/16];
-        } break;
-        }
-    }
-
-    /* UTKTable4 */
-    UTKTable4[0] = 0;
-    for(i=0; i<7; i++){
-        UTKTable4[4*i+1] = -i;
-        UTKTable4[4*i+2] = +i;
-        UTKTable4[4*i+3] = -i;
-        UTKTable4[4*i+4] = +i;
-    }
-}
-
-static uint8_t ReadBits(utkparams_t *p, uint8_t bits){
-    unsigned value = p->UnreadBitsValue & (255>>(8-bits));
-    p->UnreadBitsValue >>= bits;
-    p->UnreadBitsCount -= bits;
-
-    if(p->UnreadBitsCount < 8){
-        p->UnreadBitsValue |= *(p->InData++) << p->UnreadBitsCount;
-        p->UnreadBitsCount += 8;
+    if(ctx->UnreadBitsCount < 8 && ctx->InData != ctx->InDataEnd){
+        ctx->UnreadBitsValue |= *(ctx->InData++) << ctx->UnreadBitsCount;
+        ctx->UnreadBitsCount += 8;
     }
     return value;
 }
 
-static void SetUTKParameters(utkparams_t *p){
-    /* Call once per file */
+static void InitUTKParameters(utkcontext_t *ctx){
     int i;
-    float s;
-    p->UnreadBitsValue = *(p->InData++);
-    p->UnreadBitsCount = 8;
-    p->UseLattice = (int)ReadBits(p, 1);
-    p->NoiseFloor = 32 - ReadBits(p, 4);
-    p->FixedCodebook[0] = (ReadBits(p, 4)+1)*8;
+    float base;
+    ctx->UnreadBitsValue = *(ctx->InData++);
+    ctx->UnreadBitsCount = 8;
+    ctx->HalvedExcitation = ReadBits(ctx, 1);
+    ctx->VoicedThreshold = 32 - ReadBits(ctx, 4);
+    ctx->InnovationPower[0] = (ReadBits(ctx, 4)+1) * 8; /* significand */
 
-    s = (float)ReadBits(p, 6)/1000 + 1.04;
+    base = 1.04f + (float)ReadBits(ctx, 6)/1000;
     for(i=1; i<64; i++)
-        p->FixedCodebook[i] = p->FixedCodebook[i-1]*s;
+        ctx->InnovationPower[i] = ctx->InnovationPower[i-1]*base;
 
-    memset(p->ImpulseTrain, 0, 12*sizeof(float));
-    memset(p->R, 0, 12*sizeof(float));
-    memset(p->Delay, 0, 324*sizeof(float));
+    memset(ctx->RC, 0, 12*sizeof(float));
+    memset(ctx->History, 0, 12*sizeof(float));
+    memset(ctx->Delay, 0, 324*sizeof(float));
 }
 
-static void DecompressBlock(utkparams_t *p){
+static void DecodeFrame(utkcontext_t *ctx){
     int i,j;
-    float Window[118];
-    float Matrix[12];
+    float Excitation[118]; /* includes 5 0-valued samples to both the left and the right */
+    float RCDelta[12];
     int Voiced = 0;
 
-    memset(&Window[0], 0, 5*sizeof(float));
-    memset(&Window[113], 0, 5*sizeof(float));
+    memset(&Excitation[0], 0, 5*sizeof(float));
+    memset(&Excitation[113], 0, 5*sizeof(float));
 
     for(i=0; i<12; i++){
-        unsigned result = ReadBits(p, (i<4) ? 6 : 5);
-        if(i==0 && p->NoiseFloor > result) Voiced++;
-        Matrix[i] = (UTKTable1[result + ((i<4)?0:16)] - p->ImpulseTrain[i])/4;
+        unsigned result = ReadBits(ctx, (i<4) ? 6 : 5);
+        if(i==0 && result < ctx->VoicedThreshold) Voiced++;
+        RCDelta[i] = (UTKCosine[result + ((i<4)?0:16)] - ctx->RC[i])/4;
     }
 
     for(i=0; i<4; i++){
         float PitchGain, InnovationGain;
-        int Phase = (int)ReadBits(p, 8);
-        PitchGain = (float)ReadBits(p, 4)/15;
-        InnovationGain = p->FixedCodebook[ReadBits(p, 6)];
+        int Phase = ReadBits(ctx, 8);
+        PitchGain = (float)ReadBits(ctx, 4)/15;
+        InnovationGain = ctx->InnovationPower[ReadBits(ctx, 6)];
 
-        if(!p->UseLattice){
-            LatticeFilter(p, Voiced, &Window[5], 1);
+        if(!ctx->HalvedExcitation){
+            GenerateExcitation(ctx, Voiced, &Excitation[5], 1);
         }else{
-            int o = ReadBits(p, 1); /* Order */
-            int y = ReadBits(p, 1);
-            LatticeFilter(p, Voiced, &Window[5+o], 2);
+            /* Fill the excitation window with half as many samples and interpolate the rest */
+            int Alignment = ReadBits(ctx, 1); /* whether to fill the even or odd samples */
+            int FillWithZero = ReadBits(ctx, 1);
+            GenerateExcitation(ctx, Voiced, &Excitation[5+Alignment], 2);
 
-            if(y){
+            if(FillWithZero){
                 for(j=0; j<108; j+=2)
-                    Window[6-o + j] = 0;
+                    Excitation[5 + (1-Alignment) + j] = 0.0;
             }else{
-                /* Vector quantization */
-                float *z = &Window[6-o];
-                for(j=0; j<54; j++, z+=2)
-                    *z =
-                          (z[-5]+z[+5]) * .0180326793f
-                        - (z[-3]+z[+3]) * .1145915613f
-                        + (z[-1]+z[+1]) * .5973859429f;
+                /* Use sinc interpolation with 6 neighboring samples */
+                float *x = &Excitation[5 + (1-Alignment)];
+                for(j=0; j<54; j++, x+=2)
+                    *x =   (x[-1]+x[+1]) * .5973859429f
+                         - (x[-3]+x[+3]) * .1145915613f
+                         + (x[-5]+x[+5]) * .0180326793f;
 
                 InnovationGain /= 2;
             }
         }
 
-        /* Excitation */
+        /* If 216-Phase is negative on the first subframe, it will read into RC and History
+           as the reference decoder does, which have been initialized to 0 in InitUTKParameters(). */
         for(j=0; j<108; j++)
-            p->DecompressedBlock[108*i + j] = InnovationGain*Window[5+j] + PitchGain*p->Delay[216 - Phase + 108*i + j];
+            ctx->DecompressedFrame[108*i + j] = InnovationGain*Excitation[5+j] + PitchGain*ctx->Delay[108*i + j + (216-Phase)];
+        for(j=0; j<108; j++)
+            ctx->WhatIsThis[108*i + j] = PitchGain*ctx->Delay[108*i + j + (216-Phase)];
     }
 
-    memcpy(p->Delay, &p->DecompressedBlock[108], 324*sizeof(float));
+    memcpy(ctx->Delay, &ctx->DecompressedFrame[108], 324*sizeof(float));
 
     for(i=0; i<4; i++){
+        /* Linearly interpolate the reflection coefficients for the current subframe */
         for(j=0; j<12; j++)
-            p->ImpulseTrain[j] += Matrix[j];
+            ctx->RC[j] += RCDelta[j];
 
-        Synthesize(p, i*12, (i!=3) ? 1 : 33);
+        Synthesize(ctx, i*12, (i!=3) ? 12 : 396);
     }
 }
 
-static void LatticeFilter(utkparams_t *p, int Voiced, float * Window, int Interval){
+static void GenerateExcitation(utkcontext_t *ctx, int Voiced, float * Window, int Interval){
     if(Voiced){
-        int t = 0;
+        int Table = 0;
         int i = 0;
         while(i<108){
-            unsigned code = UTKTable2[(t<<8) | (p->UnreadBitsValue&0xFF)];
-            t = (code<2 || code>8);
-            ReadBits(p, UTKTable3[code]);
+            unsigned code = UTKCodebook[(Table<<8) | (ctx->UnreadBitsValue&0xFF)];
+            Table = (code<2 || code>8);
+            ReadBits(ctx, UTKCodeSkips[code]);
 
             if(code >= 4){
-                Window[i] = UTKTable4[code];
+                /* Fill a sample with a value specified by the code; magnitude is limited to 6.0 */
+                Window[i] = (code-1)/4;
+                if(code&1)
+                    Window[i] *= -1.0;
+
                 i += Interval;
-            }else{
-                if(code > 1){
-                    int x = (int)ReadBits(p, 6)+7;
-                    if(x > (108 - i)/Interval)
-                        x = (108 - i)/Interval;
+            }else if(code >= 2){
+                /* Fill between 7 and 70 samples with 0s */
+                int x = ReadBits(ctx, 6) + 7;
+                x = min(x, (108 - i)/Interval);
 
-                    while(x--){
-                        Window[i] = 0;
-                        i += Interval;
-                    }
-                }else{
-                    Window[i] = 7;
-                    while(ReadBits(p, 1))
-                        Window[i]++;
-
-                    if(!ReadBits(p, 1))
-                        Window[i] *= -1;
-
+                while(x--){
+                    Window[i] = 0.0;
                     i += Interval;
                 }
+            }else{
+                /* Fill a sample with a custom value with magnitude >= 7.0 */
+                Window[i] = 7.0;
+                while(ReadBits(ctx, 1))
+                    Window[i]++;
+
+                if(!ReadBits(ctx, 1))
+                    Window[i] *= -1;
+
+                i += Interval;
             }
         }
     }else{
-        /* Unvoiced signal; load noise */
+        /* Unvoiced: restrict all samples to 0.0, -2.0, or +2.0 without using the codebook */
         int i;
         for(i=0; i<108; i+=Interval){
-            uint8_t b;
-            switch(p->UnreadBitsValue & 3){
-            case 3:
-                Window[i] = 2.0;
-                b = 2;
-                break;
-            case 1:
-                Window[i] = -2.0;
-                b = 2;
-                break;
-            default:
-                Window[i] = 0.0;
-                b = 1;
-            }
-
-            ReadBits(p, b);
+            if(!ReadBits(ctx, 1)) Window[i] = 0.0;
+            else if(!ReadBits(ctx, 1)) Window[i] = -2.0;
+            else Window[i] = 2.0;
         }
     }
 }
 
-static void Synthesize(utkparams_t *p, unsigned Sample, unsigned Blocks){
-    float Residual[12];
-    unsigned Samples = Blocks*12;
+static void Synthesize(utkcontext_t *ctx, size_t Sample, size_t Samples){
+    float LPC[12];
     int offset = -1;
-    PredictionFilter(p->ImpulseTrain, Residual);
+    RCtoLPC(ctx->RC, LPC);
 
     while(Samples--){
         int i;
-        float x = p->DecompressedBlock[Sample];
         for(i=0; i<12; i++){
             if(++offset == 12) offset = 0;
-            x += p->R[offset] * Residual[i];
+            ctx->DecompressedFrame[Sample] += LPC[i] * ctx->History[offset];
         }
-        p->R[offset--] = x;
-        p->DecompressedBlock[Sample++] = x;
+        ctx->History[offset--] = ctx->DecompressedFrame[Sample++];
     }
 }
 
-static void PredictionFilter(const float *__restrict ImpulseTrain, float *__restrict Residual){
+static void RCtoLPC(const float *__restrict RC, float *__restrict LPC){
     int i,j;
-    float ResidualGain[12];
-    float ImpulseGain[12];
-    ImpulseGain[0] = 1;
-    memcpy(&ImpulseGain[1], ImpulseTrain, 11*sizeof(float));
+    float RCTemp[12], LPCTemp[12];
+    RCTemp[0] = 1.0;
+    memcpy(&RCTemp[1], RC, 11*sizeof(float));
 
     for(i=0; i<12; i++){
-        float x = 0;
+        LPC[i] = 0.0;
         for(j=11; j>=0; j--){
-            x -= ImpulseTrain[j] * ImpulseGain[j];
+            LPC[i] -= RC[j] * RCTemp[j];
             if(j != 11)
-                ImpulseGain[j+1] = x*ImpulseTrain[j] + ImpulseGain[j];
+                RCTemp[j+1] = RCTemp[j] + RC[j] * LPC[i];
         }
-        ImpulseGain[0] = x;
-        ResidualGain[i] = x;
+        RCTemp[0] = LPCTemp[i] = LPC[i];
 
         for(j=0; j<i; j++)
-            x -= ResidualGain[i-j-1] * Residual[j];
-
-        Residual[i] = x;
+            LPC[i] -= LPCTemp[i-j-1] * LPC[j];
     }
 }

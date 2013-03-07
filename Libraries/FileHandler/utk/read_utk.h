@@ -35,24 +35,24 @@ typedef struct
 } utkheader_t;
 
 typedef struct {
-    const uint8_t *InData;
+    const uint8_t *InData, *InDataEnd;
     unsigned UnreadBitsValue, UnreadBitsCount;
-    int UseLattice;
-    unsigned NoiseFloor;
-    float FixedCodebook[64]; /* Fixed codebook gain matrix */
-    float ImpulseTrain[12];  /* Impulse train matrix */
-    float R[12];             /* Autocorrelation coefficient matrix */
+    int HalvedExcitation;
+    unsigned VoicedThreshold;
+    float InnovationPower[64];
+    float RC[12];
+    float History[12];
     float Delay[324];
-    float DecompressedBlock[432];
-} utkparams_t;
+    float DecompressedFrame[432];
+    float WhatIsThis[432];
+} utkcontext_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 int utk_read_header(utkheader_t * UTKHeader, const uint8_t * Buffer, size_t FileSize);
-int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, size_t Frames);
-void UTKGenerateTables(void);
+int utk_decode(const uint8_t *__restrict InBuffer, uint8_t *__restrict OutBuffer, size_t InSize, size_t Samples);
 
 #ifdef __cplusplus
 }

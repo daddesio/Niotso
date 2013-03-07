@@ -139,13 +139,7 @@ static uint8_t * ReadUTK(Sound_t * Sound, const uint8_t * InData, size_t FileSiz
         return NULL;
     }
 
-    static bool generated = false;
-    if(!generated){
-        UTKGenerateTables();
-        generated = true;
-    }
-
-    if(!utk_decode(InData+32, OutData, UTKHeader.Frames)){
+    if(!utk_decode(InData+32, OutData, FileSize-32, UTKHeader.Frames)){
         free(OutData);
         return NULL;
     }

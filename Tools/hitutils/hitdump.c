@@ -96,7 +96,7 @@ typedef struct {
 static address_t * add_address(addresslist_t * List){
     if(List->Count*sizeof(address_t) == List->SizeAllocated){
         void * ptr;
-        if(List->SizeAllocated > SIZE_MAX/2 || !(ptr = realloc(List->Entries, (List->SizeAllocated <<= 1))))
+        if(List->SizeAllocated > SIZE_MAX/2 || !(ptr = realloc(List->Entries, List->SizeAllocated<<=1)))
             Shutdown_M("%sCould not allocate memory for address list.\n", "hitdump: Error: ");
         List->Entries = ptr;
     }

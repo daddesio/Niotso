@@ -107,10 +107,8 @@ int main(int argc, char *argv[]){
         if(WaveData == NULL)
             Shutdown_M("Memory for this file could not be allocated");
 
-        UTKGenerateTables();
-
         BeginningTime = clock();
-        if(!utk_decode(UTKData+32, WaveData+44, UTKHeader.Frames))
+        if(!utk_decode(UTKData+32, WaveData+44, FileSize-32, UTKHeader.Frames))
             Shutdown_M("Memory for this file could not be allocated");
         EndingTime = clock();
 

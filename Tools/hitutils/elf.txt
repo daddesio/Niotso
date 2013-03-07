@@ -1,14 +1,3 @@
-* Elf32_Word sh_name: 
-* Elf32_Word sh_type: 
-* Elf32_Word sh_flags: 
-* Elf32_Addr sh_addr: 
-* Elf32_Off sh_offset: (?? ?? ?? ??)
-* Elf32_Word sh_size: (?? ?? ?? ??)
-* Elf32_Word sh_link: 
-* Elf32_Word sh_info: 
-* Elf32_Word sh_addralign: 1 (01 00 00 00)
-* Elf32_Word sh_entsize: 
-
 ELF Header:
 * e_ident:
   * Elf32_Word EI_MAG0: (7F 45 4C 46)

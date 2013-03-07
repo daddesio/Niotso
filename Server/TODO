@@ -7,15 +7,4 @@ to complete the criteria for the next development phase, which can be found here
 
 //----------//
 
-Development Phase: Planning
-
-Technical Preview 1
-Schedule: (Not very subject to change)
- 1. Implement cst, uis, ini, and xml parsers with support for UTF-8 [20%]
- 2. Replicate functionality up until the login dialog [90%]
- 3. Implement the audio engine
- 4. Implement the OpenGL-based windowing system
- 5. Replicate character selection and creation features and the city selection dialog
- 6. Implement debug logging and support for configuration files
- 7. Implement the code needed to allow the game to read all necessary files from the TSOClient folder
- 8. Port the client to Linux
+Tasks will be added for the server when the development phase reaches Alpha.
